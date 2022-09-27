@@ -193,14 +193,24 @@ func (c *Client) WaitForDeploymentReady(name, namespace string, timeout time.Dur
 	conditionFunc := func() (bool, error) {
 		return c.isDeploymentReady(context.TODO(), name, namespace)
 	}
-	return wait.PollImmediate(time.Second, timeout, conditionFunc)
+
+	if int(timeout) < 0 {
+		return wait.PollInfinite(time.Second, conditionFunc)
+	} else {
+		return wait.PollImmediate(time.Second, timeout, conditionFunc)
+	}
 }
 
 func (c *Client) WaitForClusterReady(name, namespace string, timeout time.Duration) error {
 	conditionFunc := func() (bool, error) {
 		return c.isClusterReady(context.TODO(), name, namespace)
 	}
-	return wait.PollImmediate(time.Second, timeout, conditionFunc)
+
+	if int(timeout) < 0 {
+		return wait.PollInfinite(time.Second, conditionFunc)
+	} else {
+		return wait.PollImmediate(time.Second, timeout, conditionFunc)
+	}
 }
 
 func (c *Client) isDeploymentReady(ctx context.Context, name, namespace string) (bool, error) {

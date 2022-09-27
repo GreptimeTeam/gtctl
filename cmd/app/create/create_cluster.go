@@ -2,6 +2,7 @@ package create
 
 import (
 	"log"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -17,7 +18,9 @@ type createOptions struct {
 	FrontendImage     string
 	DatanodeImage     string
 	EtcdImage         string
-	DryRun            bool
+
+	DryRun  bool
+	Timeout int
 }
 
 const (
@@ -50,6 +53,7 @@ func NewCreateClusterCommand() *cobra.Command {
 			operatorArgs := &cluster.OperatorDeploymentArgs{
 				OperatorImage: options.OperatorImage,
 				Namespace:     options.OperatorNamespace,
+				Timeout:       time.Duration(options.Timeout) * time.Second,
 			}
 
 			log.Printf("Deploying GreptimeDB Operator ...\n")
@@ -66,6 +70,7 @@ func NewCreateClusterCommand() *cobra.Command {
 				MetaImage:     options.MetaImage,
 				DatanodeImage: options.DatanodeImage,
 				EtcdImage:     options.EtcdImage,
+				Timeout:       time.Duration(options.Timeout) * time.Second,
 			}
 			if err := clusterManager.DeployCluster(dbArgs, options.DryRun); err != nil {
 				return err
@@ -85,6 +90,7 @@ func NewCreateClusterCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&options.ClusterName, "cluster-name", "n", "greptimedb", "Name of GreptimeDB cluster.")
 	cmd.Flags().StringVar(&options.Namespace, "namespace", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
+	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
 
 	return cmd
 }

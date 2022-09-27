@@ -21,8 +21,6 @@ const (
 
 	defaultGreptimeDBOperatorHelmPackageVersion = "0.1.0"
 	defaultGreptimeDBHelmPackageVersion         = "0.1.0"
-
-	defaultPollingTimeout = 120 * time.Second
 )
 
 type Manager struct {
@@ -33,6 +31,8 @@ type Manager struct {
 type OperatorDeploymentArgs struct {
 	OperatorImage string
 	Namespace     string
+
+	Timeout time.Duration
 }
 
 type DBDeploymentArgs struct {
@@ -42,6 +42,8 @@ type DBDeploymentArgs struct {
 	FrontendImage string
 	DatanodeImage string
 	EtcdImage     string
+
+	Timeout time.Duration
 }
 
 func NewClusterManager() (*Manager, error) {
@@ -60,12 +62,12 @@ func (m *Manager) GetCluster(ctx context.Context, name, namespace string) (*grep
 	return m.client.GetCluster(ctx, name, namespace)
 }
 
-func (m *Manager) UpdateCluster(ctx context.Context, name, namespace string, newCluster *greptimedbv1alpha1.GreptimeDBCluster) error {
+func (m *Manager) UpdateCluster(ctx context.Context, name, namespace string, newCluster *greptimedbv1alpha1.GreptimeDBCluster, timeout time.Duration) error {
 	if err := m.client.UpdateCluster(ctx, namespace, newCluster); err != nil {
 		return err
 	}
 
-	if err := m.client.WaitForClusterReady(name, namespace, defaultPollingTimeout); err != nil {
+	if err := m.client.WaitForClusterReady(name, namespace, timeout); err != nil {
 		return err
 	}
 
@@ -98,7 +100,7 @@ func (m *Manager) DeployOperator(args *OperatorDeploymentArgs, dryRun bool) erro
 		return err
 	}
 
-	if err := m.client.WaitForDeploymentReady(defaultOperatorReleaseName, args.Namespace, defaultPollingTimeout); err != nil {
+	if err := m.client.WaitForDeploymentReady(defaultOperatorReleaseName, args.Namespace, args.Timeout); err != nil {
 		return err
 	}
 
@@ -147,7 +149,7 @@ func (m *Manager) DeployCluster(args *DBDeploymentArgs, dryRun bool) error {
 		return err
 	}
 
-	if err := m.client.WaitForClusterReady(args.CluserName, args.Namespace, defaultPollingTimeout); err != nil {
+	if err := m.client.WaitForClusterReady(args.CluserName, args.Namespace, args.Timeout); err != nil {
 		return err
 	}
 
