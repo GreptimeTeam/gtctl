@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"helm.sh/helm/v3/pkg/strvals"
@@ -35,8 +36,12 @@ type OperatorDeploymentArgs struct {
 }
 
 type DBDeploymentArgs struct {
-	CluserName string
-	Namespace  string
+	CluserName    string
+	Namespace     string
+	MetaImage     string
+	FrontendImage string
+	DatanodeImage string
+	EtcdImage     string
 }
 
 func NewClusterManager() (*Manager, error) {
@@ -68,12 +73,9 @@ func (m *Manager) UpdateCluster(ctx context.Context, name, namespace string, new
 }
 
 func (m *Manager) DeployOperator(args *OperatorDeploymentArgs, dryRun bool) error {
-	var formatedArgs string
-	if len(args.OperatorImage) > 0 {
-		formatedArgs = fmt.Sprintf("greptimedbOperator.image=%s", args.OperatorImage)
-	}
-	values := make(map[string]interface{})
-	if err := strvals.ParseInto(formatedArgs, values); err != nil {
+	repo, tag := splitImageURL(args.OperatorImage)
+	values, err := m.generateHelmValues(fmt.Sprintf("image.repository=%s,image.tag=%s", repo, tag))
+	if err != nil {
 		return err
 	}
 
@@ -118,7 +120,13 @@ func (m *Manager) DeleteCluster(ctx context.Context, name, namespace string, tea
 }
 
 func (m *Manager) DeployCluster(args *DBDeploymentArgs, dryRun bool) error {
-	values := make(map[string]interface{})
+	// TODO(zyy17): It's very ugly to generate Helm values...
+	rawArgs := fmt.Sprintf("frontend.main.image=%s,meta.main.image=%s,datanode.main.image=%s,etcd.image=%s",
+		args.FrontendImage, args.MetaImage, args.DatanodeImage, args.EtcdImage)
+	values, err := m.generateHelmValues(rawArgs)
+	if err != nil {
+		return err
+	}
 
 	chart, err := m.render.LoadChartFromEmbedCharts(defaultGreptimeDBHelmPackageName, defaultGreptimeDBHelmPackageVersion)
 	if err != nil {
@@ -144,4 +152,22 @@ func (m *Manager) DeployCluster(args *DBDeploymentArgs, dryRun bool) error {
 	}
 
 	return nil
+}
+
+func (m *Manager) generateHelmValues(args string) (map[string]interface{}, error) {
+	values := make(map[string]interface{})
+	if err := strvals.ParseInto(args, values); err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+
+// TODO(zyy17): validation?
+func splitImageURL(imageURL string) (string, string) {
+	split := strings.Split(imageURL, ":")
+	if len(split) != 2 {
+		return "", ""
+	}
+
+	return split[0], split[1]
 }

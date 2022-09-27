@@ -12,9 +12,21 @@ type createOptions struct {
 	OperatorImage     string
 	ClusterName       string
 	Namespace         string
-	DryRun            bool
 	OperatorNamespace string
+	MetaImage         string
+	FrontendImage     string
+	DatanodeImage     string
+	EtcdImage         string
+	DryRun            bool
 }
+
+const (
+	defaultGreptimeDBOperatorImage = "grygt/operator:latest"
+	defaultMetaImage               = "grygt/meta:latest"
+	defaultFrontendImage           = "grygt/frontend:latest"
+	defaultDatanodeImage           = "grygt/db:latest"
+	defaultEtcdImage               = "grygt/etcd:latest"
+)
 
 func NewCreateClusterCommand() *cobra.Command {
 	var options createOptions
@@ -48,8 +60,12 @@ func NewCreateClusterCommand() *cobra.Command {
 
 			log.Printf("Deploying GreptimeDB Cluster ...\n")
 			dbArgs := &cluster.DBDeploymentArgs{
-				CluserName: options.ClusterName,
-				Namespace:  options.Namespace,
+				CluserName:    options.ClusterName,
+				Namespace:     options.Namespace,
+				FrontendImage: options.FrontendImage,
+				MetaImage:     options.MetaImage,
+				DatanodeImage: options.DatanodeImage,
+				EtcdImage:     options.EtcdImage,
 			}
 			if err := clusterManager.DeployCluster(dbArgs, options.DryRun); err != nil {
 				return err
@@ -60,8 +76,12 @@ func NewCreateClusterCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&options.OperatorImage, "operator-image", "", "Image of GreptimeDB operator.")
+	cmd.Flags().StringVar(&options.OperatorImage, "operator-image", defaultGreptimeDBOperatorImage, "Image of GreptimeDB operator.")
 	cmd.Flags().StringVar(&options.OperatorNamespace, "operator-namespace", "default", "The namespace of deploying greptimedb-operator.")
+	cmd.Flags().StringVar(&options.FrontendImage, "frontend-image", defaultFrontendImage, "Image of Frontend component.")
+	cmd.Flags().StringVar(&options.MetaImage, "meta-image", defaultMetaImage, "Image of Meta component.")
+	cmd.Flags().StringVar(&options.DatanodeImage, "datanode-image", defaultDatanodeImage, "Image of Datanode component.")
+	cmd.Flags().StringVar(&options.EtcdImage, "etcd-image", defaultEtcdImage, "Image of etcd.")
 	cmd.Flags().StringVarP(&options.ClusterName, "cluster-name", "n", "greptimedb", "Name of GreptimeDB cluster.")
 	cmd.Flags().StringVar(&options.Namespace, "namespace", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
