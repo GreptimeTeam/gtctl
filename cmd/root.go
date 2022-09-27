@@ -5,6 +5,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/cmd/app/create"
 	"github.com/GreptimeTeam/gtctl/cmd/app/delete"
+	"github.com/GreptimeTeam/gtctl/cmd/app/get"
 	"github.com/GreptimeTeam/gtctl/cmd/app/scale"
 	"github.com/GreptimeTeam/gtctl/cmd/app/version"
 	internalversion "github.com/GreptimeTeam/gtctl/pkg/version"
@@ -24,6 +25,7 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(version.NewVersionCommand())
 	cmd.AddCommand(delete.NewDeleteCommand())
 	cmd.AddCommand(scale.NewScaleCommand())
+	cmd.AddCommand(get.NewGetCommand())
 
 	return cmd
 }
