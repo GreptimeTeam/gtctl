@@ -26,7 +26,7 @@ type createOptions struct {
 const (
 	defaultGreptimeDBOperatorImage = "grygt/operator:latest"
 	defaultMetaImage               = "grygt/meta:latest"
-	defaultFrontendImage           = "grygt/frontend:latest"
+	defaultFrontendImage           = "grygt/db:latest"
 	defaultDatanodeImage           = "grygt/db:latest"
 	defaultEtcdImage               = "grygt/etcd:latest"
 )
