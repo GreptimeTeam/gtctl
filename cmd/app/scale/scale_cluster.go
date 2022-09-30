@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/spf13/cobra"
-
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 type scaleOptions struct {
@@ -72,7 +72,10 @@ func NewScaleClusterCommand() *cobra.Command {
 
 			log.Printf("Scaling cluster %s in %s... from %d to %d\n", options.ClusterName, options.Namespace, oldReplicas, options.Replicas)
 
-			if err = manager.UpdateCluster(ctx, options.ClusterName, options.Namespace, gtCluster, time.Duration(options.Timeout)*time.Second); err != nil {
+			if err = manager.UpdateCluster(ctx, options.ClusterName, options.Namespace, gtCluster, time.Duration(options.Timeout)*time.Second); err != nil && errors.IsNotFound(err) {
+				log.Printf("cluster %s in %s not found\n", options.ClusterName, options.Namespace)
+				return nil
+			} else if err != nil {
 				return err
 			}
 
@@ -82,9 +85,9 @@ func NewScaleClusterCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.ClusterName, "cluster-name", "n", "greptimedb", "Name of GreptimeDB cluster.")
+	cmd.Flags().StringVar(&options.ClusterName, "name", "greptimedb", "Name of GreptimeDB cluster.")
 	cmd.Flags().StringVarP(&options.ComponentType, "component-type", "c", "", "Component of GreptimeDB cluster, can be 'frontend' and 'datanode'.")
-	cmd.Flags().StringVar(&options.Namespace, "namespace", "default", "Namespace of GreptimeDB cluster.")
+	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().Int32Var(&options.Replicas, "replicas", 0, "The replicas of component of GreptimeDB cluster.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
 
