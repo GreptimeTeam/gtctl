@@ -12,7 +12,7 @@ var (
 )
 
 const (
-	gtctlVersion = "0.0.1"
+	gtctlVersion = "0.1.0"
 )
 
 type Version struct {

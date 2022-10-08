@@ -34,6 +34,12 @@ gtctl is a command-line tool for managing GreptimeDB cluster. gtctl integrates t
   $ gtctl get cluster --name db_name -n your_namespace
   ```
 
+- Get All GreptimeDB clusters
+
+  ```
+  $ gtctl get clusters
+  ```
+
 - Scale GreptimeDB cluster
 
   ```
