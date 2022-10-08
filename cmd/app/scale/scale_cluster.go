@@ -6,9 +6,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
+
+	"github.com/GreptimeTeam/gtctl/pkg/cluster"
 )
 
 type scaleOptions struct {
@@ -55,7 +56,10 @@ func NewScaleClusterCommand() *cobra.Command {
 
 			ctx := context.TODO()
 			gtCluster, err := manager.GetCluster(ctx, options.ClusterName, options.Namespace)
-			if err != nil {
+			if err != nil && errors.IsNotFound(err) {
+				log.Printf("cluster %s in %s not found\n", options.ClusterName, options.Namespace)
+				return nil
+			} else if err != nil {
 				return err
 			}
 
@@ -72,10 +76,7 @@ func NewScaleClusterCommand() *cobra.Command {
 
 			log.Printf("Scaling cluster %s in %s... from %d to %d\n", options.ClusterName, options.Namespace, oldReplicas, options.Replicas)
 
-			if err = manager.UpdateCluster(ctx, options.ClusterName, options.Namespace, gtCluster, time.Duration(options.Timeout)*time.Second); err != nil && errors.IsNotFound(err) {
-				log.Printf("cluster %s in %s not found\n", options.ClusterName, options.Namespace)
-				return nil
-			} else if err != nil {
+			if err = manager.UpdateCluster(ctx, options.ClusterName, options.Namespace, gtCluster, time.Duration(options.Timeout)*time.Second); err != nil {
 				return err
 			}
 

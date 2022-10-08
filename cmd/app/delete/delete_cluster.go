@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
 )
@@ -32,7 +33,10 @@ func NewDeleteClusterCommand() *cobra.Command {
 
 			ctx := context.TODO()
 			_, err = manager.GetCluster(ctx, options.ClusterName, options.Namespace)
-			if err != nil {
+			if err != nil && errors.IsNotFound(err) {
+				log.Printf("cluster %s in %s not found\n", options.ClusterName, options.Namespace)
+				return nil
+			} else if err != nil {
 				return err
 			}
 
