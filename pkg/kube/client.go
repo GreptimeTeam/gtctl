@@ -159,6 +159,10 @@ func (c *Client) GetCluster(ctx context.Context, name, namespace string) (*grept
 	return c.getCluster(ctx, name, namespace)
 }
 
+func (c *Client) GetAllClusters(ctx context.Context) (*greptimev1alpha1.GreptimeDBClusterList, error) {
+	return c.getAllClusters(ctx)
+}
+
 func (c *Client) DeleteCluster(ctx context.Context, name, namespace string) error {
 	return c.dynamicKubeClient.Resource(greptimeDBClusterGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }
@@ -259,6 +263,20 @@ func (c *Client) getCluster(ctx context.Context, name, namespace string) (*grept
 	}
 
 	return &cluster, nil
+}
+
+func (c *Client) getAllClusters(ctx context.Context) (*greptimev1alpha1.GreptimeDBClusterList, error) {
+	unstructuredObject, err := c.dynamicKubeClient.Resource(greptimeDBClusterGVR).Namespace("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var clusters greptimev1alpha1.GreptimeDBClusterList
+	if err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObject.UnstructuredContent(), &clusters); err != nil {
+		return nil, err
+	}
+
+	return &clusters, nil
 }
 
 func isNamespacedResource(resource string) bool {

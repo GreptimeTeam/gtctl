@@ -62,6 +62,10 @@ func (m *Manager) GetCluster(ctx context.Context, name, namespace string) (*grep
 	return m.client.GetCluster(ctx, name, namespace)
 }
 
+func (m *Manager) GetAllClusters(ctx context.Context) (*greptimedbv1alpha1.GreptimeDBClusterList, error) {
+	return m.client.GetAllClusters(ctx)
+}
+
 func (m *Manager) UpdateCluster(ctx context.Context, name, namespace string, newCluster *greptimedbv1alpha1.GreptimeDBCluster, timeout time.Duration) error {
 	if err := m.client.UpdateCluster(ctx, namespace, newCluster); err != nil {
 		return err

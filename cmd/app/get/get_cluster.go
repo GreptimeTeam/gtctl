@@ -38,7 +38,6 @@ func NewGetClusterCommand() *cobra.Command {
 			}
 
 			log.Printf("Cluster '%s' in '%s' namespace is running, create at %s\n", gtCluster.Name, gtCluster.Namespace, gtCluster.CreationTimestamp)
-
 			return nil
 		},
 	}
