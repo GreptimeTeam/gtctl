@@ -45,8 +45,8 @@ func NewScaleClusterCommand() *cobra.Command {
 				return fmt.Errorf("component type is invalid")
 			}
 
-			if options.Replicas < 0 {
-				return fmt.Errorf("replicas should be equal or greater than 0")
+			if options.Replicas < 1 {
+				return fmt.Errorf("replicas should be equal or greater than 1")
 			}
 
 			manager, err := cluster.NewClusterManager()
