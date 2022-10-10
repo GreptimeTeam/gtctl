@@ -1,6 +1,7 @@
 package create
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 
 type createOptions struct {
 	OperatorImage     string
-	ClusterName       string
 	Namespace         string
 	OperatorNamespace string
 	MetaImage         string
@@ -39,11 +39,14 @@ func NewCreateClusterCommand() *cobra.Command {
 		Short: "Create a GreptimeDB cluster.",
 		Long:  `Create a GreptimeDB cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return fmt.Errorf("cluster name should be set")
+			}
 			if options.DryRun {
 				log.Printf("In dry run mode\n")
 			}
 
-			log.Printf("Creating cluster %s in %s...\n", options.ClusterName, options.Namespace)
+			log.Printf("Creating cluster %s in %s...\n", args[0], options.Namespace)
 
 			clusterManager, err := cluster.NewClusterManager()
 			if err != nil {
@@ -64,7 +67,7 @@ func NewCreateClusterCommand() *cobra.Command {
 
 			log.Printf("Deploying GreptimeDB Cluster ...\n")
 			dbArgs := &cluster.DBDeploymentArgs{
-				CluserName:    options.ClusterName,
+				CluserName:    args[0],
 				Namespace:     options.Namespace,
 				FrontendImage: options.FrontendImage,
 				MetaImage:     options.MetaImage,
@@ -76,7 +79,7 @@ func NewCreateClusterCommand() *cobra.Command {
 				return err
 			}
 			log.Printf("GreptimeDB Cluster is Ready!\n")
-			log.Printf("You can use `kubectl port-forward svc/%s-frontend -n %s 3306:3306` to access the database.\n", options.ClusterName, options.Namespace)
+			log.Printf("You can use `kubectl port-forward svc/%s-frontend -n %s 3306:3306` to access the database.\n", args[0], options.Namespace)
 			return nil
 		},
 	}
@@ -87,7 +90,6 @@ func NewCreateClusterCommand() *cobra.Command {
 	cmd.Flags().StringVar(&options.MetaImage, "meta-image", defaultMetaImage, "Image of Meta component.")
 	cmd.Flags().StringVar(&options.DatanodeImage, "datanode-image", defaultDatanodeImage, "Image of Datanode component.")
 	cmd.Flags().StringVar(&options.EtcdImage, "etcd-image", defaultEtcdImage, "Image of etcd.")
-	cmd.Flags().StringVar(&options.ClusterName, "name", "greptimedb", "Name of GreptimeDB cluster.")
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
