@@ -22,6 +22,7 @@ func NewGetCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewGetClusterCommand())
+	cmd.AddCommand(NewGetAllClustersCommand())
 
 	return cmd
 }

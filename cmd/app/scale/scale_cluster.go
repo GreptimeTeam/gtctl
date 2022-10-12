@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
 )
 
 type scaleOptions struct {
-	ClusterName   string
 	Namespace     string
 	ComponentType string
 	Replicas      int32
@@ -36,6 +36,9 @@ func NewScaleClusterCommand() *cobra.Command {
 		Short: "Scale GreptimeDB cluster.",
 		Long:  `Scale GreptimeDB cluster.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return fmt.Errorf("cluster name should be set")
+			}
 			if options.ComponentType == "" {
 				return fmt.Errorf("component type is required")
 			}
@@ -44,8 +47,8 @@ func NewScaleClusterCommand() *cobra.Command {
 				return fmt.Errorf("component type is invalid")
 			}
 
-			if options.Replicas < 0 {
-				return fmt.Errorf("replicas should be equal or greater than 0")
+			if options.Replicas < 1 {
+				return fmt.Errorf("replicas should be equal or greater than 1")
 			}
 
 			manager, err := cluster.NewClusterManager()
@@ -54,8 +57,11 @@ func NewScaleClusterCommand() *cobra.Command {
 			}
 
 			ctx := context.TODO()
-			gtCluster, err := manager.GetCluster(ctx, options.ClusterName, options.Namespace)
-			if err != nil {
+			gtCluster, err := manager.GetCluster(ctx, args[0], options.Namespace)
+			if err != nil && errors.IsNotFound(err) {
+				log.Printf("cluster %s in %s not found\n", args[0], options.Namespace)
+				return nil
+			} else if err != nil {
 				return err
 			}
 
@@ -70,21 +76,20 @@ func NewScaleClusterCommand() *cobra.Command {
 				gtCluster.Spec.Datanode.Replicas = options.Replicas
 			}
 
-			log.Printf("Scaling cluster %s in %s... from %d to %d\n", options.ClusterName, options.Namespace, oldReplicas, options.Replicas)
+			log.Printf("Scaling cluster %s in %s... from %d to %d\n", args[0], options.Namespace, oldReplicas, options.Replicas)
 
-			if err = manager.UpdateCluster(ctx, options.ClusterName, options.Namespace, gtCluster, time.Duration(options.Timeout)*time.Second); err != nil {
+			if err = manager.UpdateCluster(ctx, args[0], options.Namespace, gtCluster, time.Duration(options.Timeout)*time.Second); err != nil {
 				return err
 			}
 
-			log.Printf("Scaling cluster %s in %s is OK!\n", options.ClusterName, options.Namespace)
+			log.Printf("Scaling cluster %s in %s is OK!\n", args[0], options.Namespace)
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.ClusterName, "cluster-name", "n", "greptimedb", "Name of GreptimeDB cluster.")
 	cmd.Flags().StringVarP(&options.ComponentType, "component-type", "c", "", "Component of GreptimeDB cluster, can be 'frontend' and 'datanode'.")
-	cmd.Flags().StringVar(&options.Namespace, "namespace", "default", "Namespace of GreptimeDB cluster.")
+	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().Int32Var(&options.Replicas, "replicas", 0, "The replicas of component of GreptimeDB cluster.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
 
