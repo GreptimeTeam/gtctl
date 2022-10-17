@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"k8s.io/client-go/discovery"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -31,6 +32,7 @@ import (
 type Client struct {
 	kubeClient        kubernetes.Interface
 	dynamicKubeClient dynamic.Interface
+	discoveryClient   discovery.DiscoveryInterface
 }
 
 var addToScheme sync.Once
@@ -67,6 +69,11 @@ func NewClient(kubeconfig string) (*Client, error) {
 		return nil, err
 	}
 
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	// Add CRDs to the scheme. They are missing by default.
 	addToScheme.Do(func() {
 		if err := apiextensionsv1.AddToScheme(scheme.Scheme); err != nil {
@@ -84,6 +91,7 @@ func NewClient(kubeconfig string) (*Client, error) {
 	return &Client{
 		kubeClient:        kubeClient,
 		dynamicKubeClient: dynamicKubeClient,
+		discoveryClient:   discoveryClient,
 	}, nil
 }
 
@@ -128,8 +136,11 @@ func (c *Client) Apply(manifests []byte) error {
 
 		ctx := context.TODO()
 
-		// TODO(zyy17): Can we unify the apply logic as one function?
-		if isNamespacedResource(gvr.Resource) {
+		isNamespaced, err := c.isNamespacedResource()
+		if err != nil {
+			return err
+		}
+		if isNamespaced[gvr.Resource] {
 			var ns string
 			if item.Namespace == "" {
 				ns = "default"
@@ -279,51 +290,18 @@ func (c *Client) getAllClusters(ctx context.Context) (*greptimev1alpha1.Greptime
 	return &clusters, nil
 }
 
-func isNamespacedResource(resource string) bool {
-	// TODO(zyy17): Maybe we can get this list from the server(discovery API)?
+func (c *Client) isNamespacedResource() (map[string]bool, error) {
 	// How to get the list: kubectl api-resources --namespaced | grep -v NAME | awk '{print "\""$1"\"""\,"}'.
-	namespacedResource := []string{
-		"bindings",
-		"configmaps",
-		"endpoints",
-		"events",
-		"limitranges",
-		"persistentvolumeclaims",
-		"pods",
-		"podtemplates",
-		"replicationcontrollers",
-		"resourcequotas",
-		"secrets",
-		"serviceaccounts",
-		"services",
-		"controllerrevisions",
-		"daemonsets",
-		"deployments",
-		"replicasets",
-		"statefulsets",
-		"localsubjectaccessreviews",
-		"horizontalpodautoscalers",
-		"cronjobs",
-		"jobs",
-		"leases",
-		"endpointslices",
-		"events",
-		"ingresses",
-		"networkpolicies",
-		"poddisruptionbudgets",
-		"rolebindings",
-		"roles",
-		"csistoragecapacities",
 
-		// GreptimeDB CRDs.
-		"greptimedbclusters",
+	isNamespaced := make(map[string]bool)
+	_, apiResourcesList, err := c.discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		return nil, err
 	}
-
-	for _, r := range namespacedResource {
-		if r == resource {
-			return true
+	for _, list := range apiResourcesList {
+		for _, r := range list.APIResources {
+			isNamespaced[r.Name] = r.Namespaced
 		}
 	}
-
-	return false
+	return isNamespaced, nil
 }
