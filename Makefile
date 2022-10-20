@@ -6,4 +6,4 @@ gtctl:
 	@go build -ldflags '${LDFLAGS}' -o bin/gtctl ./cmd
 
 github-release: gtctl
-	mv bin/gtctl ${BUILD_ARTIFACTS_FOLDER}/
+	mv bin/gtctl .
