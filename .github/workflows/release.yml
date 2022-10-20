@@ -22,3 +22,4 @@ jobs:
         goversion: "1.19"
         build_command: "make github-release"
         executable_compression: "upx"
+        compress_assets: off
