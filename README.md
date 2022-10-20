@@ -16,6 +16,12 @@ gtctl is a command-line tool for managing GreptimeDB cluster. gtctl integrates t
   $ kind create cluster
   ```
 ### Usage
+
+- Download gtctl release
+
+  Get latest gtctl from [our release
+  page](https://github.com/GreptimeTeam/gtctl/releases).
+
 - Get gtctl version
 
   ```
@@ -45,17 +51,17 @@ gtctl is a command-line tool for managing GreptimeDB cluster. gtctl integrates t
   ```
   # Scale datanode to 3 replicas.
   $ gtctl scale cluster db_name -n your_namespace -c datanode --replicas 3
-  
+
   # Scale frontend to 5 replicas.
   $ gtctl scale cluster db_name -n your_namespace -c frontend --replicas 5
   ```
-  
+
 - Delete GreptimeDB cluster
 
   ```
   # Delete GreptimeDB cluster.
   $ gtctl delete cluster db_name -n your_namespace
-  
+
   # Delete GreptimeDB cluster, including etcd cluster.
   $ gtctl delete cluster db_name -n your_namespace --tear-down-etcd
   ```
