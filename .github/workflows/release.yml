@@ -21,4 +21,5 @@ jobs:
         goarch: ${{ matrix.goarch }}
         goversion: "https://dl.google.com/go/go1.19.2.linux-amd64.tar.gz"
         binary_name: "gtctl"
+        build_command: "make"
         extra_files: LICENSE README.md
