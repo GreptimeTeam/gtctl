@@ -20,5 +20,5 @@ jobs:
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
         goversion: "1.19"
-        build_command: "make"
+        build_command: "make github-release"
         executable_compression: "upx"
