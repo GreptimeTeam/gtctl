@@ -21,3 +21,4 @@ jobs:
         goarch: ${{ matrix.goarch }}
         goversion: "1.19"
         build_command: "make"
+        executable_compression: "upx"
