@@ -136,11 +136,11 @@ func (c *Client) Apply(manifests []byte) error {
 
 		ctx := context.TODO()
 
-		isNamespaced, err := c.isNamespacedResource()
+		isNamespaced, err := c.isNamespacedResource(gvr.Resource)
 		if err != nil {
 			return err
 		}
-		if isNamespaced[gvr.Resource] {
+		if isNamespaced {
 			var ns string
 			if item.Namespace == "" {
 				ns = "default"
@@ -290,18 +290,19 @@ func (c *Client) getAllClusters(ctx context.Context) (*greptimev1alpha1.Greptime
 	return &clusters, nil
 }
 
-func (c *Client) isNamespacedResource() (map[string]bool, error) {
+func (c *Client) isNamespacedResource(resource string) (bool, error) {
 	// How to get the list: kubectl api-resources --namespaced | grep -v NAME | awk '{print "\""$1"\"""\,"}'.
 
-	isNamespaced := make(map[string]bool)
 	_, apiResourcesList, err := c.discoveryClient.ServerGroupsAndResources()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	for _, list := range apiResourcesList {
 		for _, r := range list.APIResources {
-			isNamespaced[r.Name] = r.Namespaced
+			if r.Name == resource {
+				return r.Namespaced, nil
+			}
 		}
 	}
-	return isNamespaced, nil
+	return false, nil
 }
