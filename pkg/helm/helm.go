@@ -24,7 +24,6 @@ var _ TemplateRender = &Render{}
 // TODO(zyy17): Support remote charts.
 
 func (r *Render) LoadChartFromLocalDirectory(directory string) (*chart.Chart, error) {
-	a = 1
 	return loader.LoadDir(directory)
 }
 
