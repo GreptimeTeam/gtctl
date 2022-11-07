@@ -7,3 +7,8 @@ gtctl:
 
 github-release: gtctl
 	mv bin/* .
+
+check-format:
+fmt-check: ## Check files format.
+	echo "Checking files format ..."
+	go fmt ./... | grep . && { echo "Unformatted files found"; exit 1; } || echo "No file to format"
