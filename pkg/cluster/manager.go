@@ -8,9 +8,9 @@ import (
 
 	"helm.sh/helm/v3/pkg/strvals"
 
+	greptimedbv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
-	greptimedbv1alpha1 "github.com/GreptimeTeam/gtctl/third_party/apis/v1alpha1"
 )
 
 const (

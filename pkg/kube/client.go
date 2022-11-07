@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
-	greptimev1alpha1 "github.com/GreptimeTeam/gtctl/third_party/apis/v1alpha1"
+	greptimev1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 )
 
 type Client struct {
