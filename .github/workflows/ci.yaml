@@ -18,3 +18,7 @@ jobs:
         with:
           version: v1.50.0
           args: --timeout 10m0s
+
+      - name: Format check
+        run: |
+          make
