@@ -24,11 +24,11 @@ type createOptions struct {
 }
 
 const (
-	defaultGreptimeDBOperatorImage = "grygt/operator:latest"
+	defaultGreptimeDBOperatorImage = "greptime/greptimedb-operator:latest"
 	defaultMetaImage               = "grygt/meta:latest"
 	defaultFrontendImage           = "grygt/db:latest"
 	defaultDatanodeImage           = "grygt/db:latest"
-	defaultEtcdImage               = "grygt/etcd:latest"
+	defaultEtcdImage               = "greptime/etcd:v3.5.5"
 )
 
 func NewCreateClusterCommand() *cobra.Command {
@@ -67,7 +67,7 @@ func NewCreateClusterCommand() *cobra.Command {
 
 			log.Printf("Deploying GreptimeDB Cluster ...\n")
 			dbArgs := &cluster.DBDeploymentArgs{
-				CluserName:    args[0],
+				ClusterName:   args[0],
 				Namespace:     options.Namespace,
 				FrontendImage: options.FrontendImage,
 				MetaImage:     options.MetaImage,
