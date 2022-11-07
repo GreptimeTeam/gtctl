@@ -36,7 +36,7 @@ type OperatorDeploymentArgs struct {
 }
 
 type DBDeploymentArgs struct {
-	CluserName    string
+	ClusterName   string
 	Namespace     string
 	MetaImage     string
 	FrontendImage string
@@ -139,7 +139,7 @@ func (m *Manager) DeployCluster(args *DBDeploymentArgs, dryRun bool) error {
 		return err
 	}
 
-	manifests, err := m.render.GenerateManifests(args.CluserName, args.Namespace, chart, values)
+	manifests, err := m.render.GenerateManifests(args.ClusterName, args.Namespace, chart, values)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (m *Manager) DeployCluster(args *DBDeploymentArgs, dryRun bool) error {
 		return err
 	}
 
-	if err := m.client.WaitForClusterReady(args.CluserName, args.Namespace, args.Timeout); err != nil {
+	if err := m.client.WaitForClusterReady(args.ClusterName, args.Namespace, args.Timeout); err != nil {
 		return err
 	}
 
