@@ -51,8 +51,8 @@ github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20OEh60=
-github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.1.0.20221106131926-18e7b5cf29dd h1:1m2hK3D7j/jetZgBuYrjcee16vZ/fM4ROIYT9W3pPHY=
-github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.1.0.20221106131926-18e7b5cf29dd/go.mod h1:2313eDqThKCtKK74WYai+ZFuKE+q5mwU0NtEmTG/aVo=
+github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.3 h1:WXtP10veOJudUyNKUi92J8Yo2Epex64dhv9jw8rp3Eg=
+github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.3/go.mod h1:Zd367tURILr4ZgWYer7aP/ezGDa6m2R6dZXHTvLFCjY=
 github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd h1:sjQovDkwrZp8u+gxLtPgKGjk5hCxuy2hrRejBTA9xFU=
 github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd/go.mod h1:64YHyfSL2R96J44Nlwm39UHepQbyR5q10x7iYa1ks2E=
 github.com/Masterminds/goutils v1.1.0/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
