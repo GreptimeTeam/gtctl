@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -u
+set -ue
 
 OS_TYPE=
 ARCH_TYPE=
