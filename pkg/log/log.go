@@ -53,7 +53,11 @@ func Bold(s string) string {
 func StartSpinning(suffix string, processFunc func() error) error {
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	s.Suffix = fmt.Sprintf("  %s  ", suffix)
-	s.Color("fgHiWhite", "bold")
+
+	if err := s.Color("fgHiWhite", "bold"); err != nil {
+		return err
+	}
+
 	s.Start() // Start the spinner
 	if err := processFunc(); err != nil {
 		s.Stop()
