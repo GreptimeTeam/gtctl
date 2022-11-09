@@ -1,9 +1,13 @@
 #!/bin/sh
 
+set -u
+
 OS_TYPE=
 ARCH_TYPE=
-
-set -u
+VERSION=${1:-latest}
+GITHUB_ORG=GreptimeTeam
+GITHUB_REPO=gtctl
+BIN=gtctl
 
 get_os_type() {
     os_type="$(uname -s)"
@@ -16,26 +20,29 @@ get_os_type() {
         OS_TYPE=linux
         ;;
     *)
-        echo "unknown CPU type: $os_type"
+        echo "Error: Unknown OS type: $os_type"
         exit 1
     esac
 }
 
 get_arch_type() {
-    arch_type="$(uname -p)"
-    os_type="$(uname -s)"
+    arch_type="$(uname -m)"
 
     case "$arch_type" in
-    arm)
-        if [ "$os_type" = "Darwin" ]; then
-            ARCH_TYPE=arm64
-        fi
+    arm64)
+        ARCH_TYPE=arm64
         ;;
     aarch64)
         ARCH_TYPE=arm64
         ;;
+    x86_64)
+        ARCH_TYPE=amd64
+        ;;
+    amd64)
+        ARCH_TYPE=amd64
+        ;;
     *)
-        echo "unknown CPU type: $arch_type"
+        echo "Error: Unknown CPU type: $arch_type"
         exit 1
     esac
 }
@@ -43,7 +50,16 @@ get_arch_type() {
 get_os_type
 get_arch_type
 
-if [ -n "$OS_TYPE" ] && [ -n "$ARCH_TYPE" ]; then
-    wget "https://github.com/GreptimeTeam/gtctl/releases/latest/download/gtctl-$OS_TYPE-$ARCH_TYPE.tgz"
-    tar xvf gtctl-$OS_TYPE-$ARCH_TYPE.tgz && rm gtctl-$OS_TYPE-$ARCH_TYPE.tgz
+if [ -n "${OS_TYPE}" ] && [ -n "${ARCH_TYPE}" ]; then
+    echo "Downloading ${BIN}, OS: ${OS_TYPE}, Arch: ${ARCH_TYPE}, Version: ${VERSION}"
+
+    if [ "${VERSION}" = "latest" ]; then
+        wget -q "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/latest/download/${BIN}-${OS_TYPE}-${ARCH_TYPE}"
+    else
+        wget -q "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download/${VERSION}/${BIN}-${OS_TYPE}-${ARCH_TYPE}"
+    fi
+
+    tar xvf ${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz && rm ${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz
 fi
+
+echo "Run '${BIN} --help' to get started"
