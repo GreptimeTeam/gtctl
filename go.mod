@@ -4,6 +4,8 @@ go 1.18
 
 require (
 	github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.3
+	github.com/briandowns/spinner v1.19.0
+	github.com/fatih/color v1.13.0
 	github.com/spf13/cobra v1.5.0
 	helm.sh/helm/v3 v3.9.4
 	k8s.io/api v0.25.2
@@ -40,7 +42,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
