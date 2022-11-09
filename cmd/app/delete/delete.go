@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
+
+	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
 func NewDeleteCommand() *cobra.Command {
@@ -21,7 +23,7 @@ func NewDeleteCommand() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(NewDeleteClusterCommand())
+	cmd.AddCommand(NewDeleteClusterCommand(log.NewLogger()))
 
 	return cmd
 }

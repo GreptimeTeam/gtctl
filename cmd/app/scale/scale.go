@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
+
+	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
 func NewScaleCommand() *cobra.Command {
@@ -21,7 +23,7 @@ func NewScaleCommand() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(NewScaleClusterCommand())
+	cmd.AddCommand(NewScaleClusterCommand(log.NewLogger()))
 
 	return cmd
 }

@@ -2,16 +2,15 @@ package get
 
 import (
 	"context"
-	"log"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
-func NewGetAllClustersCommand() *cobra.Command {
-
+func NewGetAllClustersCommand(l log.Logger) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clusters",
 		Short: "Get all GreptimeDB clusters.",
@@ -26,12 +25,12 @@ func NewGetAllClustersCommand() *cobra.Command {
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			} else if errors.IsNotFound(err) || (gtClusters != nil && len(gtClusters.Items) == 0) {
-				log.Printf("clusters not found")
+				l.Infof("clusters not found\n")
 				return nil
 			}
 
 			for _, gtCluster := range gtClusters.Items {
-				log.Printf("Cluster '%s' in '%s' namespace is running, create at %s\n", gtCluster.Name, gtCluster.Namespace, gtCluster.CreationTimestamp)
+				l.Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", gtCluster.Name, gtCluster.Namespace, gtCluster.CreationTimestamp)
 			}
 			return nil
 		},

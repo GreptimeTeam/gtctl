@@ -2,12 +2,12 @@ package create
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
 type createOptions struct {
@@ -23,7 +23,7 @@ type createOptions struct {
 	Timeout int
 }
 
-func NewCreateClusterCommand() *cobra.Command {
+func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	var options createOptions
 
 	cmd := &cobra.Command{
@@ -35,10 +35,11 @@ func NewCreateClusterCommand() *cobra.Command {
 				return fmt.Errorf("cluster name should be set")
 			}
 			if options.DryRun {
-				log.Printf("In dry run mode\n")
+				l.Infof("In dry run mode\n")
 			}
 
-			log.Printf("Creating cluster %s in %s...\n", args[0], options.Namespace)
+			clusterName := args[0]
+			l.Infof("☕️ Creating cluster '%s' in namespace '%s'...\n", log.Bold(clusterName), log.Bold(options.Namespace))
 
 			clusterManager, err := cluster.NewClusterManager()
 			if err != nil {
@@ -51,13 +52,15 @@ func NewCreateClusterCommand() *cobra.Command {
 				Timeout:       time.Duration(options.Timeout) * time.Second,
 			}
 
-			log.Printf("Deploying GreptimeDB Operator ...\n")
-			if err := clusterManager.DeployOperator(operatorArgs, options.DryRun); err != nil {
+			l.Infof("☕️ Start to deploy greptimedb-operator...\n")
+			if err := log.StartSpinning("Deploying greptimedb-operator...", func() error {
+				return clusterManager.DeployOperator(operatorArgs, options.DryRun)
+			}); err != nil {
 				return err
 			}
-			log.Printf("GreptimeDB Operator is Ready!\n")
+			l.Infof("🎉 Finish to deploy greptimedb-operator.\n")
 
-			log.Printf("Deploying GreptimeDB Cluster ...\n")
+			l.Infof("☕️ Start to deploy GreptimeDB cluster...\n")
 			dbArgs := &cluster.DBDeploymentArgs{
 				ClusterName:   args[0],
 				Namespace:     options.Namespace,
@@ -67,11 +70,18 @@ func NewCreateClusterCommand() *cobra.Command {
 				EtcdImage:     options.EtcdImage,
 				Timeout:       time.Duration(options.Timeout) * time.Second,
 			}
-			if err := clusterManager.DeployCluster(dbArgs, options.DryRun); err != nil {
+
+			if err := log.StartSpinning("Deploying GreptimeDB cluster", func() error {
+				return clusterManager.DeployCluster(dbArgs, options.DryRun)
+			}); err != nil {
 				return err
 			}
-			log.Printf("GreptimeDB Cluster is Ready!\n")
-			log.Printf("You can use `kubectl port-forward svc/%s-frontend -n %s 3306:3306` to access the database.\n", args[0], options.Namespace)
+
+			l.Infof("🎉 Finish to deploy GreptimeDB cluster '%s'.\n", log.Bold(clusterName))
+			l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 3306:3306", clusterName, options.Namespace)))
+			l.Infof("😊 Thank you for using %s!\n", log.Bold("GreptimeDB"))
+			l.Infof("🔑 %s\n", log.Bold("Invest in Data, Harvest over Time."))
+			
 			return nil
 		},
 	}
