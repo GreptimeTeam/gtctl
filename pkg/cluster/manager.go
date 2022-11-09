@@ -19,7 +19,7 @@ const (
 	defaultGreptimeDBOperatorHelmPackageName = "greptimedb-operator"
 	defaultGreptimeDBHelmPackageName         = "greptimedb"
 
-	defaultGreptimeDBOperatorHelmPackageVersion = "0.1.0"
+	defaultGreptimeDBOperatorHelmPackageVersion = "0.1.0-alpha.2"
 	defaultGreptimeDBHelmPackageVersion         = "0.1.0"
 )
 
@@ -79,10 +79,17 @@ func (m *Manager) UpdateCluster(ctx context.Context, name, namespace string, new
 }
 
 func (m *Manager) DeployOperator(args *OperatorDeploymentArgs, dryRun bool) error {
-	repo, tag := splitImageURL(args.OperatorImage)
-	values, err := m.generateHelmValues(fmt.Sprintf("image.repository=%s,image.tag=%s", repo, tag))
-	if err != nil {
-		return err
+	var (
+		values map[string]interface{}
+		err    error
+	)
+
+	if len(args.OperatorImage) > 0 {
+		repo, tag := splitImageURL(args.OperatorImage)
+		values, err = m.generateHelmValues(fmt.Sprintf("image.repository=%s,image.tag=%s", repo, tag))
+		if err != nil {
+			return err
+		}
 	}
 
 	chart, err := m.render.LoadChartFromEmbedCharts(defaultGreptimeDBOperatorHelmPackageName, defaultGreptimeDBOperatorHelmPackageVersion)
@@ -127,11 +134,33 @@ func (m *Manager) DeleteCluster(ctx context.Context, name, namespace string, tea
 
 func (m *Manager) DeployCluster(args *DBDeploymentArgs, dryRun bool) error {
 	// TODO(zyy17): It's very ugly to generate Helm values...
-	rawArgs := fmt.Sprintf("frontend.main.image=%s,meta.main.image=%s,datanode.main.image=%s,etcd.image=%s",
-		args.FrontendImage, args.MetaImage, args.DatanodeImage, args.EtcdImage)
-	values, err := m.generateHelmValues(rawArgs)
-	if err != nil {
-		return err
+	var (
+		values  map[string]interface{}
+		rawArgs []string
+		err     error
+	)
+
+	if len(args.FrontendImage) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("frontend.main.image=%s", args.FrontendImage))
+	}
+
+	if len(args.MetaImage) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("meta.main.image=%s", args.MetaImage))
+	}
+
+	if len(args.DatanodeImage) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("datanode.main.image=%s", args.DatanodeImage))
+	}
+
+	if len(args.EtcdImage) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("etcd.image=%s", args.EtcdImage))
+	}
+
+	if len(rawArgs) > 0 {
+		values, err = m.generateHelmValues(strings.Join(rawArgs, ","))
+		if err != nil {
+			return err
+		}
 	}
 
 	chart, err := m.render.LoadChartFromEmbedCharts(defaultGreptimeDBHelmPackageName, defaultGreptimeDBHelmPackageVersion)

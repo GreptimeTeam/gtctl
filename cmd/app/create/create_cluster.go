@@ -23,14 +23,6 @@ type createOptions struct {
 	Timeout int
 }
 
-const (
-	defaultGreptimeDBOperatorImage = "greptime/greptimedb-operator:latest"
-	defaultMetaImage               = "grygt/meta:latest"
-	defaultFrontendImage           = "grygt/db:latest"
-	defaultDatanodeImage           = "grygt/db:latest"
-	defaultEtcdImage               = "greptime/etcd:v3.5.5"
-)
-
 func NewCreateClusterCommand() *cobra.Command {
 	var options createOptions
 
@@ -84,12 +76,12 @@ func NewCreateClusterCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&options.OperatorImage, "operator-image", defaultGreptimeDBOperatorImage, "Image of GreptimeDB operator.")
+	cmd.Flags().StringVar(&options.OperatorImage, "operator-image", "", "Image of GreptimeDB operator.")
 	cmd.Flags().StringVar(&options.OperatorNamespace, "operator-namespace", "default", "The namespace of deploying greptimedb-operator.")
-	cmd.Flags().StringVar(&options.FrontendImage, "frontend-image", defaultFrontendImage, "Image of Frontend component.")
-	cmd.Flags().StringVar(&options.MetaImage, "meta-image", defaultMetaImage, "Image of Meta component.")
-	cmd.Flags().StringVar(&options.DatanodeImage, "datanode-image", defaultDatanodeImage, "Image of Datanode component.")
-	cmd.Flags().StringVar(&options.EtcdImage, "etcd-image", defaultEtcdImage, "Image of etcd.")
+	cmd.Flags().StringVar(&options.FrontendImage, "frontend-image", "", "Image of Frontend component.")
+	cmd.Flags().StringVar(&options.MetaImage, "meta-image", "", "Image of Meta component.")
+	cmd.Flags().StringVar(&options.DatanodeImage, "datanode-image", "", "Image of Datanode component.")
+	cmd.Flags().StringVar(&options.EtcdImage, "etcd-image", "", "Image of etcd.")
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
