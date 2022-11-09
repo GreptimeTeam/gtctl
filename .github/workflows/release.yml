@@ -1,24 +1,83 @@
 name: Release
+
 on:
   release:
     types: [created]
 
 jobs:
-  releases-matrix:
-    name: Release Go Binary
-    runs-on: ubuntu-latest
+  build:
+    name: Build binary
     strategy:
       matrix:
-        goos: [linux, darwin]
-        goarch: [amd64, arm64]
+        # The file format is gtctl-<os>-<arch>
+        include:
+          - arch: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            file: gtctl-linux-amd64
+          - arch: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            file: gtctl-linux-arm64
+          - arch: aarch64-apple-darwin
+            os: macos-latest
+            file: gtctl-darwin-arm64
+          - arch: x86_64-apple-darwin
+            os: macos-latest
+            file: gtctl-darwin-amd64
+    runs-on: ${{ matrix.os }}
+    env:
+      # will be removed when the project is open sourced.
+      GOPRIVATE: github.com/GreptimeTeam/*
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
     steps:
-    - uses: actions/checkout@v3
-    - uses: wangyoucao577/go-release-action@v1.32
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: "1.19"
-        build_command: "make github-release"
-        executable_compression: "upx"
-        compress_assets: off
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18.4"
+
+      # will be removed when the project is open sourced.
+      - run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
+
+      - name: Build project
+        run: |
+          make
+
+      - name: Calculate checksum and rename binary
+        shell: bash
+        run: |
+          cd bin
+          chmod +x gtctl
+          tar -zcvf ${{ matrix.file }}.tgz gtctl
+          echo $(shasum -a 256 ${{ matrix.file }}.tgz | cut -f1 -d' ') > ${{ matrix.file }}.sha256sum
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.file }}
+          path: bin/${{ matrix.file }}.tgz
+
+      - name: Upload checksum of artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.file }}.sha256sum
+          path: bin/${{ matrix.file }}.sha256sum
+
+  release:
+    name: Release artifacts
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Release ${{ github.ref_name }}"
+          files: |
+            **/gtctl-*
