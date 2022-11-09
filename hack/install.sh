@@ -54,9 +54,9 @@ if [ -n "${OS_TYPE}" ] && [ -n "${ARCH_TYPE}" ]; then
     echo "Downloading ${BIN}, OS: ${OS_TYPE}, Arch: ${ARCH_TYPE}, Version: ${VERSION}"
 
     if [ "${VERSION}" = "latest" ]; then
-        wget -q "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/latest/download/${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz"
+        wget "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/latest/download/${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz"
     else
-        wget -q "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download/${VERSION}/${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz"
+        wget "https://github.com/${GITHUB_ORG}/${GITHUB_REPO}/releases/download/${VERSION}/${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz"
     fi
 
     tar xvf ${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz && rm ${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz && echo "Run '${BIN} --help' to get started"
