@@ -80,7 +80,7 @@ gtctl provide `--dry-run` option in cluster creation. If the user execute the co
 $ gtctl create cluster mydb -n default --dry-run
 ```
 
-### Experiment
+### Experimental Feature
 
 You can use the following commands to scale(or down-scale) your cluster:
 
