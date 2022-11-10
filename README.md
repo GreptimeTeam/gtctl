@@ -2,9 +2,9 @@
 
 ## Overview
 
-gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. gtctl is the **All-in-One** binary that 
+gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. gtctl is the **All-in-One** binary that integrates multiple operations of GreptimeDB cluster.
 
-integrates multiple operations of GreptimeDB cluster.
+![screenshot](docs/images/screenshot.png)
 
 ## Getting Started
 
@@ -32,6 +32,38 @@ If you want to install the specific version of `gtctl`, you can:
 
 ```
 $ curl -L https://github.com/GreptimeTeam/gtctl/blob/main/hack/install.sh | sh -s <version>
+```
+
+Run `gtctl --hep` to get started:
+
+```
+$ gtctl --help
+          __       __  __
+   ____ _/ /______/ /_/ /
+  / __ `/ __/ ___/ __/ /
+ / /_/ / /_/ /__/ /_/ /
+ \__, /\__/\___/\__/_/
+/____/
+
+gtctl is a command-line tool for managing GreptimeDB cluster.
+
+Usage:
+  gtctl [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  create      Create GreptimeDB cluster.
+  delete      Delete GreptimeDB cluster.
+  get         Get GreptimeDB cluster.
+  help        Help about any command
+  scale       Scale GreptimeDB cluster.
+  version     Print the version of gtctl and exit
+
+Flags:
+  -h, --help      help for gtctl
+  -v, --version   version for gtctl
+
+Use "gtctl [command] --help" for more information about a command.
 ```
 
 Create your own GreptimeDB cluster:
