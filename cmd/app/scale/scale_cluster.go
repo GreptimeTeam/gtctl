@@ -3,13 +3,13 @@ package scale
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
 type scaleOptions struct {
@@ -28,7 +28,7 @@ const (
 	Datanode ComponentType = "datanode"
 )
 
-func NewScaleClusterCommand() *cobra.Command {
+func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 	var options scaleOptions
 
 	cmd := &cobra.Command{
@@ -59,7 +59,7 @@ func NewScaleClusterCommand() *cobra.Command {
 			ctx := context.TODO()
 			gtCluster, err := manager.GetCluster(ctx, args[0], options.Namespace)
 			if err != nil && errors.IsNotFound(err) {
-				log.Printf("cluster %s in %s not found\n", args[0], options.Namespace)
+				l.Infof("cluster %s in %s not found\n", args[0], options.Namespace)
 				return nil
 			} else if err != nil {
 				return err
@@ -76,13 +76,13 @@ func NewScaleClusterCommand() *cobra.Command {
 				gtCluster.Spec.Datanode.Replicas = options.Replicas
 			}
 
-			log.Printf("Scaling cluster %s in %s... from %d to %d\n", args[0], options.Namespace, oldReplicas, options.Replicas)
+			l.Infof("Scaling cluster %s in %s... from %d to %d\n", args[0], options.Namespace, oldReplicas, options.Replicas)
 
 			if err = manager.UpdateCluster(ctx, args[0], options.Namespace, gtCluster, time.Duration(options.Timeout)*time.Second); err != nil {
 				return err
 			}
 
-			log.Printf("Scaling cluster %s in %s is OK!\n", args[0], options.Namespace)
+			l.Infof("Scaling cluster %s in %s is OK!\n", args[0], options.Namespace)
 
 			return nil
 		},

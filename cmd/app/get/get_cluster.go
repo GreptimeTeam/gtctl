@@ -3,19 +3,19 @@ package get
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
 type getOptions struct {
 	Namespace string
 }
 
-func NewGetClusterCommand() *cobra.Command {
+func NewGetClusterCommand(l log.Logger) *cobra.Command {
 	var options getOptions
 	cmd := &cobra.Command{
 		Use:   "cluster",
@@ -33,13 +33,13 @@ func NewGetClusterCommand() *cobra.Command {
 			ctx := context.TODO()
 			gtCluster, err := manager.GetCluster(ctx, args[0], options.Namespace)
 			if err != nil && errors.IsNotFound(err) {
-				log.Printf("cluster %s in %s not found\n", args[0], options.Namespace)
+				l.Infof("cluster %s in %s not found\n", args[0], options.Namespace)
 				return nil
 			} else if err != nil {
 				return err
 			}
 
-			log.Printf("Cluster '%s' in '%s' namespace is running, create at %s\n", gtCluster.Name, gtCluster.Namespace, gtCluster.CreationTimestamp)
+			l.Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", gtCluster.Name, gtCluster.Namespace, gtCluster.CreationTimestamp)
 			return nil
 		},
 	}

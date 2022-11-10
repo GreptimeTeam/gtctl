@@ -3,12 +3,12 @@ package delete
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
 type deleteOptions struct {
@@ -16,7 +16,7 @@ type deleteOptions struct {
 	TearDownEtcd bool
 }
 
-func NewDeleteClusterCommand() *cobra.Command {
+func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 	var options deleteOptions
 
 	cmd := &cobra.Command{
@@ -27,7 +27,9 @@ func NewDeleteClusterCommand() *cobra.Command {
 			if len(args) == 0 {
 				return fmt.Errorf("cluster name should be set")
 			}
-			log.Printf("Deleting cluster %s in %s...\n", args[0], options.Namespace)
+
+			clusterName, namespace := args[0], options.Namespace
+			l.Infof("⚠️ Deleting cluster '%s' in namespace '%s'...\n", log.Bold(clusterName), log.Bold(namespace))
 
 			manager, err := cluster.NewClusterManager()
 			if err != nil {
@@ -37,7 +39,7 @@ func NewDeleteClusterCommand() *cobra.Command {
 			ctx := context.TODO()
 			_, err = manager.GetCluster(ctx, args[0], options.Namespace)
 			if err != nil && errors.IsNotFound(err) {
-				log.Printf("cluster %s in %s not found\n", args[0], options.Namespace)
+				l.Infof("Cluster '%s' in '%s' not found\n", clusterName, namespace)
 				return nil
 			} else if err != nil {
 				return err
@@ -48,7 +50,7 @@ func NewDeleteClusterCommand() *cobra.Command {
 			}
 
 			// TODO(zyy17): Should we wait until the cluster is actually deleted?
-			log.Printf("GreptimeDB Cluster %s in %s is Deleted!\n", args[0], options.Namespace)
+			l.Infof("Cluster '%s' in namespace '%s' is deleted!\n", clusterName, namespace)
 
 			return nil
 		},

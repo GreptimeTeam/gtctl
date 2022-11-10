@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
+
+	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
 func NewGetCommand() *cobra.Command {
@@ -21,8 +23,8 @@ func NewGetCommand() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(NewGetClusterCommand())
-	cmd.AddCommand(NewGetAllClustersCommand())
+	cmd.AddCommand(NewGetClusterCommand(log.NewLogger()))
+	cmd.AddCommand(NewGetAllClustersCommand(log.NewLogger()))
 
 	return cmd
 }
