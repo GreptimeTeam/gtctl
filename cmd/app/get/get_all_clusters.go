@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
 func NewGetAllClustersCommand(l log.Logger) *cobra.Command {
@@ -16,22 +16,25 @@ func NewGetAllClustersCommand(l log.Logger) *cobra.Command {
 		Short: "Get all GreptimeDB clusters.",
 		Long:  `Get all GreptimeDB clusters.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager, err := cluster.NewClusterManager()
+			m, err := manager.New(l, false)
 			if err != nil {
 				return err
 			}
+
 			ctx := context.TODO()
-			gtClusters, err := manager.GetAllClusters(ctx)
+			clusters, err := m.ListClusters(ctx, &manager.ListClusterOptions{})
 			if err != nil && !errors.IsNotFound(err) {
 				return err
-			} else if errors.IsNotFound(err) || (gtClusters != nil && len(gtClusters.Items) == 0) {
+			} else if errors.IsNotFound(err) || (clusters != nil && len(clusters.Items) == 0) {
 				l.Infof("clusters not found\n")
 				return nil
 			}
 
-			for _, gtCluster := range gtClusters.Items {
-				l.Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", gtCluster.Name, gtCluster.Namespace, gtCluster.CreationTimestamp)
+			// TODO(zyy17): more human friendly output format.
+			for _, cluster := range clusters.Items {
+				l.Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", cluster.Name, cluster.Namespace, cluster.CreationTimestamp)
 			}
+
 			return nil
 		},
 	}

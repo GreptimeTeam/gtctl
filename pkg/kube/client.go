@@ -171,8 +171,8 @@ func (c *Client) GetCluster(ctx context.Context, name, namespace string) (*grept
 	return c.getCluster(ctx, name, namespace)
 }
 
-func (c *Client) GetAllClusters(ctx context.Context) (*greptimev1alpha1.GreptimeDBClusterList, error) {
-	return c.getAllClusters(ctx)
+func (c *Client) ListCluster(ctx context.Context) (*greptimev1alpha1.GreptimeDBClusterList, error) {
+	return c.listClusters(ctx)
 }
 
 func (c *Client) DeleteCluster(ctx context.Context, name, namespace string) error {
@@ -277,7 +277,7 @@ func (c *Client) getCluster(ctx context.Context, name, namespace string) (*grept
 	return &cluster, nil
 }
 
-func (c *Client) getAllClusters(ctx context.Context) (*greptimev1alpha1.GreptimeDBClusterList, error) {
+func (c *Client) listClusters(ctx context.Context) (*greptimev1alpha1.GreptimeDBClusterList, error) {
 	unstructuredObject, err := c.dynamicKubeClient.Resource(greptimeDBClusterGVR).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err

@@ -8,28 +8,20 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cluster"
+	greptimedbv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
-type scaleOptions struct {
+type scaleCliOptions struct {
 	Namespace     string
 	ComponentType string
 	Replicas      int32
 	Timeout       int
 }
 
-// FIXME(zyy17): ComponentType should be defined in CRDs.
-
-type ComponentType string
-
-const (
-	Frontend ComponentType = "frontend"
-	Datanode ComponentType = "datanode"
-)
-
 func NewScaleClusterCommand(l log.Logger) *cobra.Command {
-	var options scaleOptions
+	var options scaleCliOptions
 
 	cmd := &cobra.Command{
 		Use:   "cluster",
@@ -39,11 +31,13 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 			if len(args) == 0 {
 				return fmt.Errorf("cluster name should be set")
 			}
+
 			if options.ComponentType == "" {
 				return fmt.Errorf("component type is required")
 			}
 
-			if options.ComponentType != string(Frontend) && options.ComponentType != string(Datanode) {
+			if options.ComponentType != string(greptimedbv1alpha1.FrontendComponentKind) &&
+				options.ComponentType != string(greptimedbv1alpha1.DatanodeComponentKind) {
 				return fmt.Errorf("component type is invalid")
 			}
 
@@ -51,38 +45,51 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 				return fmt.Errorf("replicas should be equal or greater than 1")
 			}
 
-			manager, err := cluster.NewClusterManager()
+			m, err := manager.New(l, false)
 			if err != nil {
 				return err
 			}
 
-			ctx := context.TODO()
-			gtCluster, err := manager.GetCluster(ctx, args[0], options.Namespace)
+			var (
+				ctx         = context.TODO()
+				clusterName = args[0]
+				namespace   = options.Namespace
+			)
+
+			cluster, err := m.GetCluster(ctx, &manager.GetClusterOptions{
+				ClusterName: clusterName,
+				Namespace:   namespace,
+			})
 			if err != nil && errors.IsNotFound(err) {
-				l.Infof("cluster %s in %s not found\n", args[0], options.Namespace)
+				l.Infof("cluster %s in %s not found\n", clusterName, namespace)
 				return nil
 			} else if err != nil {
 				return err
 			}
 
 			var oldReplicas int32
-			if options.ComponentType == string(Frontend) {
-				oldReplicas = gtCluster.Spec.Frontend.Replicas
-				gtCluster.Spec.Frontend.Replicas = options.Replicas
+			if options.ComponentType == string(greptimedbv1alpha1.FrontendComponentKind) {
+				oldReplicas = cluster.Spec.Frontend.Replicas
+				cluster.Spec.Frontend.Replicas = options.Replicas
 			}
 
-			if options.ComponentType == string(Datanode) {
-				oldReplicas = gtCluster.Spec.Datanode.Replicas
-				gtCluster.Spec.Datanode.Replicas = options.Replicas
+			if options.ComponentType == string(greptimedbv1alpha1.DatanodeComponentKind) {
+				oldReplicas = cluster.Spec.Datanode.Replicas
+				cluster.Spec.Datanode.Replicas = options.Replicas
 			}
 
-			l.Infof("Scaling cluster %s in %s... from %d to %d\n", args[0], options.Namespace, oldReplicas, options.Replicas)
+			l.Infof("Scaling cluster %s in %s... from %d to %d\n", clusterName, namespace, oldReplicas, options.Replicas)
 
-			if err = manager.UpdateCluster(ctx, args[0], options.Namespace, gtCluster, time.Duration(options.Timeout)*time.Second); err != nil {
+			if err := m.UpdateCluster(ctx, &manager.UpdateClusterOptions{
+				ClusterName: clusterName,
+				Namespace:   namespace,
+				NewCluster:  cluster,
+				Timeout:     time.Duration(options.Timeout) * time.Second,
+			}); err != nil {
 				return err
 			}
 
-			l.Infof("Scaling cluster %s in %s is OK!\n", args[0], options.Namespace)
+			l.Infof("Scaling cluster %s in %s is OK!\n", clusterName, namespace)
 
 			return nil
 		},

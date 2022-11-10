@@ -1,16 +1,17 @@
 package create
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
-type createOptions struct {
+type createClusterCliOptions struct {
 	OperatorImage     string
 	Namespace         string
 	OperatorNamespace string
@@ -24,7 +25,7 @@ type createOptions struct {
 }
 
 func NewCreateClusterCommand(l log.Logger) *cobra.Command {
-	var options createOptions
+	var options createClusterCliOptions
 
 	cmd := &cobra.Command{
 		Use:   "cluster",
@@ -34,34 +35,37 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 			if len(args) == 0 {
 				return fmt.Errorf("cluster name should be set")
 			}
-			if options.DryRun {
-				l.Infof("In dry run mode\n")
-			}
 
-			clusterName := args[0]
-			l.Infof("☕️ Creating cluster '%s' in namespace '%s'...\n", log.Bold(clusterName), log.Bold(options.Namespace))
-
-			clusterManager, err := cluster.NewClusterManager()
+			m, err := manager.New(l, options.DryRun)
 			if err != nil {
 				return err
 			}
 
-			operatorArgs := &cluster.OperatorDeploymentArgs{
+			createOperatorOptions := &manager.CreateOperatorOptions{
 				OperatorImage: options.OperatorImage,
 				Namespace:     options.OperatorNamespace,
 				Timeout:       time.Duration(options.Timeout) * time.Second,
+				DryRun:        options.DryRun,
 			}
 
-			l.Infof("☕️ Start to deploy greptimedb-operator...\n")
-			if err := log.StartSpinning("Deploying greptimedb-operator...", func() error {
-				return clusterManager.DeployOperator(operatorArgs, options.DryRun)
+			var (
+				clusterName = args[0]
+
+				// TODO(zyy17): should use timeout context.
+				ctx = context.TODO()
+			)
+
+			l.Infof("☕️ Creating cluster '%s' in namespace '%s'...\n", log.Bold(clusterName), log.Bold(options.Namespace))
+			l.Infof("☕️ Start to create greptimedb-operator...\n")
+			if err := log.StartSpinning("Creating greptimedb-operator...", func() error {
+				return m.CreateOperator(ctx, createOperatorOptions)
 			}); err != nil {
 				return err
 			}
-			l.Infof("🎉 Finish to deploy greptimedb-operator.\n")
+			l.Infof("🎉 Finish to create greptimedb-operator.\n")
 
-			l.Infof("☕️ Start to deploy GreptimeDB cluster...\n")
-			dbArgs := &cluster.DBDeploymentArgs{
+			l.Infof("☕️ Start to create GreptimeDB cluster...\n")
+			createClusterOptions := &manager.CreateClusterOptions{
 				ClusterName:   args[0],
 				Namespace:     options.Namespace,
 				FrontendImage: options.FrontendImage,
@@ -69,19 +73,20 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				DatanodeImage: options.DatanodeImage,
 				EtcdImage:     options.EtcdImage,
 				Timeout:       time.Duration(options.Timeout) * time.Second,
+				DryRun:        options.DryRun,
 			}
 
-			if err := log.StartSpinning("Deploying GreptimeDB cluster", func() error {
-				return clusterManager.DeployCluster(dbArgs, options.DryRun)
+			if err := log.StartSpinning("Creating GreptimeDB cluster", func() error {
+				return m.CreateCluster(ctx, createClusterOptions)
 			}); err != nil {
 				return err
 			}
 
-			l.Infof("🎉 Finish to deploy GreptimeDB cluster '%s'.\n", log.Bold(clusterName))
+			l.Infof("🎉 Finish to create GreptimeDB cluster '%s'.\n", log.Bold(clusterName))
 			l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 3306:3306", clusterName, options.Namespace)))
 			l.Infof("😊 Thank you for using %s!\n", log.Bold("GreptimeDB"))
 			l.Infof("🔑 %s\n", log.Bold("Invest in Data, Harvest over Time."))
-			
+
 			return nil
 		},
 	}
