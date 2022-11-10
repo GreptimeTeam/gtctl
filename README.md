@@ -2,74 +2,103 @@
 
 ## Overview
 
-gtctl is a command-line tool for managing GreptimeDB cluster. gtctl integrates the multiple operations in one binary.
+gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. gtctl is the **All-in-One** binary that 
+
+integrates multiple operations of GreptimeDB cluster.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Kubernetes 1.18 or higher version is required
+- **Kubernetes 1.18 or higher version is required**
 
   You can use [kind](https://kind.sigs.k8s.io/) to create your own Kubernetes cluster:
 
   ```
   $ kind create cluster
   ```
-### Usage
 
-- Download gtctl release
+### Quick start
 
-  Get latest gtctl from [our release
-  page](https://github.com/GreptimeTeam/gtctl/releases).
+Install your `gtctl` by one line:
 
-- Get gtctl version
+```
+$ curl -L https://github.com/GreptimeTeam/gtctl/blob/main/hack/install.sh | sh
+```
 
-  ```
-  $ gtctl version
-  ```
+After downloading, your `gtctl` will in the current directory.
 
-- Create GreptimeDB cluster
+If you want to install the specific version of `gtctl`, you can:
 
-  ```
-  $ gtctl create cluster db_name -n your_namespace
-  ```
+```
+$ curl -L https://github.com/GreptimeTeam/gtctl/blob/main/hack/install.sh | sh -s <version>
+```
 
-- Get GreptimeDB cluster
+Create your own GreptimeDB cluster:
 
-  ```
-  $ gtctl get cluster db_name -n your_namespace
-  ```
+```
+$ gtctl create cluster mydb -n default
+```
 
-- Get All GreptimeDB clusters
+After creating, the whole GreptimeDB cluster will start in `default` namespace:
 
-  ```
-  $ gtctl get clusters
-  ```
+```
+# Get the cluster.
+$ gtctl get cluster mydb -n default
 
-- Scale GreptimeDB cluster
+# Get all clusters.
+$ gtctl get clusters
+```
 
-  ```
-  # Scale datanode to 3 replicas.
-  $ gtctl scale cluster db_name -n your_namespace -c datanode --replicas 3
+You can use `kubectl port-forward` command to forward frontend requests:
 
-  # Scale frontend to 5 replicas.
-  $ gtctl scale cluster db_name -n your_namespace -c frontend --replicas 5
-  ```
+```
+$ kubectl port-forward svc/mydb-frontend 3306:3306 > connections.out &
+```
 
-- Delete GreptimeDB cluster
+Use your `mysql` client to connect your cluster:
 
-  ```
-  # Delete GreptimeDB cluster.
-  $ gtctl delete cluster db_name -n your_namespace
+```
+$ mysql -h 127.0.0.1 -P 3306
+```
 
-  # Delete GreptimeDB cluster, including etcd cluster.
-  $ gtctl delete cluster db_name -n your_namespace --tear-down-etcd
-  ```
+If you want to delete the cluster, you can:
+
+```
+# Just delete the cluster.
+$ gtctl delete cluster mydb -n default
+
+# Delete GreptimeDB cluster, including etcd cluster.
+$ gtctl delete cluster mydb -n default --tear-down-etcd
+```
+
+### Dry Run Mode
+
+gtctl provide `--dry-run` option in cluster creation. If the user execute the command with `--dry-run`, gtctl will output the manifests content without applying them:
+
+```
+$ gtctl create cluster mydb -n default --dry-run
+```
+
+### Experiment
+
+You can use the following commands to scale(or down-scale) your cluster:
+
+```
+# Scale datanode to 3 replicas.
+$ gtctl scale cluster <your-cluster> -n <your-cluster-namespace> -c datanode --replicas 3
+
+# Scale frontend to 5 replicas.
+$ gtctl scale cluster <your-cluster> -n <your-cluster-namespace> -c frontend --replicas 5
+```
+
 
 ## Development
 
-Just make it:
+- Compile the project
 
-```
-$ make
-```
+  ```
+  $ make
+  ```
+
+  Then the `gtctl` will be generated in `bin/`.
