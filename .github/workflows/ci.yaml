@@ -28,3 +28,24 @@ jobs:
       - name: Build the project
         run: |
           make
+
+      - name: Create Kubernetes
+        run: |
+          cat <<EOF | kind create cluster --name runner --config=-
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+              - role: control-plane
+              - role: worker
+              - role: worker
+          EOF
+
+      - name: Test basic operations of gtctl
+        run: |
+          cd bin
+          ./gtctl create cluster mydb -n default
+          ./gtctl get cluster mydb -n default
+          ./gtctl get clusters
+          ./gtctl delete cluster mydb -n default --tear-down-etcd
+
+      # TODO(zyy17): When the greptimedb is ready, add some SQL tests.
