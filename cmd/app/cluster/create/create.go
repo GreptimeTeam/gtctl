@@ -28,9 +28,9 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	var options createClusterCliOptions
 
 	cmd := &cobra.Command{
-		Use:   "cluster",
-		Short: "Create a GreptimeDB cluster.",
-		Long:  `Create a GreptimeDB cluster.`,
+		Use:   "create",
+		Short: "Create a GreptimeDB cluster",
+		Long:  `Create a GreptimeDB cluster`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("cluster name should be set")

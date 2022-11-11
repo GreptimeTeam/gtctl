@@ -18,9 +18,9 @@ type getClusterCliOptions struct {
 func NewGetClusterCommand(l log.Logger) *cobra.Command {
 	var options getClusterCliOptions
 	cmd := &cobra.Command{
-		Use:   "cluster",
-		Short: "Get a GreptimeDB cluster.",
-		Long:  `Get a GreptimeDB cluster.`,
+		Use:   "get",
+		Short: "Get GreptimeDB cluster",
+		Long:  `Get GreptimeDB cluster`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("cluster name should be set")

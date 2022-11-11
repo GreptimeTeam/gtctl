@@ -5,10 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/cmd/app/create"
-	"github.com/GreptimeTeam/gtctl/cmd/app/delete"
-	"github.com/GreptimeTeam/gtctl/cmd/app/get"
-	"github.com/GreptimeTeam/gtctl/cmd/app/scale"
+	"github.com/GreptimeTeam/gtctl/cmd/app/cluster"
 	"github.com/GreptimeTeam/gtctl/cmd/app/version"
 	internalversion "github.com/GreptimeTeam/gtctl/pkg/version"
 )
@@ -25,11 +22,8 @@ func NewRootCommand() *cobra.Command {
 	}
 
 	// Add all top level subcommands.
-	cmd.AddCommand(create.NewCreateCommand())
 	cmd.AddCommand(version.NewVersionCommand())
-	cmd.AddCommand(delete.NewDeleteCommand())
-	cmd.AddCommand(scale.NewScaleCommand())
-	cmd.AddCommand(get.NewGetCommand())
+	cmd.AddCommand(cluster.NewClusterCommand())
 
 	return cmd
 }
