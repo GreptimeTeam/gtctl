@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	greptimedbv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	greptimev1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
 	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
@@ -24,9 +24,9 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 	var options scaleCliOptions
 
 	cmd := &cobra.Command{
-		Use:   "cluster",
-		Short: "Scale GreptimeDB cluster.",
-		Long:  `Scale GreptimeDB cluster.`,
+		Use:   "scale",
+		Short: "Scale GreptimeDB cluster",
+		Long:  `Scale GreptimeDB cluster`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("cluster name should be set")
@@ -36,8 +36,8 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 				return fmt.Errorf("component type is required")
 			}
 
-			if options.ComponentType != string(greptimedbv1alpha1.FrontendComponentKind) &&
-				options.ComponentType != string(greptimedbv1alpha1.DatanodeComponentKind) {
+			if options.ComponentType != string(greptimev1alpha1.FrontendComponentKind) &&
+				options.ComponentType != string(greptimev1alpha1.DatanodeComponentKind) {
 				return fmt.Errorf("component type is invalid")
 			}
 
@@ -68,12 +68,12 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 			}
 
 			var oldReplicas int32
-			if options.ComponentType == string(greptimedbv1alpha1.FrontendComponentKind) {
+			if options.ComponentType == string(greptimev1alpha1.FrontendComponentKind) {
 				oldReplicas = cluster.Spec.Frontend.Replicas
 				cluster.Spec.Frontend.Replicas = options.Replicas
 			}
 
-			if options.ComponentType == string(greptimedbv1alpha1.DatanodeComponentKind) {
+			if options.ComponentType == string(greptimev1alpha1.DatanodeComponentKind) {
 				oldReplicas = cluster.Spec.Datanode.Replicas
 				cluster.Spec.Datanode.Replicas = options.Replicas
 			}

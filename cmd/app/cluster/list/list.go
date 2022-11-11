@@ -1,4 +1,4 @@
-package get
+package list
 
 import (
 	"context"
@@ -10,11 +10,11 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
-func NewGetAllClustersCommand(l log.Logger) *cobra.Command {
+func NewListClustersCommand(l log.Logger) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "clusters",
-		Short: "Get all GreptimeDB clusters.",
-		Long:  `Get all GreptimeDB clusters.`,
+		Use:   "list",
+		Short: "List all GreptimeDB clusters",
+		Long:  `List all GreptimeDB clusters`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m, err := manager.New(l, false)
 			if err != nil {

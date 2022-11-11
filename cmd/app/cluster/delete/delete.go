@@ -20,9 +20,9 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 	var options deleteClusterCliOptions
 
 	cmd := &cobra.Command{
-		Use:   "cluster",
-		Short: "Delete a GreptimeDB cluster.",
-		Long:  `Delete a GreptimeDB cluster.`,
+		Use:   "delete",
+		Short: "Delete a GreptimeDB cluster",
+		Long:  `Delete a GreptimeDB cluster`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("cluster name should be set")

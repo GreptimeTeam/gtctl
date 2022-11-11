@@ -43,9 +43,9 @@ jobs:
       - name: Test basic operations of gtctl
         run: |
           cd bin
-          ./gtctl create cluster mydb -n default
-          ./gtctl get cluster mydb -n default
-          ./gtctl get clusters
-          ./gtctl delete cluster mydb -n default --tear-down-etcd
+          ./gtctl cluster create mydb -n default --timeout 180
+          ./gtctl cluster get mydb -n default
+          ./gtctl cluster list
+          ./gtctl cluster delete mydb -n default --tear-down-etcd
 
       # TODO(zyy17): When the greptimedb is ready, add some SQL tests.
