@@ -3,15 +3,20 @@ package manager
 import (
 	"context"
 	"fmt"
-	"helm.sh/helm/v3/pkg/strvals"
 	"strings"
 	"time"
+
+	"helm.sh/helm/v3/pkg/strvals"
 
 	greptimedbv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
 	"github.com/GreptimeTeam/gtctl/pkg/utils"
+)
+
+const (
+	defaultChartsURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 )
 
 // Manager manage the cluster resources.
@@ -41,8 +46,10 @@ type CreateClusterOptions struct {
 	StorageClassName    string
 	StorageSize         string
 	StorageRetainPolicy string
-	Timeout             time.Duration
-	DryRun              bool
+	GreptimeDBVersion   string
+
+	Timeout time.Duration
+	DryRun  bool
 }
 
 type UpdateClusterOptions struct {
@@ -59,8 +66,9 @@ type DeleteClusterOption struct {
 }
 
 type CreateOperatorOptions struct {
-	OperatorImage string
-	Namespace     string
+	OperatorImage   string
+	Namespace       string
+	OperatorVersion string
 
 	Timeout time.Duration
 
@@ -109,7 +117,11 @@ func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptio
 		return err
 	}
 
-	chart, err := m.render.LoadChartFromEmbedCharts(defaultGreptimeDBHelmPackageName, defaultGreptimeDBHelmPackageVersion)
+	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.0/greptimedb-0.1.0.tgz
+	chartName := defaultGreptimeDBHelmPackageName + "-" + options.GreptimeDBVersion
+	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+
+	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
 		return err
 	}
@@ -167,7 +179,11 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 		return err
 	}
 
-	chart, err := m.render.LoadChartFromEmbedCharts(defaultOperatorHelmPackageName, defaultOperatorHelmPackageVersion)
+	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-operator-0.1.0-alpha.2/greptimedb-operator-0.1.0-alpha.2.tgz
+	chartName := defaultOperatorHelmPackageName + "-" + options.OperatorVersion
+	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+
+	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
 		return err
 	}

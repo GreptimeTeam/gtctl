@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
-
-	"github.com/GreptimeTeam/gtctl/charts"
 )
 
 type TemplateRender interface {
@@ -21,19 +21,23 @@ type Render struct{}
 
 var _ TemplateRender = &Render{}
 
-// TODO(zyy17): Support remote charts.
+func (r *Render) LoadChartFromRemoteCharts(downloadURL string) (*chart.Chart, error) {
+	rsp, err := http.Get(downloadURL)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	body, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return loader.LoadArchive(bytes.NewReader(body))
+}
 
 func (r *Render) LoadChartFromLocalDirectory(directory string) (*chart.Chart, error) {
 	return loader.LoadDir(directory)
-}
-
-func (r *Render) LoadChartFromEmbedCharts(application, version string) (*chart.Chart, error) {
-	chartName := fmt.Sprintf("%s-%s.tgz", application, version)
-	content, err := charts.Charts.ReadFile(chartName)
-	if err != nil {
-		return nil, fmt.Errorf("chart '%s' not found: %s", chartName, err)
-	}
-	return loader.LoadArchive(bytes.NewReader(content))
 }
 
 func (r *Render) GenerateManifests(releaseName, namespace string, chart *chart.Chart, values map[string]interface{}) ([]byte, error) {
