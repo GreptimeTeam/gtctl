@@ -23,7 +23,7 @@ gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://gi
 Install your `gtctl` by one line:
 
 ```
-$ curl -L https://github.com/greptimeteam/gtctl/blob/main/hack/install.sh | sh
+$ curl -L https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
 ```
 
 After downloading, your `gtctl` will in the current directory.
@@ -31,7 +31,7 @@ After downloading, your `gtctl` will in the current directory.
 If you want to install the specific version of `gtctl`, you can:
 
 ```
-$ curl -L https://github.com/greptimeteam/gtctl/blob/main/hack/install.sh | sh -s <version>
+$ curl -L https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh -s <version>
 ```
 
 Run `gtctl --hep` to get started:
