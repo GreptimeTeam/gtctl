@@ -104,12 +104,12 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.MetaImage, "meta-image", "", "Image of Meta component.")
 	cmd.Flags().StringVar(&options.DatanodeImage, "datanode-image", "", "Image of Datanode component.")
 	cmd.Flags().StringVar(&options.EtcdImage, "etcd-image", "", "Image of etcd.")
-	cmd.Flags().StringVar(&options.StorageClassName, "sc-name", "standard", "Datanode storage class name.")
+	cmd.Flags().StringVar(&options.StorageClassName, "storage-class-name", "standard", "Datanode storage class name.")
 	cmd.Flags().StringVar(&options.StorageSize, "storage-size", "10Gi", "Datanode persistent volume size.")
 	cmd.Flags().StringVar(&options.StorageRetainPolicy, "retain-policy", "Retain", "Datanode pvc retain policy.")
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
-	cmd.Flags().IntVar(&options.Timeout, "timeout", 300, "Timeout in seconds for the command to complete, default is no timeout.")
+	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
 
 	return cmd
 }
