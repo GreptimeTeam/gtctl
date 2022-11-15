@@ -11,10 +11,6 @@ var (
 	buildDate  = "none"
 )
 
-const (
-	gtctlVersion = "0.1.0"
-)
-
 type Version struct {
 	GtctlVersion string
 	GitCommit    string
@@ -38,12 +34,11 @@ func (v Version) String() string {
 
 func Get() Version {
 	return Version{
-		GtctlVersion: gtctlVersion,
-		GitCommit:    gitCommit,
-		GitVersion:   gitVersion,
-		GoVersion:    runtime.Version(),
-		Compiler:     runtime.Compiler,
-		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
-		BuildDate:    buildDate,
+		GitCommit:  gitCommit,
+		GitVersion: gitVersion,
+		GoVersion:  runtime.Version(),
+		Compiler:   runtime.Compiler,
+		Platform:   fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		BuildDate:  buildDate,
 	}
 }

@@ -12,18 +12,14 @@ import (
 )
 
 type createClusterCliOptions struct {
-	OperatorImage       string
 	Namespace           string
 	OperatorNamespace   string
-	MetaImage           string
-	FrontendImage       string
-	DatanodeImage       string
-	EtcdImage           string
 	StorageClassName    string
 	StorageSize         string
 	StorageRetainPolicy string
 	Version             string
 	OperatorVersion     string
+	ImageRegistry       string
 
 	DryRun  bool
 	Timeout int
@@ -47,11 +43,11 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 			}
 
 			createOperatorOptions := &manager.CreateOperatorOptions{
-				OperatorImage:   options.OperatorImage,
 				Namespace:       options.OperatorNamespace,
 				Timeout:         time.Duration(options.Timeout) * time.Second,
 				DryRun:          options.DryRun,
 				OperatorVersion: options.OperatorVersion,
+				ImageRegistry:   options.ImageRegistry,
 			}
 
 			var (
@@ -74,16 +70,13 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 			createClusterOptions := &manager.CreateClusterOptions{
 				ClusterName:         args[0],
 				Namespace:           options.Namespace,
-				FrontendImage:       options.FrontendImage,
-				MetaImage:           options.MetaImage,
-				DatanodeImage:       options.DatanodeImage,
-				EtcdImage:           options.EtcdImage,
 				StorageClassName:    options.StorageClassName,
 				StorageSize:         options.StorageSize,
 				StorageRetainPolicy: options.StorageRetainPolicy,
 				Timeout:             time.Duration(options.Timeout) * time.Second,
 				DryRun:              options.DryRun,
 				GreptimeDBVersion:   options.Version,
+				ImageRegistry:       options.ImageRegistry,
 			}
 
 			if err := log.StartSpinning("Creating GreptimeDB cluster", func() error {
@@ -102,20 +95,16 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&options.OperatorImage, "operator-image", "", "Image of GreptimeDB operator.")
 	cmd.Flags().StringVar(&options.OperatorNamespace, "operator-namespace", "default", "The namespace of deploying greptimedb-operator.")
-	cmd.Flags().StringVar(&options.FrontendImage, "frontend-image", "", "Image of Frontend component.")
-	cmd.Flags().StringVar(&options.MetaImage, "meta-image", "", "Image of Meta component.")
-	cmd.Flags().StringVar(&options.DatanodeImage, "datanode-image", "", "Image of Datanode component.")
-	cmd.Flags().StringVar(&options.EtcdImage, "etcd-image", "", "Image of etcd.")
 	cmd.Flags().StringVar(&options.StorageClassName, "storage-class-name", "standard", "Datanode storage class name.")
 	cmd.Flags().StringVar(&options.StorageSize, "storage-size", "10Gi", "Datanode persistent volume size.")
 	cmd.Flags().StringVar(&options.StorageRetainPolicy, "retain-policy", "Retain", "Datanode pvc retain policy.")
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
-	cmd.Flags().StringVar(&options.Version, "version", "0.1.0", "The GreptimeDB version.")
-	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", "0.1.0-alpha.4", "The greptimedb-operator version.")
+	cmd.Flags().StringVar(&options.Version, "version", manager.DefaultGreptimeDBChartVersion, "The GreptimeDB version.")
+	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", manager.DefaultGreptimeDBOperatorChartVersion, "The greptimedb-operator version.")
+	cmd.Flags().StringVar(&options.ImageRegistry, "image-registry", manager.DefaultImageRegistry, "The image registry")
 
 	return cmd
 }
