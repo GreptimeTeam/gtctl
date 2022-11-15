@@ -115,7 +115,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
 	cmd.Flags().StringVar(&options.Version, "version", "0.1.0", "The GreptimeDB version.")
-	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", "0.1.0-alpha.2", "The greptimedb-operator version.")
+	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", "0.1.0-alpha.4", "The greptimedb-operator version.")
 
 	return cmd
 }
