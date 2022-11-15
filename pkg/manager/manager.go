@@ -3,7 +3,6 @@ package manager
 import (
 	"context"
 	"fmt"
-
 	"helm.sh/helm/v3/pkg/strvals"
 	"strings"
 	"time"
@@ -33,14 +32,17 @@ type GetClusterOptions struct {
 type ListClusterOptions struct{}
 
 type CreateClusterOptions struct {
-	ClusterName   string
-	Namespace     string
-	MetaImage     string
-	FrontendImage string
-	DatanodeImage string
-	EtcdImage     string
-	Timeout       time.Duration
-	DryRun        bool
+	ClusterName         string
+	Namespace           string
+	MetaImage           string
+	FrontendImage       string
+	DatanodeImage       string
+	EtcdImage           string
+	StorageClassName    string
+	StorageSize         string
+	StorageRetainPolicy string
+	Timeout             time.Duration
+	DryRun              bool
 }
 
 type UpdateClusterOptions struct {
@@ -209,6 +211,18 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 
 	if len(options.EtcdImage) > 0 {
 		rawArgs = append(rawArgs, fmt.Sprintf("etcd.image=%s", options.EtcdImage))
+	}
+
+	if len(options.StorageClassName) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("datanode.storage.storageClassName=%s", options.StorageClassName))
+	}
+
+	if len(options.StorageSize) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("datanode.storage.storageSize=%s", options.StorageSize))
+	}
+
+	if len(options.StorageRetainPolicy) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("datanode.storage.storageRetainPolicy=%s", options.StorageRetainPolicy))
 	}
 
 	if len(rawArgs) > 0 {

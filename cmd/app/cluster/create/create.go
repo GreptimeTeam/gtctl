@@ -12,13 +12,16 @@ import (
 )
 
 type createClusterCliOptions struct {
-	OperatorImage     string
-	Namespace         string
-	OperatorNamespace string
-	MetaImage         string
-	FrontendImage     string
-	DatanodeImage     string
-	EtcdImage         string
+	OperatorImage       string
+	Namespace           string
+	OperatorNamespace   string
+	MetaImage           string
+	FrontendImage       string
+	DatanodeImage       string
+	EtcdImage           string
+	StorageClassName    string
+	StorageSize         string
+	StorageRetainPolicy string
 
 	DryRun  bool
 	Timeout int
@@ -66,14 +69,17 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 
 			l.Infof("☕️ Start to create GreptimeDB cluster...\n")
 			createClusterOptions := &manager.CreateClusterOptions{
-				ClusterName:   args[0],
-				Namespace:     options.Namespace,
-				FrontendImage: options.FrontendImage,
-				MetaImage:     options.MetaImage,
-				DatanodeImage: options.DatanodeImage,
-				EtcdImage:     options.EtcdImage,
-				Timeout:       time.Duration(options.Timeout) * time.Second,
-				DryRun:        options.DryRun,
+				ClusterName:         args[0],
+				Namespace:           options.Namespace,
+				FrontendImage:       options.FrontendImage,
+				MetaImage:           options.MetaImage,
+				DatanodeImage:       options.DatanodeImage,
+				EtcdImage:           options.EtcdImage,
+				StorageClassName:    options.StorageClassName,
+				StorageSize:         options.StorageSize,
+				StorageRetainPolicy: options.StorageRetainPolicy,
+				Timeout:             time.Duration(options.Timeout) * time.Second,
+				DryRun:              options.DryRun,
 			}
 
 			if err := log.StartSpinning("Creating GreptimeDB cluster", func() error {
@@ -82,11 +88,12 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				return err
 			}
 
-			l.Infof("🎉 Finish to create GreptimeDB cluster '%s'.\n", log.Bold(clusterName))
-			l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 3306:3306", clusterName, options.Namespace)))
-			l.Infof("😊 Thank you for using %s!\n", log.Bold("GreptimeDB"))
-			l.Infof("🔑 %s\n", log.Bold("Invest in Data, Harvest over Time."))
-
+			if !options.DryRun {
+				l.Infof("🎉 Finish to create GreptimeDB cluster '%s'.\n", log.Bold(clusterName))
+				l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 3306:3306", clusterName, options.Namespace)))
+				l.Infof("😊 Thank you for using %s!\n", log.Bold("GreptimeDB"))
+				l.Infof("🔑 %s\n", log.Bold("Invest in Data, Harvest over Time."))
+			}
 			return nil
 		},
 	}
@@ -97,9 +104,12 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.MetaImage, "meta-image", "", "Image of Meta component.")
 	cmd.Flags().StringVar(&options.DatanodeImage, "datanode-image", "", "Image of Datanode component.")
 	cmd.Flags().StringVar(&options.EtcdImage, "etcd-image", "", "Image of etcd.")
+	cmd.Flags().StringVar(&options.StorageClassName, "sc-name", "standard", "Datanode storage class name.")
+	cmd.Flags().StringVar(&options.StorageSize, "storage-size", "10Gi", "Datanode persistent volume size.")
+	cmd.Flags().StringVar(&options.StorageRetainPolicy, "retain-policy", "Retain", "Datanode pvc retain policy.")
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
-	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
+	cmd.Flags().IntVar(&options.Timeout, "timeout", 300, "Timeout in seconds for the command to complete, default is no timeout.")
 
 	return cmd
 }
