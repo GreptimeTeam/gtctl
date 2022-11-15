@@ -14,7 +14,7 @@ gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://gi
 
   You can use [kind](https://kind.sigs.k8s.io/) to create your own Kubernetes cluster:
 
-  ```shell
+  ```console
   kind create cluster
   ```
 
@@ -22,7 +22,7 @@ gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://gi
 
 Install your `gtctl` by one line:
 
-```shell
+```console
 curl -L https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
 ```
 
@@ -30,13 +30,13 @@ After downloading, your `gtctl` will in the current directory.
 
 If you want to install the specific version of `gtctl`, you can:
 
-```shell
+```console
 curl -L https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh -s <version>
 ```
 
 Run `gtctl --hep` to get started:
 
-```
+```console
 gtctl --help
           __       __  __
    ____ _/ /______/ /_/ /
@@ -65,13 +65,13 @@ Use "gtctl [command] --help" for more information about a command.
 
 Create your own GreptimeDB cluster:
 
-```shell
+```console
 gtctl cluster create mydb -n default
 ```
 
 After creating, the whole GreptimeDB cluster will start in `default` namespace:
 
-```shell
+```console
 # Get the cluster.
 gtctl cluster get mydb -n default
 
@@ -81,19 +81,19 @@ gtctl cluster list
 
 You can use `kubectl port-forward` command to forward frontend requests:
 
-```shell
+```console
 kubectl port-forward svc/mydb-frontend 3306:3306 > connections.out &
 ```
 
 Use your `mysql` client to connect your cluster:
 
-```shell
+```console
 mysql -h 127.0.0.1 -P 3306
 ```
 
 If you want to delete the cluster, you can:
 
-```shell
+```console
 # Just delete the cluster.
 gtctl cluster delete mydb -n default
 
@@ -105,7 +105,7 @@ gtctl cluster delete mydb -n default --tear-down-etcd
 
 gtctl provide `--dry-run` option in cluster creation. If the user execute the command with `--dry-run`, gtctl will output the manifests content without applying them:
 
-```shell
+```console
 gtctl cluster create mydb -n default --dry-run
 ```
 
@@ -113,7 +113,7 @@ gtctl cluster create mydb -n default --dry-run
 
 You can use the following commands to scale(or down-scale) your cluster:
 
-```shell
+```console
 # Scale datanode to 3 replicas.
 gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c datanode --replicas 3
 
@@ -126,8 +126,13 @@ gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c frontend --rep
 
 - Compile the project
 
-  ```shell
+  ```console
   make
   ```
 
   Then the `gtctl` will be generated in `bin/`.
+
+## License
+
+gtctl uses the [Apache 2.0 license](./LICENSE) to strike a balance between
+open contributions and allowing you to use the software however you want.
