@@ -3,7 +3,7 @@ module github.com/GreptimeTeam/gtctl
 go 1.18
 
 require (
-	github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.3
+	github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.4
 	github.com/briandowns/spinner v1.19.0
 	github.com/fatih/color v1.13.0
 	github.com/spf13/cobra v1.5.0
