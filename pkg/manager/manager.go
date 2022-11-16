@@ -216,14 +216,10 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 
 	// TODO(zyy17): It's very ugly to generate Helm values...
 	if len(options.ImageRegistry) > 0 {
-		dbRepo := options.ImageRegistry + "/" + "greptimedb"
-		dbTag := DefaultGreptimeDBImageTag
-		dbImage := dbRepo + ":" + dbTag
-		etcdRepo := options.ImageRegistry + "/" + "etcd"
-		etcdTag := DefaultEtcdImageTag
-		etcdImage := etcdRepo + ":" + etcdTag
+		dbImage := m.generateImageURL(options.ImageRegistry, "greptimedb", DefaultGreptimeDBImageTag)
+		etcdImage := m.generateImageURL(options.ImageRegistry, "etcd", DefaultEtcdImageTag)
 		rawArgs = append(rawArgs, fmt.Sprintf("base.main.image=%s", dbImage))
-		rawArgs = append(rawArgs, fmt.Sprintf("etcd.image=%s", etcdImage))
+		rawArgs = append(rawArgs, fmt.Sprintf("greptimedb-etcd.etcdImage=%s", etcdImage))
 	}
 
 	if len(options.StorageClassName) > 0 {
@@ -252,7 +248,6 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 func (m *manager) generateOperatorValues(options *CreateOperatorOptions) (map[string]interface{}, error) {
 	// TODO(zyy17): It's very ugly to generate Helm values...
 	if len(options.ImageRegistry) > 0 {
-		//repo, tag := utils.SplitImageURL(options.OperatorImage)
 		repo := options.ImageRegistry + "/" + "greptimedb-operator"
 		tag := DefaultGreptimeDBOperatorImageTag
 		values, err := m.generateHelmValues(fmt.Sprintf("image.repository=%s,image.tag=%s", repo, tag))
@@ -271,4 +266,8 @@ func (m *manager) generateHelmValues(args string) (map[string]interface{}, error
 		return nil, err
 	}
 	return values, nil
+}
+
+func (m *manager) generateImageURL(registry, name, tag string) string {
+	return registry + "/" + name + ":" + tag
 }
