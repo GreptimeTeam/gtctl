@@ -19,7 +19,7 @@ const (
 	DefaultGreptimeDBChartVersion         = "0.1.0"
 	DefaultGreptimeDBOperatorChartVersion = "0.1.0-alpha.4"
 	ETCDImageName                         = "etcd"
-	EtcdImageTag                          = "v3.5.5"
+	ETCDImageTag                          = "v3.5.5"
 	GreptimeDBImageName                   = "greptimedb"
 	GreptimeDBImageTag                    = "integration-paas-test"
 	GreptimeDBOperatorImageName           = "greptimedb-operator"
@@ -220,7 +220,7 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 	// TODO(zyy17): It's very ugly to generate Helm values...
 	if len(options.ImageRegistry) > 0 {
 		dbImage := m.generateImageURL(options.ImageRegistry, options.RepoName, GreptimeDBImageName+":"+GreptimeDBImageTag)
-		etcdImage := m.generateImageURL(options.ImageRegistry, options.RepoName, ETCDImageName+":"+EtcdImageTag)
+		etcdImage := m.generateImageURL(options.ImageRegistry, options.RepoName, ETCDImageName+":"+ETCDImageTag)
 		rawArgs = append(rawArgs, fmt.Sprintf("base.main.image=%s", dbImage))
 		rawArgs = append(rawArgs, fmt.Sprintf("greptimedb-etcd.etcdImage=%s", etcdImage))
 	}
@@ -252,8 +252,7 @@ func (m *manager) generateOperatorValues(options *CreateOperatorOptions) (map[st
 	// TODO(zyy17): It's very ugly to generate Helm values...
 	if len(options.ImageRegistry) > 0 {
 		repository := options.ImageRegistry + "/" + options.RepoName + "/" + GreptimeDBOperatorImageName
-		tag := GreptimeDBOperatorImageTag
-		values, err := m.generateHelmValues(fmt.Sprintf("image.repository=%s,image.tag=%s", repository, tag))
+		values, err := m.generateHelmValues(fmt.Sprintf("image.repository=%s,image.tag=%s", repository, GreptimeDBOperatorImageTag))
 		if err != nil {
 			return nil, err
 		}
