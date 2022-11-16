@@ -94,7 +94,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 
 			if !options.DryRun {
 				l.Infof("🎉 Finish to create GreptimeDB cluster '%s'.\n", log.Bold(clusterName))
-				l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 3306:3306", clusterName, options.Namespace)))
+				l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 4002:4002", clusterName, options.Namespace)))
 				l.Infof("😊 Thank you for using %s!\n", log.Bold("GreptimeDB"))
 				l.Infof("🔑 %s\n", log.Bold("Invest in Data, Harvest over Time."))
 			}
@@ -114,8 +114,8 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
-	cmd.Flags().StringVar(&options.Version, "version", "0.1.0", "The GreptimeDB version.")
-	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", "0.1.0-alpha.4", "The greptimedb-operator version.")
+	cmd.Flags().StringVar(&options.Version, "version", "0.1.0-alpha-20221116", "The GreptimeDB version.")
+	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", "0.1.0-alpha.5", "The greptimedb-operator version.")
 
 	return cmd
 }
