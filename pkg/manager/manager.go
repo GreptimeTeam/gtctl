@@ -16,8 +16,8 @@ import (
 
 const (
 	defaultChartsURL                      = "https://github.com/GreptimeTeam/helm-charts/releases/download"
-	DefaultGreptimeDBChartVersion         = "0.1.0"
-	DefaultGreptimeDBOperatorChartVersion = "0.1.0-alpha.4"
+	DefaultGreptimeDBChartVersion         = "0.1.0-alpha-20221116"
+	DefaultGreptimeDBOperatorChartVersion = "0.1.0-alpha.5"
 	ETCDImageName                         = "etcd"
 	ETCDImageTag                          = "v3.5.5"
 	GreptimeDBImageName                   = "greptimedb"
@@ -251,8 +251,8 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 func (m *manager) generateOperatorValues(options *CreateOperatorOptions) (map[string]interface{}, error) {
 	// TODO(zyy17): It's very ugly to generate Helm values...
 	if len(options.ImageRegistry) > 0 {
-		repository := options.ImageRegistry + "/" + options.RepoName + "/" + GreptimeDBOperatorImageName
-		values, err := m.generateHelmValues(fmt.Sprintf("image.repository=%s,image.tag=%s", repository, GreptimeDBOperatorImageTag))
+		operatorImage := m.generateImageURL(options.ImageRegistry, options.RepoName, GreptimeDBOperatorImageName+":"+GreptimeDBOperatorImageTag)
+		values, err := m.generateHelmValues(fmt.Sprintf("image=%s", operatorImage))
 		if err != nil {
 			return nil, err
 		}

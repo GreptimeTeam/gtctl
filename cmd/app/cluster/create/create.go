@@ -90,7 +90,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 
 			if !options.DryRun {
 				l.Infof("🎉 Finish to create GreptimeDB cluster '%s'.\n", log.Bold(clusterName))
-				l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 3306:3306", clusterName, options.Namespace)))
+				l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 4002:4002", clusterName, options.Namespace)))
 				l.Infof("😊 Thank you for using %s!\n", log.Bold("GreptimeDB"))
 				l.Infof("🔑 %s\n", log.Bold("Invest in Data, Harvest over Time."))
 			}
