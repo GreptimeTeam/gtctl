@@ -21,9 +21,9 @@ const (
 	ETCDImageName                         = "etcd"
 	ETCDImageTag                          = "v3.5.5"
 	GreptimeDBImageName                   = "greptimedb"
-	GreptimeDBImageTag                    = "integration-paas-test"
+	GreptimeDBImageTag                    = "0.1.0-alpha-20221116"
 	GreptimeDBOperatorImageName           = "greptimedb-operator"
-	GreptimeDBOperatorImageTag            = "0.1.0-alpha.4"
+	GreptimeDBOperatorImageTag            = "0.1.0-alpha.5"
 )
 
 // Manager manage the cluster resources.
