@@ -19,8 +19,7 @@ type createClusterCliOptions struct {
 	StorageRetainPolicy string
 	GreptimeDBVersion   string
 	OperatorVersion     string
-	ImageRegistry       string
-	Organization        string
+	Registry            string
 
 	DryRun  bool
 	Timeout int
@@ -48,8 +47,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				Timeout:         time.Duration(options.Timeout) * time.Second,
 				DryRun:          options.DryRun,
 				OperatorVersion: options.OperatorVersion,
-				ImageRegistry:   options.ImageRegistry,
-				Organization:    options.Organization,
+				Registry:        options.Registry,
 			}
 
 			var (
@@ -78,8 +76,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				Timeout:             time.Duration(options.Timeout) * time.Second,
 				DryRun:              options.DryRun,
 				GreptimeDBVersion:   options.GreptimeDBVersion,
-				ImageRegistry:       options.ImageRegistry,
-				Organization:        options.Organization,
+				Registry:            options.Registry,
 			}
 
 			if err := log.StartSpinning("Creating GreptimeDB cluster", func() error {
@@ -107,8 +104,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
 	cmd.Flags().StringVar(&options.GreptimeDBVersion, "version", manager.DefaultGreptimeDBChartVersion, "The GreptimeDB version.")
 	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", manager.DefaultGreptimeDBOperatorChartVersion, "The greptimedb-operator version.")
-	cmd.Flags().StringVar(&options.ImageRegistry, "image-registry", "", "The image registry")
-	cmd.Flags().StringVar(&options.Organization, "organization", manager.DefaultGreptimeOrganization, "The organization name")
+	cmd.Flags().StringVar(&options.Registry, "registry", "", "The image registry")
 
 	return cmd
 }

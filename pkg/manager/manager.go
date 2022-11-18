@@ -18,13 +18,6 @@ const (
 	defaultChartsURL                      = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 	DefaultGreptimeDBChartVersion         = "0.1.0-alpha-20221116"
 	DefaultGreptimeDBOperatorChartVersion = "0.1.0-alpha.5"
-	DefaultGreptimeOrganization           = "greptime"
-	ETCDImageName                         = "etcd"
-	ETCDImageTag                          = "v3.5.5"
-	GreptimeDBImageName                   = "greptimedb"
-	GreptimeDBImageTag                    = "0.1.0-alpha-20221116"
-	GreptimeDBOperatorImageName           = "greptimedb-operator"
-	GreptimeDBOperatorImageTag            = "0.1.0-alpha.5"
 )
 
 // Manager manage the cluster resources.
@@ -51,8 +44,7 @@ type CreateClusterOptions struct {
 	StorageSize         string
 	StorageRetainPolicy string
 	GreptimeDBVersion   string
-	ImageRegistry       string
-	Organization        string
+	Registry            string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -74,8 +66,7 @@ type DeleteClusterOption struct {
 type CreateOperatorOptions struct {
 	Namespace       string
 	OperatorVersion string
-	ImageRegistry   string
-	Organization    string
+	Registry        string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -219,11 +210,8 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 	var rawArgs []string
 
 	// TODO(zyy17): It's very ugly to generate Helm values...
-	if len(options.ImageRegistry) > 0 {
-		dbImage := m.generateImageURL(options.ImageRegistry, options.Organization, GreptimeDBImageName, GreptimeDBImageTag)
-		etcdImage := m.generateImageURL(options.ImageRegistry, options.Organization, ETCDImageName, ETCDImageTag)
-		rawArgs = append(rawArgs, fmt.Sprintf("base.main.image=%s", dbImage))
-		rawArgs = append(rawArgs, fmt.Sprintf("greptimedb-etcd.etcdImage=%s", etcdImage))
+	if len(options.Registry) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("image.registry=%s", options.Registry))
 	}
 
 	if len(options.StorageClassName) > 0 {
@@ -251,9 +239,8 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 
 func (m *manager) generateOperatorValues(options *CreateOperatorOptions) (map[string]interface{}, error) {
 	// TODO(zyy17): It's very ugly to generate Helm values...
-	if len(options.ImageRegistry) > 0 {
-		operatorImage := m.generateImageURL(options.ImageRegistry, options.Organization, GreptimeDBOperatorImageName, GreptimeDBOperatorImageTag)
-		values, err := m.generateHelmValues(fmt.Sprintf("image=%s", operatorImage))
+	if len(options.Registry) > 0 {
+		values, err := m.generateHelmValues(fmt.Sprintf("image.registry=%s", options.Registry))
 		if err != nil {
 			return nil, err
 		}
@@ -269,11 +256,4 @@ func (m *manager) generateHelmValues(args string) (map[string]interface{}, error
 		return nil, err
 	}
 	return values, nil
-}
-
-// generateImageURL will generate the docker image URL as following:
-// ghcr.io/greptimeteam/greptimedb-operator:v0.1.0-alpha.1
-// docker.io/greptime/greptimedb-operator:v0.1.0-alpha.1
-func (m *manager) generateImageURL(registry, organization, name, tag string) string {
-	return fmt.Sprintf("%s/%s/%s:%s", registry, organization, name, tag)
 }
