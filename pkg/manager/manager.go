@@ -32,6 +32,7 @@ const (
 	defaultChartsURL                      = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 	DefaultGreptimeDBChartVersion         = "0.1.0-alpha-20221116"
 	DefaultGreptimeDBOperatorChartVersion = "0.1.0-alpha.5"
+	DefaultETCDChartVersion               = "0.1.0"
 )
 
 // Manager manage the cluster resources.
@@ -42,6 +43,7 @@ type Manager interface {
 	UpdateCluster(ctx context.Context, options *UpdateClusterOptions) error
 	DeleteCluster(ctx context.Context, options *DeleteClusterOption) error
 	CreateOperator(ctx context.Context, options *CreateOperatorOptions) error
+	CreateETCDCluster(ctx context.Context, options *CreateETCDOptions) error
 }
 
 type GetClusterOptions struct {
@@ -59,6 +61,16 @@ type CreateClusterOptions struct {
 	StorageRetainPolicy string
 	GreptimeDBVersion   string
 	Registry            string
+	ETCDEndPort         string
+
+	Timeout time.Duration
+	DryRun  bool
+}
+
+type CreateETCDOptions struct {
+	Namespace         string
+	Registry          string
+	ETCDChartsVersion string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -220,6 +232,42 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 	return nil
 }
 
+func (m *manager) CreateETCDCluster(ctx context.Context, options *CreateETCDOptions) error {
+	values, err := m.generateETCDValues(options)
+	if err != nil {
+		return err
+	}
+
+	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-etcd-0.1.0/greptimedb-etcd-0.1.0.tgz
+	chartName := defaultETCDHelmPackageName + "-" + options.ETCDChartsVersion
+	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+
+	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
+	if err != nil {
+		return err
+	}
+
+	manifests, err := m.render.GenerateManifests(defaultETCDReleaseName, options.Namespace, chart, values)
+	if err != nil {
+		return err
+	}
+
+	if options.DryRun {
+		m.l.Infof(string(manifests))
+		return nil
+	}
+
+	if err := m.client.Apply(manifests); err != nil {
+		return err
+	}
+
+	if err := m.client.WaitForETCDReady(defaultETCDReleaseName, options.Namespace, options.Timeout); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[string]interface{}, error) {
 	var rawArgs []string
 
@@ -238,6 +286,10 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 
 	if len(options.StorageRetainPolicy) > 0 {
 		rawArgs = append(rawArgs, fmt.Sprintf("datanode.storage.storageRetainPolicy=%s", options.StorageRetainPolicy))
+	}
+
+	if len(options.ETCDEndPort) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("etcdEndpoints=%s", options.ETCDEndPort))
 	}
 
 	if len(rawArgs) > 0 {
@@ -270,4 +322,16 @@ func (m *manager) generateHelmValues(args string) (map[string]interface{}, error
 		return nil, err
 	}
 	return values, nil
+}
+
+func (m *manager) generateETCDValues(options *CreateETCDOptions) (map[string]interface{}, error) {
+	if len(options.Registry) > 0 {
+		values, err := m.generateHelmValues(fmt.Sprintf("image.registry=%s", options.Registry))
+		if err != nil {
+			return nil, err
+		}
+		return values, nil
+	}
+
+	return nil, nil
 }

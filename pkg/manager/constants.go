@@ -18,4 +18,6 @@ const (
 	defaultOperatorReleaseName       = "greptimedb-operator"
 	defaultOperatorHelmPackageName   = "greptimedb-operator"
 	defaultGreptimeDBHelmPackageName = "greptimedb"
+	defaultETCDHelmPackageName       = "greptimedb-etcd"
+	defaultETCDReleaseName           = "gt"
 )

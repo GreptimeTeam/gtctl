@@ -28,12 +28,15 @@ import (
 type createClusterCliOptions struct {
 	Namespace           string
 	OperatorNamespace   string
+	ETCDNamespace       string
 	StorageClassName    string
 	StorageSize         string
 	StorageRetainPolicy string
 	GreptimeDBVersion   string
 	OperatorVersion     string
 	Registry            string
+	ETCDEndPort         string
+	ETCDChartsVersion   string
 
 	DryRun  bool
 	Timeout int
@@ -80,6 +83,21 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 			}
 			l.Infof("🎉 Finish to create greptimedb-operator.\n")
 
+			l.Infof("☕️ Start to create etcd cluster...\n")
+			createETCDOptions := &manager.CreateETCDOptions{
+				Namespace:         options.ETCDNamespace,
+				Timeout:           time.Duration(options.Timeout) * time.Second,
+				DryRun:            options.DryRun,
+				Registry:          options.Registry,
+				ETCDChartsVersion: options.ETCDChartsVersion,
+			}
+			if err := log.StartSpinning("Creating etcd cluster...", func() error {
+				return m.CreateETCDCluster(ctx, createETCDOptions)
+			}); err != nil {
+				return err
+			}
+			l.Infof("🎉 Finish to create etcd cluster.\n")
+
 			l.Infof("☕️ Start to create GreptimeDB cluster...\n")
 			createClusterOptions := &manager.CreateClusterOptions{
 				ClusterName:         args[0],
@@ -91,6 +109,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				DryRun:              options.DryRun,
 				GreptimeDBVersion:   options.GreptimeDBVersion,
 				Registry:            options.Registry,
+				ETCDEndPort:         options.ETCDEndPort,
 			}
 
 			if err := log.StartSpinning("Creating GreptimeDB cluster", func() error {
@@ -119,6 +138,9 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.GreptimeDBVersion, "version", manager.DefaultGreptimeDBChartVersion, "The GreptimeDB version.")
 	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", manager.DefaultGreptimeDBOperatorChartVersion, "The greptimedb-operator version.")
 	cmd.Flags().StringVar(&options.Registry, "registry", "", "The image registry")
+	cmd.Flags().StringVar(&options.ETCDEndPort, "etcd-endport", "gt-etcd-svc.default:2379", "The etcd end port")
+	cmd.Flags().StringVar(&options.ETCDChartsVersion, "etcd-chart-version", manager.DefaultETCDChartVersion, "The greptimedb-etcd helm chart version")
+	cmd.Flags().StringVar(&options.ETCDNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
 
 	return cmd
 }
