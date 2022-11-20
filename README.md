@@ -69,7 +69,8 @@ Create your own GreptimeDB cluster and etcd cluster:
 gtctl cluster create mydb -n default --etcd-storage-class-name <storageClassName> --etcd-storage-size <storageSize>
 ```
 
-```example
+```
+# Example
 gtctl cluster create mydb -n default --etcd-storage-class-name standard --etcd-storage-size 10Gi
 ```
 
