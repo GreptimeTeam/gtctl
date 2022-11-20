@@ -68,9 +68,11 @@ type CreateClusterOptions struct {
 }
 
 type CreateETCDOptions struct {
-	Namespace         string
-	Registry          string
-	ETCDChartsVersion string
+	Namespace            string
+	Registry             string
+	ETCDChartsVersion    string
+	ETCDStorageClassName string
+	ETCDStorageSize      string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -325,8 +327,21 @@ func (m *manager) generateHelmValues(args string) (map[string]interface{}, error
 }
 
 func (m *manager) generateETCDValues(options *CreateETCDOptions) (map[string]interface{}, error) {
+	var rawArgs []string
 	if len(options.Registry) > 0 {
-		values, err := m.generateHelmValues(fmt.Sprintf("image.registry=%s", options.Registry))
+		rawArgs = append(rawArgs, fmt.Sprintf("image.registry=%s", options.Registry))
+	}
+
+	if len(options.ETCDStorageClassName) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("storage.storageClassName=%s", options.ETCDStorageClassName))
+	}
+
+	if len(options.ETCDStorageSize) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("storage.volumeSize=%s", options.ETCDStorageSize))
+	}
+
+	if len(rawArgs) > 0 {
+		values, err := m.generateHelmValues(strings.Join(rawArgs, ","))
 		if err != nil {
 			return nil, err
 		}
