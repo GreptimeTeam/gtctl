@@ -98,7 +98,7 @@ If you want to delete the cluster, you can:
 gtctl cluster delete mydb -n default
 
 # Delete GreptimeDB cluster, including etcd cluster.
-gtctl cluster delete mydb -n default --tear-down-etcd
+gtctl cluster delete mydb -n default --tear-down-etcd --etcd-namespace <your-etcd-cluster-namespace>
 ```
 
 ### Dry Run Mode
