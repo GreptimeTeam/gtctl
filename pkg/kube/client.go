@@ -243,7 +243,7 @@ func (c *Client) WaitForClusterReady(name, namespace string, timeout time.Durati
 	}
 }
 
-func (c *Client) WaitForETCDReady(name, namespace string, timeout time.Duration) error {
+func (c *Client) WaitForEtcdReady(name, namespace string, timeout time.Duration) error {
 	conditionFunc := func() (bool, error) {
 		return c.IsStatefulSetReady(context.TODO(), name, namespace)
 	}
