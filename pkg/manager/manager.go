@@ -28,7 +28,7 @@ type Manager interface {
 	UpdateCluster(ctx context.Context, options *UpdateClusterOptions) error
 	DeleteCluster(ctx context.Context, options *DeleteClusterOption) error
 	CreateOperator(ctx context.Context, options *CreateOperatorOptions) error
-	DeleteETCDCluster(ctx context.Context, options *DeleteETCDClusterOption) error
+	DeleteEtcdCluster(ctx context.Context, options *DeleteEtcdClusterOption) error
 }
 
 type GetClusterOptions struct {
@@ -63,7 +63,8 @@ type DeleteClusterOption struct {
 	Namespace   string
 }
 
-type DeleteETCDClusterOption struct {
+type DeleteEtcdClusterOption struct {
+	Name      string
 	Namespace string
 }
 
@@ -168,8 +169,8 @@ func (m *manager) DeleteCluster(ctx context.Context, options *DeleteClusterOptio
 	return nil
 }
 
-func (m *manager) DeleteETCDCluster(ctx context.Context, options *DeleteETCDClusterOption) error {
-	if err := m.client.DeleteEtcdCluster(ctx, options.Namespace); err != nil {
+func (m *manager) DeleteEtcdCluster(ctx context.Context, options *DeleteEtcdClusterOption) error {
+	if err := m.client.DeleteEtcdCluster(ctx, options.Name, options.Namespace); err != nil {
 		return err
 	}
 

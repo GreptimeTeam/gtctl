@@ -12,9 +12,8 @@ import (
 )
 
 type deleteClusterCliOptions struct {
-	Namespace     string
-	TearDownEtcd  bool
-	ETCDNamespace string
+	Namespace    string
+	TearDownEtcd bool
 }
 
 func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
@@ -39,7 +38,7 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 			}
 
 			ctx := context.TODO()
-			_, err = m.GetCluster(ctx, &manager.GetClusterOptions{
+			cluster, err := m.GetCluster(ctx, &manager.GetClusterOptions{
 				ClusterName: clusterName,
 				Namespace:   options.Namespace,
 			})
@@ -49,6 +48,8 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 			} else if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
+
+			etcdNamespace := cluster.Spec.Meta.EtcdEndpoints[0]
 
 			if clusterExist {
 				if err := m.DeleteCluster(ctx, &manager.DeleteClusterOption{
@@ -63,13 +64,14 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 			}
 
 			if options.TearDownEtcd {
-				l.Infof("⚠️ Deleting etcd cluster in namespace '%s'...\n", log.Bold(options.ETCDNamespace))
-				if err := m.DeleteETCDCluster(ctx, &manager.DeleteETCDClusterOption{
-					Namespace: options.ETCDNamespace,
+				l.Infof("⚠️ Deleting etcd cluster in namespace '%s'...\n", log.Bold(etcdNamespace))
+				if err := m.DeleteEtcdCluster(ctx, &manager.DeleteEtcdClusterOption{
+					Name:      clusterName + "-etcd",
+					Namespace: etcdNamespace,
 				}); err != nil {
 					return err
 				}
-				l.Infof("ETCD cluster in namespace '%s' is deleted!\n", options.ETCDNamespace)
+				l.Infof("Etcd cluster in namespace '%s' is deleted!\n", etcdNamespace)
 			}
 
 			return nil
@@ -78,7 +80,6 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.TearDownEtcd, "tear-down-etcd", false, "Tear down etcd cluster.")
-	cmd.Flags().StringVar(&options.ETCDNamespace, "etcd-namespace", "default", "Namespace of etcd cluster.")
 
 	return cmd
 }
