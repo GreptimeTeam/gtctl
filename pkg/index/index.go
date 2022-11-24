@@ -1,4 +1,4 @@
-package repo
+package index
 
 import (
 	"io/ioutil"

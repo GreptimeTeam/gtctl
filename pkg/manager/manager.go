@@ -3,7 +3,6 @@ package manager
 import (
 	"context"
 	"fmt"
-	"github.com/GreptimeTeam/gtctl/pkg/repo"
 	"strings"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 
 	greptimedbv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
+	"github.com/GreptimeTeam/gtctl/pkg/index"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
@@ -102,7 +102,7 @@ func (m *manager) ListClusters(ctx context.Context, options *ListClusterOptions)
 }
 
 func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptions) error {
-	downloadURL, err := repo.GetUrlFromRemoteIndex(defaultGreptimeDBHelmPackageName)
+	downloadURL, err := index.GetUrlFromRemoteIndex(defaultGreptimeDBHelmPackageName)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func (m *manager) DeleteCluster(ctx context.Context, options *DeleteClusterOptio
 }
 
 func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOptions) error {
-	downloadURL, err := repo.GetUrlFromRemoteIndex(defaultOperatorHelmPackageName)
+	downloadURL, err := index.GetUrlFromRemoteIndex(defaultOperatorHelmPackageName)
 	if err != nil {
 		return err
 	}
