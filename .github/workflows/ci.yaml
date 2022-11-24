@@ -40,12 +40,12 @@ jobs:
               - role: worker
           EOF
 
-      - name: Test basic operations of gtctl
-        run: |
-          cd bin
-          ./gtctl cluster create mydb -n default --timeout 300
-          ./gtctl cluster get mydb -n default
-          ./gtctl cluster list
-          ./gtctl cluster delete mydb -n default --tear-down-etcd
+#      - name: Test basic operations of gtctl
+#        run: |
+#          cd bin
+#          ./gtctl cluster create mydb -n default --timeout 300
+#          ./gtctl cluster get mydb -n default
+#          ./gtctl cluster list
+#          ./gtctl cluster delete mydb -n default --tear-down-etcd
 
       # TODO(zyy17): When the greptimedb is ready, add some SQL tests.
