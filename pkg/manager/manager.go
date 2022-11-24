@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	"github.com/GreptimeTeam/gtctl/pkg/repo"
 	"strings"
 	"time"
 
@@ -12,12 +13,6 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
-)
-
-const (
-	defaultChartsURL                      = "https://github.com/GreptimeTeam/helm-charts/releases/download"
-	DefaultGreptimeDBChartVersion         = "0.1.0-alpha-20221116"
-	DefaultGreptimeDBOperatorChartVersion = "0.1.0-alpha.5"
 )
 
 // Manager manage the cluster resources.
@@ -43,7 +38,6 @@ type CreateClusterOptions struct {
 	StorageClassName    string
 	StorageSize         string
 	StorageRetainPolicy string
-	GreptimeDBVersion   string
 	Registry            string
 
 	Timeout time.Duration
@@ -64,9 +58,8 @@ type DeleteClusterOption struct {
 }
 
 type CreateOperatorOptions struct {
-	Namespace       string
-	OperatorVersion string
-	Registry        string
+	Namespace string
+	Registry  string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -109,15 +102,17 @@ func (m *manager) ListClusters(ctx context.Context, options *ListClusterOptions)
 }
 
 func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptions) error {
+	downloadURL, err := repo.GetUrlFromRemoteIndex(defaultGreptimeDBHelmPackageName)
+	if err != nil {
+		return err
+	}
+
 	values, err := m.generateClusterValues(options)
 	if err != nil {
 		return err
 	}
 
 	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.0/greptimedb-0.1.0.tgz
-	chartName := defaultGreptimeDBHelmPackageName + "-" + options.GreptimeDBVersion
-	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
-
 	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
 		return err
@@ -171,15 +166,17 @@ func (m *manager) DeleteCluster(ctx context.Context, options *DeleteClusterOptio
 }
 
 func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOptions) error {
+	downloadURL, err := repo.GetUrlFromRemoteIndex(defaultOperatorHelmPackageName)
+	if err != nil {
+		return err
+	}
+
 	values, err := m.generateOperatorValues(options)
 	if err != nil {
 		return err
 	}
 
 	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-operator-0.1.0-alpha.2/greptimedb-operator-0.1.0-alpha.2.tgz
-	chartName := defaultOperatorHelmPackageName + "-" + options.OperatorVersion
-	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
-
 	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
 		return err

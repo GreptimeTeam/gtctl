@@ -17,8 +17,6 @@ type createClusterCliOptions struct {
 	StorageClassName    string
 	StorageSize         string
 	StorageRetainPolicy string
-	GreptimeDBVersion   string
-	OperatorVersion     string
 	Registry            string
 
 	DryRun  bool
@@ -43,11 +41,10 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 			}
 
 			createOperatorOptions := &manager.CreateOperatorOptions{
-				Namespace:       options.OperatorNamespace,
-				Timeout:         time.Duration(options.Timeout) * time.Second,
-				DryRun:          options.DryRun,
-				OperatorVersion: options.OperatorVersion,
-				Registry:        options.Registry,
+				Namespace: options.OperatorNamespace,
+				Timeout:   time.Duration(options.Timeout) * time.Second,
+				DryRun:    options.DryRun,
+				Registry:  options.Registry,
 			}
 
 			var (
@@ -75,7 +72,6 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				StorageRetainPolicy: options.StorageRetainPolicy,
 				Timeout:             time.Duration(options.Timeout) * time.Second,
 				DryRun:              options.DryRun,
-				GreptimeDBVersion:   options.GreptimeDBVersion,
 				Registry:            options.Registry,
 			}
 
@@ -102,8 +98,6 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
-	cmd.Flags().StringVar(&options.GreptimeDBVersion, "version", manager.DefaultGreptimeDBChartVersion, "The GreptimeDB version.")
-	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", manager.DefaultGreptimeDBOperatorChartVersion, "The greptimedb-operator version.")
 	cmd.Flags().StringVar(&options.Registry, "registry", "", "The image registry")
 
 	return cmd
