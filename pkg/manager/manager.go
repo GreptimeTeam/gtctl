@@ -15,6 +15,10 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/log"
 )
 
+const (
+	defaultChartsURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
+)
+
 // Manager manage the cluster resources.
 type Manager interface {
 	GetCluster(ctx context.Context, options *GetClusterOptions) (*greptimedbv1alpha1.GreptimeDBCluster, error)
@@ -33,12 +37,13 @@ type GetClusterOptions struct {
 type ListClusterOptions struct{}
 
 type CreateClusterOptions struct {
-	ClusterName         string
-	Namespace           string
-	StorageClassName    string
-	StorageSize         string
-	StorageRetainPolicy string
-	Registry            string
+	ClusterName            string
+	Namespace              string
+	StorageClassName       string
+	StorageSize            string
+	StorageRetainPolicy    string
+	GreptimeDBChartVersion string
+	Registry               string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -58,8 +63,9 @@ type DeleteClusterOption struct {
 }
 
 type CreateOperatorOptions struct {
-	Namespace string
-	Registry  string
+	Namespace            string
+	OperatorChartVersion string
+	Registry             string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -102,9 +108,16 @@ func (m *manager) ListClusters(ctx context.Context, options *ListClusterOptions)
 }
 
 func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptions) error {
-	downloadURL, err := index.GetUrlFromRemoteIndex(defaultGreptimeDBHelmPackageName)
-	if err != nil {
-		return err
+	var err error
+	downloadURL := ""
+	if len(options.GreptimeDBChartVersion) == 0 {
+		downloadURL, err = index.GetUrlFromRemoteIndex(defaultGreptimeDBHelmPackageName)
+		if err != nil {
+			return err
+		}
+	} else {
+		chartName := defaultGreptimeDBHelmPackageName + "-" + options.GreptimeDBChartVersion
+		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
 	}
 
 	values, err := m.generateClusterValues(options)
@@ -166,9 +179,16 @@ func (m *manager) DeleteCluster(ctx context.Context, options *DeleteClusterOptio
 }
 
 func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOptions) error {
-	downloadURL, err := index.GetUrlFromRemoteIndex(defaultOperatorHelmPackageName)
-	if err != nil {
-		return err
+	var err error
+	downloadURL := ""
+	if len(options.OperatorChartVersion) == 0 {
+		downloadURL, err = index.GetUrlFromRemoteIndex(defaultOperatorHelmPackageName)
+		if err != nil {
+			return err
+		}
+	} else {
+		chartName := defaultOperatorHelmPackageName + "-" + options.OperatorChartVersion
+		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
 	}
 
 	values, err := m.generateOperatorValues(options)
