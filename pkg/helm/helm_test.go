@@ -31,7 +31,7 @@ func TestGetUrlFromRemoteIndex(t *testing.T) {
 			return
 		}
 		url := index.Entries[v.input][0].URLs[0]
-		if strings.Contains(url, v.output) {
+		if !strings.Contains(url, v.output) {
 			t.Errorf("Download url invalid, input:%s, download url:%s", v.input, url)
 		}
 	}
