@@ -45,7 +45,7 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 				return fmt.Errorf("replicas should be equal or greater than 1")
 			}
 
-			m, err := manager.New(l, false)
+			m, err := manager.New(l, false, false)
 			if err != nil {
 				return err
 			}

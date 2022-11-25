@@ -16,7 +16,7 @@ func NewListClustersCommand(l log.Logger) *cobra.Command {
 		Short: "List all GreptimeDB clusters",
 		Long:  `List all GreptimeDB clusters`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m, err := manager.New(l, false)
+			m, err := manager.New(l, false, false)
 			if err != nil {
 				return err
 			}

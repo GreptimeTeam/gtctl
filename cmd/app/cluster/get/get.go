@@ -26,7 +26,7 @@ func NewGetClusterCommand(l log.Logger) *cobra.Command {
 				return fmt.Errorf("cluster name should be set")
 			}
 
-			m, err := manager.New(l, false)
+			m, err := manager.New(l, false, false)
 			if err != nil {
 				return err
 			}

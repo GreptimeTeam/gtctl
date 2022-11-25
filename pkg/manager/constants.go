@@ -1,7 +1,7 @@
 package manager
 
 const (
-	defaultOperatorReleaseName       = "greptimedb-operator"
-	defaultOperatorHelmPackageName   = "greptimedb-operator"
-	defaultGreptimeDBHelmPackageName = "greptimedb"
+	DefaultOperatorReleaseName       = "greptimedb-operator"
+	DefaultOperatorHelmPackageName   = "greptimedb-operator"
+	DefaultGreptimeDBHelmPackageName = "greptimedb"
 )

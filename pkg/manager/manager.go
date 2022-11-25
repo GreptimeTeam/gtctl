@@ -10,9 +10,9 @@ import (
 
 	greptimedbv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
-	"github.com/GreptimeTeam/gtctl/pkg/index"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/third_party/index"
 )
 
 const (
@@ -73,9 +73,10 @@ type CreateOperatorOptions struct {
 
 var _ Manager = &manager{}
 
-func New(l log.Logger, dryRun bool) (Manager, error) {
+func New(l log.Logger, dryRun, getLatestChart bool) (Manager, error) {
 	var (
 		client *kube.Client
+		index  *index.IndexFile
 		err    error
 	)
 
@@ -86,10 +87,18 @@ func New(l log.Logger, dryRun bool) (Manager, error) {
 		}
 	}
 
+	if getLatestChart {
+		index, err = helm.GetLatestChart()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &manager{
 		render: &helm.Render{},
 		client: client,
 		l:      l,
+		index:  index,
 	}, nil
 }
 
@@ -97,6 +106,7 @@ type manager struct {
 	render *helm.Render
 	client *kube.Client
 	l      log.Logger
+	index  *index.IndexFile
 }
 
 func (m *manager) GetCluster(ctx context.Context, options *GetClusterOptions) (*greptimedbv1alpha1.GreptimeDBCluster, error) {
@@ -111,12 +121,9 @@ func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptio
 	var err error
 	downloadURL := ""
 	if len(options.GreptimeDBChartVersion) == 0 {
-		downloadURL, err = index.GetUrlFromRemoteIndex(defaultGreptimeDBHelmPackageName)
-		if err != nil {
-			return err
-		}
+		downloadURL = m.index.Entries[DefaultGreptimeDBHelmPackageName][0].URLs[0]
 	} else {
-		chartName := defaultGreptimeDBHelmPackageName + "-" + options.GreptimeDBChartVersion
+		chartName := DefaultGreptimeDBHelmPackageName + "-" + options.GreptimeDBChartVersion
 		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
 	}
 
@@ -182,12 +189,9 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 	var err error
 	downloadURL := ""
 	if len(options.OperatorChartVersion) == 0 {
-		downloadURL, err = index.GetUrlFromRemoteIndex(defaultOperatorHelmPackageName)
-		if err != nil {
-			return err
-		}
+		downloadURL = m.index.Entries[DefaultOperatorHelmPackageName][0].URLs[0]
 	} else {
-		chartName := defaultOperatorHelmPackageName + "-" + options.OperatorChartVersion
+		chartName := DefaultOperatorHelmPackageName + "-" + options.OperatorChartVersion
 		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
 	}
 
@@ -202,7 +206,7 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 		return err
 	}
 
-	manifests, err := m.render.GenerateManifests(defaultOperatorReleaseName, options.Namespace, chart, values)
+	manifests, err := m.render.GenerateManifests(DefaultOperatorReleaseName, options.Namespace, chart, values)
 	if err != nil {
 		return err
 	}
@@ -216,7 +220,7 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 		return err
 	}
 
-	if err := m.client.WaitForDeploymentReady(defaultOperatorReleaseName, options.Namespace, options.Timeout); err != nil {
+	if err := m.client.WaitForDeploymentReady(DefaultOperatorReleaseName, options.Namespace, options.Timeout); err != nil {
 		return err
 	}
 

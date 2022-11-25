@@ -31,7 +31,7 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 			clusterName, namespace := args[0], options.Namespace
 			l.Infof("⚠️ Deleting cluster '%s' in namespace '%s'...\n", log.Bold(clusterName), log.Bold(namespace))
 
-			m, err := manager.New(l, false)
+			m, err := manager.New(l, false, false)
 			if err != nil {
 				return err
 			}

@@ -37,7 +37,11 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				return fmt.Errorf("cluster name should be set")
 			}
 
-			m, err := manager.New(l, options.DryRun)
+			getLatestChart := false
+			if len(options.GreptimeDBChartVersion) == 0 || len(options.OperatorChartVersion) == 0 {
+				getLatestChart = true
+			}
+			m, err := manager.New(l, options.DryRun, getLatestChart)
 			if err != nil {
 				return err
 			}
