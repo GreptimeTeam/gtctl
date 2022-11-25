@@ -54,7 +54,7 @@ func (c ChartVersions) Len() int { return len(c) }
 // Swap swaps the position of two items in the versions slice.
 func (c ChartVersions) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
 
-// Less returns true if the version of entry a is less than the version of entry b.
+// Less returns true if the version of entry a is greater than the version of entry b.
 func (c ChartVersions) Less(a, b int) bool {
 	// Failed parse pushes to the back.
 	i, err := semver.NewVersion(c[a].Version)
