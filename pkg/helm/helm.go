@@ -6,11 +6,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 
+	"gopkg.in/yaml.v2"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+
+	"github.com/GreptimeTeam/gtctl/third_party/index"
+)
+
+const (
+	GreptimeHelmChartsIndex = "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml"
 )
 
 type TemplateRender interface {
@@ -70,4 +78,29 @@ func (r *Render) newHelmClient(releaseName, namespace string) (*action.Install, 
 	helmClient.Namespace = namespace
 
 	return helmClient, nil
+}
+
+func GetLatestChart() (*index.IndexFile, error) {
+	rsp, err := http.Get(GreptimeHelmChartsIndex)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	body, err := ioutil.ReadAll(rsp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var index *index.IndexFile
+	err = yaml.Unmarshal(body, &index)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Sort(index.Entries["greptimedb-operator"])
+	sort.Sort(index.Entries["greptimedb"])
+	sort.Sort(index.Entries["greptimedb-etcd"])
+
+	return index, nil
 }

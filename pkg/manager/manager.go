@@ -12,12 +12,11 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
 	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/third_party/index"
 )
 
 const (
-	defaultChartsURL                      = "https://github.com/GreptimeTeam/helm-charts/releases/download"
-	DefaultGreptimeDBChartVersion         = "0.1.0-alpha-20221116"
-	DefaultGreptimeDBOperatorChartVersion = "0.1.0-alpha.5"
+	defaultChartsURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 )
 
 // Manager manage the cluster resources.
@@ -38,13 +37,13 @@ type GetClusterOptions struct {
 type ListClusterOptions struct{}
 
 type CreateClusterOptions struct {
-	ClusterName         string
-	Namespace           string
-	StorageClassName    string
-	StorageSize         string
-	StorageRetainPolicy string
-	GreptimeDBVersion   string
-	Registry            string
+	ClusterName            string
+	Namespace              string
+	StorageClassName       string
+	StorageSize            string
+	StorageRetainPolicy    string
+	GreptimeDBChartVersion string
+	Registry               string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -64,9 +63,9 @@ type DeleteClusterOption struct {
 }
 
 type CreateOperatorOptions struct {
-	Namespace       string
-	OperatorVersion string
-	Registry        string
+	Namespace            string
+	OperatorChartVersion string
+	Registry             string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -74,9 +73,10 @@ type CreateOperatorOptions struct {
 
 var _ Manager = &manager{}
 
-func New(l log.Logger, dryRun bool) (Manager, error) {
+func New(l log.Logger, dryRun, getLatestChart bool) (Manager, error) {
 	var (
 		client *kube.Client
+		index  *index.IndexFile
 		err    error
 	)
 
@@ -87,10 +87,18 @@ func New(l log.Logger, dryRun bool) (Manager, error) {
 		}
 	}
 
+	if getLatestChart {
+		index, err = helm.GetLatestChart()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &manager{
 		render: &helm.Render{},
 		client: client,
 		l:      l,
+		index:  index,
 	}, nil
 }
 
@@ -98,6 +106,7 @@ type manager struct {
 	render *helm.Render
 	client *kube.Client
 	l      log.Logger
+	index  *index.IndexFile
 }
 
 func (m *manager) GetCluster(ctx context.Context, options *GetClusterOptions) (*greptimedbv1alpha1.GreptimeDBCluster, error) {
@@ -109,15 +118,21 @@ func (m *manager) ListClusters(ctx context.Context, options *ListClusterOptions)
 }
 
 func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptions) error {
+	var err error
+	downloadURL := ""
+	if len(options.GreptimeDBChartVersion) == 0 {
+		downloadURL = m.index.Entries[DefaultGreptimeDBHelmPackageName][0].URLs[0]
+	} else {
+		chartName := DefaultGreptimeDBHelmPackageName + "-" + options.GreptimeDBChartVersion
+		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+	}
+
 	values, err := m.generateClusterValues(options)
 	if err != nil {
 		return err
 	}
 
 	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.0/greptimedb-0.1.0.tgz
-	chartName := defaultGreptimeDBHelmPackageName + "-" + options.GreptimeDBVersion
-	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
-
 	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
 		return err
@@ -171,21 +186,27 @@ func (m *manager) DeleteCluster(ctx context.Context, options *DeleteClusterOptio
 }
 
 func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOptions) error {
+	var err error
+	downloadURL := ""
+	if len(options.OperatorChartVersion) == 0 {
+		downloadURL = m.index.Entries[DefaultOperatorHelmPackageName][0].URLs[0]
+	} else {
+		chartName := DefaultOperatorHelmPackageName + "-" + options.OperatorChartVersion
+		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+	}
+
 	values, err := m.generateOperatorValues(options)
 	if err != nil {
 		return err
 	}
 
 	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-operator-0.1.0-alpha.2/greptimedb-operator-0.1.0-alpha.2.tgz
-	chartName := defaultOperatorHelmPackageName + "-" + options.OperatorVersion
-	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
-
 	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
 		return err
 	}
 
-	manifests, err := m.render.GenerateManifests(defaultOperatorReleaseName, options.Namespace, chart, values)
+	manifests, err := m.render.GenerateManifests(DefaultOperatorReleaseName, options.Namespace, chart, values)
 	if err != nil {
 		return err
 	}
@@ -199,7 +220,7 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 		return err
 	}
 
-	if err := m.client.WaitForDeploymentReady(defaultOperatorReleaseName, options.Namespace, options.Timeout); err != nil {
+	if err := m.client.WaitForDeploymentReady(DefaultOperatorReleaseName, options.Namespace, options.Timeout); err != nil {
 		return err
 	}
 
