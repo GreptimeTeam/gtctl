@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -208,11 +209,11 @@ func (c *Client) UpdateCluster(ctx context.Context, namespace string, cluster *g
 }
 
 func (c *Client) DeleteEtcdCluster(ctx context.Context, name, namespace string) error {
-	if err := c.kubeClient.CoreV1().Services(namespace).Delete(ctx, fmt.Sprintf("%s-%s", name, "etcd-svc"), metav1.DeleteOptions{}); err != nil {
+	if err := c.kubeClient.CoreV1().Services(namespace).Delete(ctx, name+"-svc", metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
-	if err := c.kubeClient.AppsV1().StatefulSets(namespace).Delete(ctx, fmt.Sprintf("%s-%s", name, "etcd"), metav1.DeleteOptions{}); err != nil {
+	if err := c.kubeClient.AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
