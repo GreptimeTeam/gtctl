@@ -12,9 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: gtctl
+header:
+  license:
+    spdx-id: Apache-2.0
+    copyright-owner: Greptime Team
 
-LDFLAGS = $(shell ./hack/version.sh)
+  paths:
+    - "**/*.go"
+    - "**/*.sh"
+    - "Makefile"
 
-gtctl:
-	@go build -ldflags '${LDFLAGS}' -o bin/gtctl ./cmd
+  comment: on-failure
+
+dependency:
+  files:
+    - Cargo.toml

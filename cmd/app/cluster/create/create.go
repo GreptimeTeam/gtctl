@@ -1,3 +1,17 @@
+// Copyright 2022 Greptime Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package create
 
 import (
@@ -12,14 +26,19 @@ import (
 )
 
 type createClusterCliOptions struct {
-	Namespace           string
-	OperatorNamespace   string
-	StorageClassName    string
-	StorageSize         string
-	StorageRetainPolicy string
-	GreptimeDBVersion   string
-	OperatorVersion     string
-	Registry            string
+	Namespace            string
+	OperatorNamespace    string
+	EtcdNamespace        string
+	StorageClassName     string
+	StorageSize          string
+	StorageRetainPolicy  string
+	GreptimeDBVersion    string
+	OperatorVersion      string
+	Registry             string
+	EtcdEndpoint         string
+	EtcdChartsVersion    string
+	EtcdStorageClassName string
+	EtcdStorageSize      string
 
 	DryRun  bool
 	Timeout int
@@ -52,6 +71,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 
 			var (
 				clusterName = args[0]
+				etcdSvcName = fmt.Sprintf("%s-etcd-svc", args[0])
 
 				// TODO(zyy17): should use timeout context.
 				ctx = context.TODO()
@@ -66,6 +86,24 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 			}
 			l.Infof("🎉 Finish to create greptimedb-operator.\n")
 
+			l.Infof("☕️ Start to create etcd cluster...\n")
+			createEtcdOptions := &manager.CreateEtcdOptions{
+				Name:                 args[0] + "-etcd",
+				Namespace:            options.EtcdNamespace,
+				Timeout:              time.Duration(options.Timeout) * time.Second,
+				DryRun:               options.DryRun,
+				Registry:             options.Registry,
+				EtcdChartsVersion:    options.EtcdChartsVersion,
+				EtcdStorageClassName: options.EtcdStorageClassName,
+				EtcdStorageSize:      options.EtcdStorageSize,
+			}
+			if err := log.StartSpinning("Creating etcd cluster...", func() error {
+				return m.CreateEtcdCluster(ctx, createEtcdOptions)
+			}); err != nil {
+				return err
+			}
+			l.Infof("🎉 Finish to create etcd cluster.\n")
+
 			l.Infof("☕️ Start to create GreptimeDB cluster...\n")
 			createClusterOptions := &manager.CreateClusterOptions{
 				ClusterName:         args[0],
@@ -77,6 +115,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				DryRun:              options.DryRun,
 				GreptimeDBVersion:   options.GreptimeDBVersion,
 				Registry:            options.Registry,
+				EtcdEndPoint:        fmt.Sprintf("%s.%s:2379", etcdSvcName, options.EtcdNamespace),
 			}
 
 			if err := log.StartSpinning("Creating GreptimeDB cluster", func() error {
@@ -105,6 +144,10 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.GreptimeDBVersion, "version", manager.DefaultGreptimeDBChartVersion, "The GreptimeDB version.")
 	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", manager.DefaultGreptimeDBOperatorChartVersion, "The greptimedb-operator version.")
 	cmd.Flags().StringVar(&options.Registry, "registry", "", "The image registry")
+	cmd.Flags().StringVar(&options.EtcdChartsVersion, "etcd-chart-version", manager.DefaultEtcdChartVersion, "The greptimedb-etcd helm chart version")
+	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
+	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
+	cmd.Flags().StringVar(&options.EtcdStorageSize, "etcd-storage-size", "10Gi", "the etcd persistent volume size.")
 
 	return cmd
 }

@@ -1,3 +1,17 @@
+// Copyright 2022 Greptime Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package kube
 
 import (
@@ -230,6 +244,18 @@ func (c *Client) WaitForClusterReady(name, namespace string, timeout time.Durati
 	}
 }
 
+func (c *Client) WaitForEtcdReady(name, namespace string, timeout time.Duration) error {
+	conditionFunc := func() (bool, error) {
+		return c.IsStatefulSetReady(context.TODO(), name, namespace)
+	}
+
+	if int(timeout) < 0 {
+		return wait.PollInfinite(time.Second, conditionFunc)
+	} else {
+		return wait.PollImmediate(time.Second, timeout, conditionFunc)
+	}
+}
+
 func (c *Client) isDeploymentReady(ctx context.Context, name, namespace string) (bool, error) {
 	deployment, err := c.kubeClient.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -257,6 +283,22 @@ func (c *Client) isClusterReady(ctx context.Context, name, namespace string) (bo
 			condition.Status == corev1.ConditionTrue {
 			return true, nil
 		}
+	}
+
+	return false, nil
+}
+
+func (c *Client) IsStatefulSetReady(ctx context.Context, name, namespace string) (bool, error) {
+	statefulSet, err := c.kubeClient.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	if statefulSet == nil {
+		return false, nil
+	}
+
+	if statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas {
+		return true, nil
 	}
 
 	return false, nil

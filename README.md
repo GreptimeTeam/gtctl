@@ -63,7 +63,7 @@ Flags:
 Use "gtctl [command] --help" for more information about a command.
 ```
 
-Create your own GreptimeDB cluster:
+Create your own GreptimeDB cluster and etcd cluster:
 
 ```console
 gtctl cluster create mydb -n default
