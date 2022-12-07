@@ -243,6 +243,18 @@ func (c *Client) WaitForClusterReady(name, namespace string, timeout time.Durati
 	}
 }
 
+func (c *Client) WaitForEtcdReady(name, namespace string, timeout time.Duration) error {
+	conditionFunc := func() (bool, error) {
+		return c.IsStatefulSetReady(context.TODO(), name, namespace)
+	}
+
+	if int(timeout) < 0 {
+		return wait.PollInfinite(time.Second, conditionFunc)
+	} else {
+		return wait.PollImmediate(time.Second, timeout, conditionFunc)
+	}
+}
+
 func (c *Client) isDeploymentReady(ctx context.Context, name, namespace string) (bool, error) {
 	deployment, err := c.kubeClient.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -270,6 +282,22 @@ func (c *Client) isClusterReady(ctx context.Context, name, namespace string) (bo
 			condition.Status == corev1.ConditionTrue {
 			return true, nil
 		}
+	}
+
+	return false, nil
+}
+
+func (c *Client) IsStatefulSetReady(ctx context.Context, name, namespace string) (bool, error) {
+	statefulSet, err := c.kubeClient.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	if statefulSet == nil {
+		return false, nil
+	}
+
+	if statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas {
+		return true, nil
 	}
 
 	return false, nil
