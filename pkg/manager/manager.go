@@ -30,9 +30,9 @@ import (
 
 const (
 	defaultChartsURL                      = "https://github.com/GreptimeTeam/helm-charts/releases/download"
-	DefaultGreptimeDBChartVersion         = "0.1.0-alpha-20221116"
-	DefaultGreptimeDBOperatorChartVersion = "0.1.0-alpha.5"
-	DefaultEtcdChartVersion               = "0.1.0"
+	DefaultGreptimeDBChartVersion         = "0.1.1-alpha.2"
+	DefaultGreptimeDBOperatorChartVersion = "0.1.1-alpha.2"
+	DefaultEtcdChartVersion               = "0.1.1-alpha.1"
 )
 
 // Manager manage the cluster resources.

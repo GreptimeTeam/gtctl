@@ -288,7 +288,7 @@ func (c *Client) isClusterReady(ctx context.Context, name, namespace string) (bo
 }
 
 func (c *Client) IsStatefulSetReady(ctx context.Context, name, namespace string) (bool, error) {
-	statefulSet, err := c.kubeClient.AppsV1().StatefulSets(namespace).Get(ctx, name+"-etcd", metav1.GetOptions{})
+	statefulSet, err := c.kubeClient.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}

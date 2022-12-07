@@ -71,6 +71,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 
 			var (
 				clusterName = args[0]
+				etcdSvcName = fmt.Sprintf("%s-etcd-svc", args[0])
 
 				// TODO(zyy17): should use timeout context.
 				ctx = context.TODO()
@@ -87,7 +88,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 
 			l.Infof("☕️ Start to create etcd cluster...\n")
 			createEtcdOptions := &manager.CreateEtcdOptions{
-				Name:                 args[0] + "-" + "etcd",
+				Name:                 args[0] + "-etcd",
 				Namespace:            options.EtcdNamespace,
 				Timeout:              time.Duration(options.Timeout) * time.Second,
 				DryRun:               options.DryRun,
@@ -114,7 +115,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				DryRun:              options.DryRun,
 				GreptimeDBVersion:   options.GreptimeDBVersion,
 				Registry:            options.Registry,
-				EtcdEndPoint:        options.EtcdEndpoint,
+				EtcdEndPoint:        fmt.Sprintf("%s.%s:2379", etcdSvcName, options.EtcdNamespace),
 			}
 
 			if err := log.StartSpinning("Creating GreptimeDB cluster", func() error {
@@ -143,7 +144,6 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.GreptimeDBVersion, "version", manager.DefaultGreptimeDBChartVersion, "The GreptimeDB version.")
 	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", manager.DefaultGreptimeDBOperatorChartVersion, "The greptimedb-operator version.")
 	cmd.Flags().StringVar(&options.Registry, "registry", "", "The image registry")
-	cmd.Flags().StringVar(&options.EtcdEndpoint, "etcd-endpoint", "mydb-etcd-svc.default:2379", "The etcd end point")
 	cmd.Flags().StringVar(&options.EtcdChartsVersion, "etcd-chart-version", manager.DefaultEtcdChartVersion, "The greptimedb-etcd helm chart version")
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
 	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
