@@ -61,7 +61,7 @@ type CreateClusterOptions struct {
 	StorageSize         string
 	StorageRetainPolicy string
 	GreptimeDBVersion   string
-	Registry            string
+	ImageRegistry       string
 	EtcdEndPoint        string
 
 	Timeout time.Duration
@@ -71,7 +71,7 @@ type CreateClusterOptions struct {
 type CreateEtcdOptions struct {
 	Name                 string
 	Namespace            string
-	Registry             string
+	ImageRegistry        string
 	EtcdChartsVersion    string
 	EtcdStorageClassName string
 	EtcdStorageSize      string
@@ -100,7 +100,7 @@ type DeleteEtcdClusterOption struct {
 type CreateOperatorOptions struct {
 	Namespace       string
 	OperatorVersion string
-	Registry        string
+	ImageRegistry   string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -282,8 +282,8 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 	var rawArgs []string
 
 	// TODO(zyy17): It's very ugly to generate Helm values...
-	if len(options.Registry) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("image.registry=%s", options.Registry))
+	if len(options.ImageRegistry) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("image.registry=%s", options.ImageRegistry))
 	}
 
 	if len(options.StorageClassName) > 0 {
@@ -315,8 +315,8 @@ func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[stri
 
 func (m *manager) generateOperatorValues(options *CreateOperatorOptions) (map[string]interface{}, error) {
 	// TODO(zyy17): It's very ugly to generate Helm values...
-	if len(options.Registry) > 0 {
-		values, err := m.generateHelmValues(fmt.Sprintf("image.registry=%s", options.Registry))
+	if len(options.ImageRegistry) > 0 {
+		values, err := m.generateHelmValues(fmt.Sprintf("image.registry=%s", options.ImageRegistry))
 		if err != nil {
 			return nil, err
 		}
@@ -336,8 +336,8 @@ func (m *manager) generateHelmValues(args string) (map[string]interface{}, error
 
 func (m *manager) generateEtcdValues(options *CreateEtcdOptions) (map[string]interface{}, error) {
 	var rawArgs []string
-	if len(options.Registry) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("image.registry=%s", options.Registry))
+	if len(options.ImageRegistry) > 0 {
+		rawArgs = append(rawArgs, fmt.Sprintf("image.registry=%s", options.ImageRegistry))
 	}
 
 	if len(options.EtcdStorageClassName) > 0 {

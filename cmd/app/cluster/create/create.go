@@ -34,7 +34,7 @@ type createClusterCliOptions struct {
 	StorageRetainPolicy  string
 	GreptimeDBVersion    string
 	OperatorVersion      string
-	Registry             string
+	ImageRegistry        string
 	EtcdEndpoint         string
 	EtcdChartsVersion    string
 	EtcdStorageClassName string
@@ -66,7 +66,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				Timeout:         time.Duration(options.Timeout) * time.Second,
 				DryRun:          options.DryRun,
 				OperatorVersion: options.OperatorVersion,
-				Registry:        options.Registry,
+				ImageRegistry:   options.ImageRegistry,
 			}
 
 			var (
@@ -92,7 +92,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				Namespace:            options.EtcdNamespace,
 				Timeout:              time.Duration(options.Timeout) * time.Second,
 				DryRun:               options.DryRun,
-				Registry:             options.Registry,
+				ImageRegistry:        options.ImageRegistry,
 				EtcdChartsVersion:    options.EtcdChartsVersion,
 				EtcdStorageClassName: options.EtcdStorageClassName,
 				EtcdStorageSize:      options.EtcdStorageSize,
@@ -114,7 +114,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				Timeout:             time.Duration(options.Timeout) * time.Second,
 				DryRun:              options.DryRun,
 				GreptimeDBVersion:   options.GreptimeDBVersion,
-				Registry:            options.Registry,
+				ImageRegistry:       options.ImageRegistry,
 				EtcdEndPoint:        fmt.Sprintf("%s.%s:2379", etcdSvcName, options.EtcdNamespace),
 			}
 
@@ -143,7 +143,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
 	cmd.Flags().StringVar(&options.GreptimeDBVersion, "version", manager.DefaultGreptimeDBChartVersion, "The GreptimeDB version.")
 	cmd.Flags().StringVar(&options.OperatorVersion, "operator-version", manager.DefaultGreptimeDBOperatorChartVersion, "The greptimedb-operator version.")
-	cmd.Flags().StringVar(&options.Registry, "registry", "", "The image registry")
+	cmd.Flags().StringVar(&options.ImageRegistry, "image-registry", "", "The image registry")
 	cmd.Flags().StringVar(&options.EtcdChartsVersion, "etcd-chart-version", manager.DefaultEtcdChartVersion, "The greptimedb-etcd helm chart version")
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
 	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
