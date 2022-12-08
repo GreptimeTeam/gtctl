@@ -32,9 +32,5 @@ setup-e2e: ## Setup e2e test environment.
 	./hack/e2e/setup-e2e-env.sh
 
 .PHONY: e2e
-e2e: setup-e2e ginkgo ## Run e2e
-	./bin/gtctl cluster create mydb -n default --timeout 300
-	./bin/gtctl cluster get mydb -n default
-	./bin/gtctl cluster list
+e2e: gtctl setup-e2e ginkgo ## Run e2e
 	$(GOBIN)/ginkgo -r ./tests/e2e
-	./bin/gtctl cluster delete mydb -n default --tear-down-etcd

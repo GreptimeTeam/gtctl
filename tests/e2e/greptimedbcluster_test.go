@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -63,6 +64,15 @@ type TestData struct {
 var _ = Describe("Basic test of greptimedb cluster", func() {
 	It("Bootstrap cluster", func() {
 		var err error
+		err = createCluster()
+		Expect(err).NotTo(HaveOccurred(), "failed to create cluster")
+
+		err = getCluster()
+		Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
+
+		err = listCluster()
+		Expect(err).NotTo(HaveOccurred(), "failed to list cluster")
+
 		go func() {
 			forwardRequest()
 		}()
@@ -123,8 +133,51 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 			data = append(data, d)
 		}
 		Expect(len(data) == testRowIDNum).Should(BeTrue(), "get the wrong data from db")
+
+		err = deleteCluster()
+		Expect(err).NotTo(HaveOccurred(), "failed to delete cluster")
 	})
 })
+
+func createCluster() error {
+	cmd := exec.Command("../../bin/gtctl", "cluster", "create", "mydb", "--timeout", "300")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func getCluster() error {
+	cmd := exec.Command("../../bin/gtctl", "cluster", "get", "mydb")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func listCluster() error {
+	cmd := exec.Command("../../bin/gtctl", "cluster", "list")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteCluster() error {
+	cmd := exec.Command("../../bin/gtctl", "cluster", "delete", "mydb")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
+}
 
 func forwardRequest() {
 	for {

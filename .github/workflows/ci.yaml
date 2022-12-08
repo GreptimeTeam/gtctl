@@ -20,10 +20,6 @@ jobs:
           version: v1.50.0
           args: --timeout 10m0s
 
-      - name: Build the project
-        run: |
-          make
-
       - name: e2e test of basic cluster
         run: |
           make e2e
