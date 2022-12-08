@@ -24,10 +24,6 @@ jobs:
             os: macos-latest
             file: gtctl-darwin-amd64
     runs-on: ${{ matrix.os }}
-    env:
-      # will be removed when the project is open sourced.
-      GOPRIVATE: github.com/GreptimeTeam/*
-      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -36,9 +32,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: "1.18.4"
-
-      # will be removed when the project is open sourced.
-      - run: git config --global url.https://$GH_ACCESS_TOKEN@github.com/.insteadOf https://github.com/
 
       - name: Build project
         run: |

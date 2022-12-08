@@ -12,22 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package version
+package e2e
 
 import (
-	"fmt"
+	"testing"
 
-	"github.com/spf13/cobra"
-
-	"github.com/GreptimeTeam/gtctl/pkg/version"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func NewVersionCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "version",
-		Short: "Print the version of gtctl and exit",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("%s", version.Get())
-		},
-	}
+func TestGtctl(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Gtctl Suite")
 }
