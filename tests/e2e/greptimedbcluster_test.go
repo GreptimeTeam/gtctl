@@ -170,7 +170,7 @@ func listCluster() error {
 }
 
 func deleteCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "delete", "mydb")
+	cmd := exec.Command("../../bin/gtctl", "cluster", "delete", "mydb", "--tear-down-etcd")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
