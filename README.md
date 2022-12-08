@@ -121,6 +121,15 @@ gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c datanode --rep
 gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c frontend --replicas 5
 ```
 
+### Specify the image registry
+
+`gtctl` uses DockerHub as the default image registry and also supports to specify image registry when creating cluster with `--image-registry` option (the UCloud image registry mirror `uhub.service.ucloud.cn` is now available).
+
+中国用户可使用如下命令创建集群：
+
+```console
+gtctl cluster create mydb --image-registry=uhub.service.ucloud.cn
+```
 
 ## Development
 
