@@ -12,9 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
+endif
+
 .PHONY: gtctl
-
 LDFLAGS = $(shell ./hack/version.sh)
-
 gtctl:
 	@go build -ldflags '${LDFLAGS}' -o bin/gtctl ./cmd
+
+.PHONY: ginkgo
+ginkgo: ## install ginkgo
+	go install github.com/onsi/ginkgo/v2/ginkgo@v2.5.1
+
+.PHONY: setup-e2e
+setup-e2e: ## Setup e2e test environment.
+	./hack/e2e/setup-e2e-env.sh
+
+.PHONY: e2e
+e2e: gtctl setup-e2e ginkgo ## Run e2e
+	$(GOBIN)/ginkgo -r ./tests/e2e
