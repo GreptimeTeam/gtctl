@@ -36,6 +36,9 @@ jobs:
       - name: Build project
         run: |
           make
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
 
       - name: Calculate checksum and rename binary
         shell: bash
