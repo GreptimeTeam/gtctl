@@ -11,18 +11,22 @@ jobs:
       matrix:
         # The file format is gtctl-<os>-<arch>
         include:
-          - arch: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
+          - os: ubuntu-latest
             file: gtctl-linux-amd64
-          - arch: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: ubuntu-latest
             file: gtctl-linux-arm64
-          - arch: aarch64-apple-darwin
-            os: macos-latest
+            goos: linux
+            goarch: arm64
+          - os: macos-latest
             file: gtctl-darwin-arm64
-          - arch: x86_64-apple-darwin
-            os: macos-latest
+            goos: darwin
+            goarch: arm64
+          - os: macos-latest
             file: gtctl-darwin-amd64
+            goos: darwin
+            goarch: amd64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
