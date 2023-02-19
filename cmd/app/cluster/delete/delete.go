@@ -59,7 +59,8 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 			if errors.IsNotFound(err) {
 				l.Infof("Cluster '%s' in '%s' not found\n", clusterName, namespace)
 				return nil
-			} else if err != nil && !errors.IsNotFound(err) {
+			}
+			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
 

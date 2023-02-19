@@ -58,7 +58,8 @@ func NewGetClusterCommand(l log.Logger) *cobra.Command {
 			if err != nil && errors.IsNotFound(err) {
 				l.Infof("cluster %s in %s not found\n", clusterName, namespace)
 				return nil
-			} else if err != nil {
+			}
+			if err != nil {
 				return err
 			}
 
