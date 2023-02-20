@@ -157,10 +157,8 @@ func (c *Client) Apply(manifests []byte) error {
 		ctx := context.TODO()
 
 		if isNamespaced[gvr.Resource] {
-			var ns string
-			if item.Namespace == "" {
-				ns = "default"
-			} else {
+			ns := "default"
+			if item.Namespace != "" {
 				ns = item.Namespace
 			}
 			_, err = c.dynamicKubeClient.Resource(gvr).Namespace(ns).Apply(ctx, item.Name,
@@ -201,11 +199,7 @@ func (c *Client) UpdateCluster(ctx context.Context, namespace string, cluster *g
 	}
 
 	_, err = c.dynamicKubeClient.Resource(greptimeDBClusterGVR).Namespace(namespace).Update(ctx, &unstructured.Unstructured{Object: unstructuredObject}, metav1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (c *Client) DeleteEtcdCluster(ctx context.Context, name, namespace string) error {
@@ -227,9 +221,8 @@ func (c *Client) WaitForDeploymentReady(name, namespace string, timeout time.Dur
 
 	if int(timeout) < 0 {
 		return wait.PollInfinite(time.Second, conditionFunc)
-	} else {
-		return wait.PollImmediate(time.Second, timeout, conditionFunc)
 	}
+	return wait.PollImmediate(time.Second, timeout, conditionFunc)
 }
 
 func (c *Client) WaitForClusterReady(name, namespace string, timeout time.Duration) error {
@@ -239,9 +232,8 @@ func (c *Client) WaitForClusterReady(name, namespace string, timeout time.Durati
 
 	if int(timeout) < 0 {
 		return wait.PollInfinite(time.Second, conditionFunc)
-	} else {
-		return wait.PollImmediate(time.Second, timeout, conditionFunc)
 	}
+	return wait.PollImmediate(time.Second, timeout, conditionFunc)
 }
 
 func (c *Client) WaitForEtcdReady(name, namespace string, timeout time.Duration) error {
@@ -251,9 +243,8 @@ func (c *Client) WaitForEtcdReady(name, namespace string, timeout time.Duration)
 
 	if int(timeout) < 0 {
 		return wait.PollInfinite(time.Second, conditionFunc)
-	} else {
-		return wait.PollImmediate(time.Second, timeout, conditionFunc)
 	}
+	return wait.PollImmediate(time.Second, timeout, conditionFunc)
 }
 
 func (c *Client) isDeploymentReady(ctx context.Context, name, namespace string) (bool, error) {
@@ -297,11 +288,7 @@ func (c *Client) IsStatefulSetReady(ctx context.Context, name, namespace string)
 		return false, nil
 	}
 
-	if statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas {
-		return true, nil
-	}
-
-	return false, nil
+	return statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas, nil
 }
 
 // FIXME(zyy17): Generate clientset for Greptime CRDs.

@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -42,7 +42,7 @@ func (r *Render) LoadChartFromRemoteCharts(downloadURL string) (*chart.Chart, er
 	}
 	defer rsp.Body.Close()
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, err
 	}

@@ -171,11 +171,7 @@ func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptio
 		return err
 	}
 
-	if err := m.client.WaitForClusterReady(options.ClusterName, options.Namespace, options.Timeout); err != nil {
-		return err
-	}
-
-	return nil
+	return m.client.WaitForClusterReady(options.ClusterName, options.Namespace, options.Timeout)
 }
 
 func (m *manager) UpdateCluster(ctx context.Context, options *UpdateClusterOptions) error {
@@ -183,27 +179,15 @@ func (m *manager) UpdateCluster(ctx context.Context, options *UpdateClusterOptio
 		return err
 	}
 
-	if err := m.client.WaitForClusterReady(options.ClusterName, options.Namespace, options.Timeout); err != nil {
-		return err
-	}
-
-	return nil
+	return m.client.WaitForClusterReady(options.ClusterName, options.Namespace, options.Timeout)
 }
 
 func (m *manager) DeleteCluster(ctx context.Context, options *DeleteClusterOption) error {
-	if err := m.client.DeleteCluster(ctx, options.ClusterName, options.Namespace); err != nil {
-		return err
-	}
-
-	return nil
+	return m.client.DeleteCluster(ctx, options.ClusterName, options.Namespace)
 }
 
 func (m *manager) DeleteEtcdCluster(ctx context.Context, options *DeleteEtcdClusterOption) error {
-	if err := m.client.DeleteEtcdCluster(ctx, options.Name, options.Namespace); err != nil {
-		return err
-	}
-
-	return nil
+	return m.client.DeleteEtcdCluster(ctx, options.Name, options.Namespace)
 }
 
 func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOptions) error {
@@ -235,11 +219,7 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 		return err
 	}
 
-	if err := m.client.WaitForDeploymentReady(defaultOperatorReleaseName, options.Namespace, options.Timeout); err != nil {
-		return err
-	}
-
-	return nil
+	return m.client.WaitForDeploymentReady(defaultOperatorReleaseName, options.Namespace, options.Timeout)
 }
 
 func (m *manager) CreateEtcdCluster(ctx context.Context, options *CreateEtcdOptions) error {
@@ -271,11 +251,7 @@ func (m *manager) CreateEtcdCluster(ctx context.Context, options *CreateEtcdOpti
 		return err
 	}
 
-	if err := m.client.WaitForEtcdReady(options.Name, options.Namespace, options.Timeout); err != nil {
-		return err
-	}
-
-	return nil
+	return m.client.WaitForEtcdReady(options.Name, options.Namespace, options.Timeout)
 }
 
 func (m *manager) generateClusterValues(options *CreateClusterOptions) (map[string]interface{}, error) {

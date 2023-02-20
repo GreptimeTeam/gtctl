@@ -39,7 +39,8 @@ func NewListClustersCommand(l log.Logger) *cobra.Command {
 			clusters, err := m.ListClusters(ctx, &manager.ListClusterOptions{})
 			if err != nil && !errors.IsNotFound(err) {
 				return err
-			} else if errors.IsNotFound(err) || (clusters != nil && len(clusters.Items) == 0) {
+			}
+			if errors.IsNotFound(err) || (clusters != nil && len(clusters.Items) == 0) {
 				l.Infof("clusters not found\n")
 				return nil
 			}
