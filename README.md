@@ -20,13 +20,13 @@ gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://gi
 
 ### Quick start
 
-Install your `gtctl` by one line:
+Install your `gtctl` in one line:
 
 ```console
 curl -L https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
 ```
 
-After downloading, your `gtctl` will in the current directory.
+After downloading, your `gtctl` will be in the current directory.
 
 If you want to install the specific version of `gtctl`, you can:
 
@@ -34,7 +34,7 @@ If you want to install the specific version of `gtctl`, you can:
 curl -L https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh -s <version>
 ```
 
-Run `gtctl --hep` to get started:
+Run `gtctl --help` to get started:
 
 ```console
 gtctl --help
@@ -85,7 +85,7 @@ You can use `kubectl port-forward` command to forward frontend requests:
 kubectl port-forward svc/mydb-frontend 4002:4002 > connections.out &
 ```
 
-Use your `mysql` client to connect your cluster:
+Use your `mysql` client to connect to your cluster:
 
 ```console
 mysql -h 127.0.0.1 -P 4002
@@ -103,7 +103,7 @@ gtctl cluster delete mydb -n default --tear-down-etcd
 
 ### Dry Run Mode
 
-gtctl provide `--dry-run` option in cluster creation. If the user execute the command with `--dry-run`, gtctl will output the manifests content without applying them:
+gtctl provides `--dry-run` option in cluster creation. If a user executes the command with `--dry-run`, gtctl will output the manifests content without applying them:
 
 ```console
 gtctl cluster create mydb -n default --dry-run
@@ -111,7 +111,7 @@ gtctl cluster create mydb -n default --dry-run
 
 ### Experimental Feature
 
-You can use the following commands to scale(or down-scale) your cluster:
+You can use the following commands to scale (or down-scale) your cluster:
 
 ```console
 # Scale datanode to 3 replicas.
