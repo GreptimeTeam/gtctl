@@ -21,6 +21,7 @@ header:
     - "**/*.go"
     - "**/*.sh"
     - "Makefile"
+    - "**/*.yaml"
 
   comment: on-failure
 
