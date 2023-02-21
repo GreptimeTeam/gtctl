@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+CLUSTER=e2e-cluster
+
 .PHONY: gtctl
-
 LDFLAGS = $(shell ./hack/version.sh)
-
 gtctl:
 	@go build -ldflags '${LDFLAGS}' -o bin/gtctl ./cmd
+
+.PHONY: setup-e2e
+setup-e2e: ## Setup e2e test environment.
+	./hack/e2e/setup-e2e-env.sh
+
+.PHONY: e2e
+e2e: gtctl setup-e2e ## Run e2e
+	go test -timeout 8m -v ./tests/e2e/... && kind delete clusters ${CLUSTER}
