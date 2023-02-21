@@ -34,27 +34,6 @@ jobs:
           version: v1.50.0
           args: --timeout 10m0s
 
-      - name: Build the project
+      - name: e2e test of basic cluster
         run: |
-          make
-
-      - name: Create Kubernetes
-        run: |
-          cat <<EOF | kind create cluster --name runner --config=-
-            kind: Cluster
-            apiVersion: kind.x-k8s.io/v1alpha4
-            nodes:
-              - role: control-plane
-              - role: worker
-              - role: worker
-          EOF
-
-      - name: Test basic operations of gtctl
-        run: |
-          cd bin
-          ./gtctl cluster create mydb -n default --timeout 300
-          ./gtctl cluster get mydb -n default
-          ./gtctl cluster list
-          ./gtctl cluster delete mydb -n default --tear-down-etcd
-
-      # TODO(zyy17): When the greptimedb is ready, add some SQL tests.
+          make e2e
