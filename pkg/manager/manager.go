@@ -30,8 +30,8 @@ import (
 
 const (
 	defaultChartsURL                      = "https://github.com/GreptimeTeam/helm-charts/releases/download"
-	DefaultGreptimeDBChartVersion         = "0.1.1-alpha.2"
-	DefaultGreptimeDBOperatorChartVersion = "0.1.1-alpha.2"
+	DefaultGreptimeDBChartVersion         = "0.1.1-alpha.4"
+	DefaultGreptimeDBOperatorChartVersion = "0.1.1-alpha.3"
 	DefaultEtcdChartVersion               = "0.1.1-alpha.1"
 )
 
