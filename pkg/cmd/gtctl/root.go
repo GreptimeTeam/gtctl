@@ -22,12 +22,11 @@ import (
 	"sigs.k8s.io/kind/pkg/log"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/constants"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/version"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	internalversion "github.com/GreptimeTeam/gtctl/pkg/version"
 )
-
-const gtctlTextBanner = "          __       __  __\n   ____ _/ /______/ /_/ /\n  / __ `/ __/ ___/ __/ / \n / /_/ / /_/ /__/ /_/ /  \n \\__, /\\__/\\___/\\__/_/   \n/____/   \n"
 
 type flagArgs struct {
 	Verbosity int32
@@ -39,7 +38,7 @@ func NewRootCommand() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Use:     "gtctl",
 		Short:   "gtctl is a command-line tool for managing GreptimeDB cluster.",
-		Long:    fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", gtctlTextBanner),
+		Long:    fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", constants.GtctlTextBanner),
 		Version: internalversion.Get().String(),
 	}
 
