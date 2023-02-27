@@ -142,7 +142,7 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
 	cmd.Flags().StringVar(&options.GreptimeDBChartVersion, "greptimedb-chart-version", "", "The greptimedb helm chart version, use latest version if not specified.")
-	cmd.Flags().StringVar(&options.GreptimeDBOperatorChartVersion, "greptimedb-operator-version", "", "The greptimedb-operator helm chart version, use latest version if not specified.")
+	cmd.Flags().StringVar(&options.GreptimeDBOperatorChartVersion, "greptimedb-operator-chart-version", "", "The greptimedb-operator helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.EtcdChartVersion, "etcd-chart-version", "", "The greptimedb-etcd helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.ImageRegistry, "image-registry", "", "The image registry")
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
