@@ -184,7 +184,7 @@ func (c *Client) GetCluster(ctx context.Context, name, namespace string) (*grept
 	return c.getCluster(ctx, name, namespace)
 }
 
-func (c *Client) ListCluster(ctx context.Context) (*greptimev1alpha1.GreptimeDBClusterList, error) {
+func (c *Client) ListClusters(ctx context.Context) (*greptimev1alpha1.GreptimeDBClusterList, error) {
 	return c.listClusters(ctx)
 }
 

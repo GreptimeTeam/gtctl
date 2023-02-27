@@ -16,12 +16,14 @@ package list
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
+	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
 func NewListClustersCommand(l logger.Logger) *cobra.Command {
@@ -30,24 +32,29 @@ func NewListClustersCommand(l logger.Logger) *cobra.Command {
 		Short: "List all GreptimeDB clusters",
 		Long:  `List all GreptimeDB clusters`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m, err := manager.New(l, false)
+			k8sDeployer, err := k8s.NewDeployer(l)
 			if err != nil {
 				return err
 			}
 
 			ctx := context.TODO()
-			clusters, err := m.ListClusters(ctx, &manager.ListClusterOptions{})
+			clusters, err := k8sDeployer.ListGreptimeDBClusters(ctx, nil)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
-			if errors.IsNotFound(err) || (clusters != nil && len(clusters.Items) == 0) {
+			if errors.IsNotFound(err) || (clusters != nil && len(clusters) == 0) {
 				l.Error("clusters not found\n")
 				return nil
 			}
 
 			// TODO(zyy17): more human friendly output format.
-			for _, cluster := range clusters.Items {
-				l.V(0).Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", cluster.Name, cluster.Namespace, cluster.CreationTimestamp)
+			for _, cluster := range clusters {
+				rawCluster, ok := cluster.Raw.(*greptimedbclusterv1alpha1.GreptimeDBCluster)
+				if !ok {
+					return fmt.Errorf("invalid cluster type")
+				}
+				l.V(0).Infof("Cluster '%s' in '%s' namespace is running, create at %s\n",
+					rawCluster.Name, rawCluster.Namespace, rawCluster.CreationTimestamp)
 			}
 
 			return nil

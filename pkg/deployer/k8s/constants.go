@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package manager
+package k8s
 
 const (
-	defaultOperatorReleaseName       = "greptimedb-operator"
-	defaultOperatorHelmPackageName   = "greptimedb-operator"
-	defaultGreptimeDBHelmPackageName = "greptimedb"
-	defaultEtcdHelmPackageName       = "greptimedb-etcd"
+	GreptimeDBChartName         = "greptimedb"
+	GreptimeDBEtcdChartName     = "greptimedb-etcd"
+	GreptimeDBOperatorChartName = "greptimedb-operator"
+
+	GreptimeChartIndexURL           = "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml"
+	GreptimeChartReleaseDownloadURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 )

@@ -20,9 +20,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/GreptimeTeam/gtctl/pkg/deployer"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/manager"
 	"github.com/GreptimeTeam/gtctl/pkg/status"
 )
 
@@ -57,17 +59,9 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				return fmt.Errorf("cluster name should be set")
 			}
 
-			m, err := manager.New(l, options.DryRun)
+			k8sDeployer, err := k8s.NewDeployer(l, k8s.WithDryRun(options.DryRun), k8s.WithTimeout(time.Duration(options.Timeout)*time.Second))
 			if err != nil {
 				return err
-			}
-
-			createOperatorOptions := &manager.CreateOperatorOptions{
-				Namespace:              options.OperatorNamespace,
-				Timeout:                time.Duration(options.Timeout) * time.Second,
-				DryRun:                 options.DryRun,
-				GreptimeDBChartVersion: options.GreptimeDBOperatorChartVersion,
-				ImageRegistry:          options.ImageRegistry,
 			}
 
 			var (
@@ -86,25 +80,26 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			l.V(0).Infof("Creating GreptimeDB cluster '%s' in namespace '%s' ...", logger.Bold(clusterName), logger.Bold(options.Namespace))
 
 			spinner.Start("Installing greptimedb-operator...")
-			if err := m.CreateOperator(ctx, createOperatorOptions); err != nil {
+			createGreptimeDBOperatorOptions := &deployer.CreateGreptimeDBOperatorOptions{
+				GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
+				ImageRegistry:                  options.ImageRegistry,
+			}
+			name := types.NamespacedName{Namespace: options.Namespace, Name: "greptimedb-operator"}.String()
+			if err := k8sDeployer.CreateGreptimeDBOperator(ctx, name, createGreptimeDBOperatorOptions); err != nil {
 				spinner.Stop(false, "Installing greptimedb-operator failed")
 				return err
 			}
-
 			spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
 
 			spinner.Start("Installing etcd cluster...")
-			createEtcdOptions := &manager.CreateEtcdOptions{
-				Name:                 args[0] + "-etcd",
-				Namespace:            options.EtcdNamespace,
-				Timeout:              time.Duration(options.Timeout) * time.Second,
-				DryRun:               options.DryRun,
+			createEtcdClusterOptions := &deployer.CreateEtcdClusterOptions{
 				ImageRegistry:        options.ImageRegistry,
 				EtcdChartVersion:     options.EtcdChartVersion,
 				EtcdStorageClassName: options.EtcdStorageClassName,
 				EtcdStorageSize:      options.EtcdStorageSize,
 			}
-			if err := m.CreateEtcdCluster(ctx, createEtcdOptions); err != nil {
+			name = types.NamespacedName{Namespace: options.EtcdNamespace, Name: args[0] + "-etcd"}.String()
+			if err := k8sDeployer.CreateEtcdCluster(ctx, name, createEtcdClusterOptions); err != nil {
 				spinner.Stop(false, "Installing etcd cluster failed")
 				return err
 			}
@@ -112,19 +107,13 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			spinner.Stop(true, "Installing etcd cluster successfully 🎉")
 
 			spinner.Start("Installing GreptimeDB cluster...")
-			createClusterOptions := &manager.CreateClusterOptions{
-				ClusterName:            args[0],
-				Namespace:              options.Namespace,
-				StorageClassName:       options.StorageClassName,
-				StorageSize:            options.StorageSize,
-				StorageRetainPolicy:    options.StorageRetainPolicy,
-				Timeout:                time.Duration(options.Timeout) * time.Second,
-				DryRun:                 options.DryRun,
+			createGreptimeDBClusterOptions := &deployer.CreateGreptimeDBClusterOptions{
 				GreptimeDBChartVersion: options.GreptimeDBChartVersion,
 				ImageRegistry:          options.ImageRegistry,
 				EtcdEndPoint:           fmt.Sprintf("%s.%s:2379", etcdSvcName, options.EtcdNamespace),
 			}
-			if err := m.CreateCluster(ctx, createClusterOptions); err != nil {
+			name = types.NamespacedName{Namespace: options.Namespace, Name: args[0]}.String()
+			if err := k8sDeployer.CreateGreptimeDBCluster(ctx, name, createGreptimeDBClusterOptions); err != nil {
 				spinner.Stop(false, "Installing GreptimeDB cluster failed")
 				return err
 			}
