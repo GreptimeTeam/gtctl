@@ -17,10 +17,12 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl"
 )
 
 func main() {
-	if err := NewRootCommand().Execute(); err != nil {
+	if err := gtctl.NewRootCommand().Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

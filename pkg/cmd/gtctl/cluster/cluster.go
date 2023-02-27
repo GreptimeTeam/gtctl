@@ -19,11 +19,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/cmd/app/cluster/create"
-	"github.com/GreptimeTeam/gtctl/cmd/app/cluster/delete"
-	"github.com/GreptimeTeam/gtctl/cmd/app/cluster/get"
-	"github.com/GreptimeTeam/gtctl/cmd/app/cluster/list"
-	"github.com/GreptimeTeam/gtctl/cmd/app/cluster/scale"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/create"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/delete"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/get"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/list"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/scale"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 

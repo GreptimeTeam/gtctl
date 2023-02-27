@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package gtctl
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kind/pkg/log"
 
-	"github.com/GreptimeTeam/gtctl/cmd/app/cluster"
-	"github.com/GreptimeTeam/gtctl/cmd/app/version"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/version"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	internalversion "github.com/GreptimeTeam/gtctl/pkg/version"
 )
