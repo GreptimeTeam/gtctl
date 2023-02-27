@@ -16,17 +16,25 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/kind/pkg/log"
 
 	"github.com/GreptimeTeam/gtctl/cmd/app/cluster"
 	"github.com/GreptimeTeam/gtctl/cmd/app/version"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	internalversion "github.com/GreptimeTeam/gtctl/pkg/version"
 )
 
 const gtctlTextBanner = "          __       __  __\n   ____ _/ /______/ /_/ /\n  / __ `/ __/ ___/ __/ / \n / /_/ / /_/ /__/ /_/ /  \n \\__, /\\__/\\___/\\__/_/   \n/____/   \n"
 
+type flagArgs struct {
+	Verbosity int32
+}
+
 func NewRootCommand() *cobra.Command {
+	flags := &flagArgs{}
 	cmd := &cobra.Command{
 		Args:    cobra.NoArgs,
 		Use:     "gtctl",
@@ -35,9 +43,19 @@ func NewRootCommand() *cobra.Command {
 		Version: internalversion.Get().String(),
 	}
 
+	cmd.PersistentFlags().Int32VarP(
+		&flags.Verbosity,
+		"verbosity",
+		"v",
+		0,
+		"info log verbosity, higher value produces more output",
+	)
+
+	l := logger.New(os.Stdout, log.Level(flags.Verbosity), logger.WithColored())
+
 	// Add all top level subcommands.
-	cmd.AddCommand(version.NewVersionCommand())
-	cmd.AddCommand(cluster.NewClusterCommand())
+	cmd.AddCommand(version.NewVersionCommand(l))
+	cmd.AddCommand(cluster.NewClusterCommand(l))
 
 	return cmd
 }

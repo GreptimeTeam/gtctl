@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
@@ -29,7 +29,7 @@ type getClusterCliOptions struct {
 	Namespace string
 }
 
-func NewGetClusterCommand(l log.Logger) *cobra.Command {
+func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 	var options getClusterCliOptions
 	cmd := &cobra.Command{
 		Use:   "get",
@@ -56,14 +56,14 @@ func NewGetClusterCommand(l log.Logger) *cobra.Command {
 				Namespace:   namespace,
 			})
 			if err != nil && errors.IsNotFound(err) {
-				l.Infof("cluster %s in %s not found\n", clusterName, namespace)
+				l.Errorf("cluster %s in %s not found\n", clusterName, namespace)
 				return nil
 			}
 			if err != nil {
 				return err
 			}
 
-			l.Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", cluster.Name, cluster.Namespace, cluster.CreationTimestamp)
+			l.V(0).Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", cluster.Name, cluster.Namespace, cluster.CreationTimestamp)
 			return nil
 		},
 	}

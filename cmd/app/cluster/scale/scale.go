@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	greptimev1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
-	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
@@ -34,7 +34,7 @@ type scaleCliOptions struct {
 	Timeout       int
 }
 
-func NewScaleClusterCommand(l log.Logger) *cobra.Command {
+func NewScaleClusterCommand(l logger.Logger) *cobra.Command {
 	var options scaleCliOptions
 
 	cmd := &cobra.Command{
@@ -75,7 +75,7 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 				Namespace:   namespace,
 			})
 			if err != nil && errors.IsNotFound(err) {
-				l.Infof("cluster %s in %s not found\n", clusterName, namespace)
+				l.Errorf("cluster %s in %s not found\n", clusterName, namespace)
 				return nil
 			}
 			if err != nil {
@@ -93,7 +93,7 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 				cluster.Spec.Datanode.Replicas = options.Replicas
 			}
 
-			l.Infof("Scaling cluster %s in %s... from %d to %d\n", clusterName, namespace, oldReplicas, options.Replicas)
+			l.V(0).Infof("Scaling cluster %s in %s... from %d to %d\n", clusterName, namespace, oldReplicas, options.Replicas)
 
 			if err := m.UpdateCluster(ctx, &manager.UpdateClusterOptions{
 				ClusterName: clusterName,
@@ -104,7 +104,7 @@ func NewScaleClusterCommand(l log.Logger) *cobra.Command {
 				return err
 			}
 
-			l.Infof("Scaling cluster %s in %s is OK!\n", clusterName, namespace)
+			l.V(0).Infof("Scaling cluster %s in %s is OK!\n", clusterName, namespace)
 
 			return nil
 		},

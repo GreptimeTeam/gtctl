@@ -20,11 +20,11 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
-func NewListClustersCommand(l log.Logger) *cobra.Command {
+func NewListClustersCommand(l logger.Logger) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all GreptimeDB clusters",
@@ -41,13 +41,13 @@ func NewListClustersCommand(l log.Logger) *cobra.Command {
 				return err
 			}
 			if errors.IsNotFound(err) || (clusters != nil && len(clusters.Items) == 0) {
-				l.Infof("clusters not found\n")
+				l.Error("clusters not found\n")
 				return nil
 			}
 
 			// TODO(zyy17): more human friendly output format.
 			for _, cluster := range clusters.Items {
-				l.Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", cluster.Name, cluster.Namespace, cluster.CreationTimestamp)
+				l.V(0).Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", cluster.Name, cluster.Namespace, cluster.CreationTimestamp)
 			}
 
 			return nil

@@ -21,8 +21,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/manager"
+	"github.com/GreptimeTeam/gtctl/pkg/status"
 )
 
 type createClusterCliOptions struct {
@@ -44,7 +45,7 @@ type createClusterCliOptions struct {
 	Timeout int
 }
 
-func NewCreateClusterCommand(l log.Logger) *cobra.Command {
+func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	var options createClusterCliOptions
 
 	cmd := &cobra.Command{
@@ -77,16 +78,21 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				ctx = context.TODO()
 			)
 
-			l.Infof("☕️ Creating cluster '%s' in namespace '%s'...\n", log.Bold(clusterName), log.Bold(options.Namespace))
-			l.Infof("☕️ Start to create greptimedb-operator...\n")
-			if err := log.StartSpinning("Creating greptimedb-operator...", func() error {
-				return m.CreateOperator(ctx, createOperatorOptions)
-			}); err != nil {
+			spinner, err := status.NewSpinner()
+			if err != nil {
 				return err
 			}
-			l.Infof("🎉 Finish to create greptimedb-operator.\n")
 
-			l.Infof("☕️ Start to create etcd cluster...\n")
+			l.V(0).Infof("Creating GreptimeDB cluster '%s' in namespace '%s' ...", logger.Bold(clusterName), logger.Bold(options.Namespace))
+
+			spinner.Start("Installing greptimedb-operator...")
+			if err := m.CreateOperator(ctx, createOperatorOptions); err != nil {
+				spinner.Stop(false, "Installing greptimedb-operator failed")
+				return err
+			}
+			spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
+
+			spinner.Start("Installing etcd cluster...")
 			createEtcdOptions := &manager.CreateEtcdOptions{
 				Name:                 args[0] + "-etcd",
 				Namespace:            options.EtcdNamespace,
@@ -97,14 +103,13 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				EtcdStorageClassName: options.EtcdStorageClassName,
 				EtcdStorageSize:      options.EtcdStorageSize,
 			}
-			if err := log.StartSpinning("Creating etcd cluster...", func() error {
-				return m.CreateEtcdCluster(ctx, createEtcdOptions)
-			}); err != nil {
+			if err := m.CreateEtcdCluster(ctx, createEtcdOptions); err != nil {
+				spinner.Stop(false, "Installing etcd cluster failed")
 				return err
 			}
-			l.Infof("🎉 Finish to create etcd cluster.\n")
+			spinner.Stop(true, "Installing etcd cluster successfully 🎉")
 
-			l.Infof("☕️ Start to create GreptimeDB cluster...\n")
+			spinner.Start("Installing GreptimeDB cluster...")
 			createClusterOptions := &manager.CreateClusterOptions{
 				ClusterName:            args[0],
 				Namespace:              options.Namespace,
@@ -117,18 +122,22 @@ func NewCreateClusterCommand(l log.Logger) *cobra.Command {
 				ImageRegistry:          options.ImageRegistry,
 				EtcdEndPoint:           fmt.Sprintf("%s.%s:2379", etcdSvcName, options.EtcdNamespace),
 			}
-
-			if err := log.StartSpinning("Creating GreptimeDB cluster", func() error {
-				return m.CreateCluster(ctx, createClusterOptions)
-			}); err != nil {
+			if err := m.CreateCluster(ctx, createClusterOptions); err != nil {
+				spinner.Stop(false, "Installing GreptimeDB cluster failed")
 				return err
 			}
+			spinner.Stop(true, "Installing GreptimeDB cluster successfully 🎉")
 
 			if !options.DryRun {
-				l.Infof("🎉 Finish to create GreptimeDB cluster '%s'.\n", log.Bold(clusterName))
-				l.Infof("💡 You can use `%s` to access the database.\n", log.Bold(fmt.Sprintf("kubectl port-forward svc/%s-frontend -n %s 4002:4002", clusterName, options.Namespace)))
-				l.Infof("😊 Thank you for using %s!\n", log.Bold("GreptimeDB"))
-				l.Infof("🔑 %s\n", log.Bold("Invest in Data, Harvest over Time."))
+				l.V(0).Infof("\nNow you can use the following commands to access the GreptimeDB cluster:")
+				l.V(0).Infof("\n%s", logger.Bold("MySQL >"))
+				l.V(0).Infof("%s", fmt.Sprintf("%s kubectl port-forward svc/%s-frontend -n %s 4002:4002 > connections-mysql.out &", logger.Bold("$"), clusterName, options.Namespace))
+				l.V(0).Infof("%s", fmt.Sprintf("%s mysql -h 127.0.0.1 -P 4002", logger.Bold("$")))
+				l.V(0).Infof("\n%s", logger.Bold("PostgreSQL >"))
+				l.V(0).Infof("%s", fmt.Sprintf("%s kubectl port-forward svc/%s-frontend -n %s 4003:4003 > connections-pg.out &", logger.Bold("$"), clusterName, options.Namespace))
+				l.V(0).Infof("%s", fmt.Sprintf("%s psql -h 127.0.0.1 -p 4003", logger.Bold("$")))
+				l.V(0).Infof("\nThank you for using %s! Check for more information on %s. 😊", logger.Bold("GreptimeDB"), logger.Bold("https://greptime.com"))
+				l.V(0).Infof("\n%s 🔑", logger.Bold("Invest in Data, Harvest over Time."))
 			}
 			return nil
 		},

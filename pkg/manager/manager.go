@@ -25,7 +25,7 @@ import (
 	greptimedbv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
-	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
 const (
@@ -106,7 +106,7 @@ type CreateOperatorOptions struct {
 
 var _ Manager = &manager{}
 
-func New(l log.Logger, dryRun bool) (Manager, error) {
+func New(l logger.Logger, dryRun bool) (Manager, error) {
 	var (
 		client *kube.Client
 		err    error
@@ -129,7 +129,7 @@ func New(l log.Logger, dryRun bool) (Manager, error) {
 type manager struct {
 	render *helm.Render
 	client *kube.Client
-	l      log.Logger
+	l      logger.Logger
 }
 
 func (m *manager) GetCluster(ctx context.Context, options *GetClusterOptions) (*greptimedbv1alpha1.GreptimeDBCluster, error) {
@@ -162,7 +162,7 @@ func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptio
 	}
 
 	if options.DryRun {
-		m.l.Info(string(manifests))
+		m.l.V(0).Info(string(manifests))
 		return nil
 	}
 
@@ -211,7 +211,7 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 	}
 
 	if options.DryRun {
-		m.l.Infof(string(manifests))
+		m.l.V(0).Info(string(manifests))
 		return nil
 	}
 
@@ -244,7 +244,7 @@ func (m *manager) CreateEtcdCluster(ctx context.Context, options *CreateEtcdOpti
 	}
 
 	if options.DryRun {
-		m.l.Infof(string(manifests))
+		m.l.V(0).Info(string(manifests))
 		return nil
 	}
 
