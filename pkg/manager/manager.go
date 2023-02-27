@@ -146,7 +146,7 @@ func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptio
 		return err
 	}
 
-	downloadURL, err := m.chartDownloadURL(defaultGreptimeDBHelmPackageName, options.GreptimeDBChartVersion)
+	downloadURL, err := m.getChartDownloadURL(defaultGreptimeDBHelmPackageName, options.GreptimeDBChartVersion)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 		return err
 	}
 
-	downloadURL, err := m.chartDownloadURL(defaultOperatorHelmPackageName, options.GreptimeDBChartVersion)
+	downloadURL, err := m.getChartDownloadURL(defaultOperatorHelmPackageName, options.GreptimeDBChartVersion)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func (m *manager) CreateEtcdCluster(ctx context.Context, options *CreateEtcdOpti
 		return err
 	}
 
-	downloadURL, err := m.chartDownloadURL(defaultEtcdHelmPackageName, options.EtcdChartVersion)
+	downloadURL, err := m.getChartDownloadURL(defaultEtcdHelmPackageName, options.EtcdChartVersion)
 	if err != nil {
 		return err
 	}
@@ -336,7 +336,7 @@ func (m *manager) generateEtcdValues(options *CreateEtcdOptions) (map[string]int
 	return nil, nil
 }
 
-func (m *manager) chartDownloadURL(chartName, version string) (string, error) {
+func (m *manager) getChartDownloadURL(chartName, version string) (string, error) {
 	indexFile, err := m.render.GetIndexFile(GreptimeChartIndexURL)
 	if err != nil {
 		return "", err
