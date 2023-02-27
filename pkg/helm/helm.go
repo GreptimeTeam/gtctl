@@ -30,10 +30,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	IndexURL = "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml"
-)
-
 type TemplateRender interface {
 	GenerateManifests(releaseName, namespace string, chart *chart.Chart, values map[string]interface{}) ([]byte, error)
 }
@@ -100,12 +96,12 @@ func (r *Render) GetLatestChart(indexFile *IndexFile, chartName string) (*ChartV
 	return nil, fmt.Errorf("chart %s not found", chartName)
 }
 
-func (r *Render) GetIndexFile() (*IndexFile, error) {
+func (r *Render) GetIndexFile(indexURL string) (*IndexFile, error) {
 	if r.indexFile != nil {
 		return r.indexFile, nil
 	}
 
-	rsp, err := http.Get(IndexURL)
+	rsp, err := http.Get(indexURL)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +112,7 @@ func (r *Render) GetIndexFile() (*IndexFile, error) {
 		return nil, err
 	}
 
-	indexFile, err := loadIndex(body, IndexURL)
+	indexFile, err := loadIndex(body, indexURL)
 	if err != nil {
 		return nil, err
 	}

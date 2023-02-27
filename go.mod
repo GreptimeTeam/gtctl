@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.9
+	github.com/Masterminds/semver v1.5.0
 	github.com/briandowns/spinner v1.19.0
 	github.com/fatih/color v1.13.0
 	github.com/go-sql-driver/mysql v1.6.0
@@ -17,6 +18,7 @@ require (
 	k8s.io/cli-runtime v0.25.2
 	k8s.io/client-go v0.25.2
 	k8s.io/klog/v2 v2.70.1
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -136,5 +138,4 @@ require (
 	sigs.k8s.io/kustomize/api v0.12.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )

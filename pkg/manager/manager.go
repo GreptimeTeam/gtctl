@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	defaultChartsURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
+	GreptimeChartIndexURL           = "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml"
+	GreptimeChartReleaseDownloadURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 )
 
 // Manager manage the cluster resources.
@@ -336,7 +337,7 @@ func (m *manager) generateEtcdValues(options *CreateEtcdOptions) (map[string]int
 }
 
 func (m *manager) chartDownloadURL(chartName, version string) (string, error) {
-	indexFile, err := m.render.GetIndexFile()
+	indexFile, err := m.render.GetIndexFile(GreptimeChartIndexURL)
 	if err != nil {
 		return "", err
 	}
@@ -351,7 +352,7 @@ func (m *manager) chartDownloadURL(chartName, version string) (string, error) {
 	} else {
 		// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
 		chartName := chartName + "-" + version
-		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", GreptimeChartReleaseDownloadURL, chartName, chartName)
 	}
 
 	return downloadURL, nil
