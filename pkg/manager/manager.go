@@ -29,10 +29,8 @@ import (
 )
 
 const (
-	defaultChartsURL                      = "https://github.com/GreptimeTeam/helm-charts/releases/download"
-	DefaultGreptimeDBChartVersion         = "0.1.1-alpha.4"
-	DefaultGreptimeDBOperatorChartVersion = "0.1.1-alpha.3"
-	DefaultEtcdChartVersion               = "0.1.1-alpha.1"
+	GreptimeChartIndexURL           = "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml"
+	GreptimeChartReleaseDownloadURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 )
 
 // Manager manage the cluster resources.
@@ -55,14 +53,14 @@ type GetClusterOptions struct {
 type ListClusterOptions struct{}
 
 type CreateClusterOptions struct {
-	ClusterName         string
-	Namespace           string
-	StorageClassName    string
-	StorageSize         string
-	StorageRetainPolicy string
-	GreptimeDBVersion   string
-	ImageRegistry       string
-	EtcdEndPoint        string
+	ClusterName            string
+	Namespace              string
+	StorageClassName       string
+	StorageSize            string
+	StorageRetainPolicy    string
+	GreptimeDBChartVersion string
+	ImageRegistry          string
+	EtcdEndPoint           string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -72,7 +70,7 @@ type CreateEtcdOptions struct {
 	Name                 string
 	Namespace            string
 	ImageRegistry        string
-	EtcdChartsVersion    string
+	EtcdChartVersion     string
 	EtcdStorageClassName string
 	EtcdStorageSize      string
 
@@ -98,9 +96,9 @@ type DeleteEtcdClusterOption struct {
 }
 
 type CreateOperatorOptions struct {
-	Namespace       string
-	OperatorVersion string
-	ImageRegistry   string
+	Namespace              string
+	GreptimeDBChartVersion string
+	ImageRegistry          string
 
 	Timeout time.Duration
 	DryRun  bool
@@ -148,9 +146,10 @@ func (m *manager) CreateCluster(ctx context.Context, options *CreateClusterOptio
 		return err
 	}
 
-	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.0/greptimedb-0.1.0.tgz
-	chartName := defaultGreptimeDBHelmPackageName + "-" + options.GreptimeDBVersion
-	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+	downloadURL, err := m.getChartDownloadURL(defaultGreptimeDBHelmPackageName, options.GreptimeDBChartVersion)
+	if err != nil {
+		return err
+	}
 
 	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
@@ -196,9 +195,10 @@ func (m *manager) CreateOperator(ctx context.Context, options *CreateOperatorOpt
 		return err
 	}
 
-	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-operator-0.1.0-alpha.2/greptimedb-operator-0.1.0-alpha.2.tgz
-	chartName := defaultOperatorHelmPackageName + "-" + options.OperatorVersion
-	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+	downloadURL, err := m.getChartDownloadURL(defaultOperatorHelmPackageName, options.GreptimeDBChartVersion)
+	if err != nil {
+		return err
+	}
 
 	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
@@ -228,9 +228,10 @@ func (m *manager) CreateEtcdCluster(ctx context.Context, options *CreateEtcdOpti
 		return err
 	}
 
-	// The download URL example: https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-etcd-0.1.0/greptimedb-etcd-0.1.0.tgz
-	chartName := defaultEtcdHelmPackageName + "-" + options.EtcdChartsVersion
-	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", defaultChartsURL, chartName, chartName)
+	downloadURL, err := m.getChartDownloadURL(defaultEtcdHelmPackageName, options.EtcdChartVersion)
+	if err != nil {
+		return err
+	}
 
 	chart, err := m.render.LoadChartFromRemoteCharts(downloadURL)
 	if err != nil {
@@ -333,4 +334,26 @@ func (m *manager) generateEtcdValues(options *CreateEtcdOptions) (map[string]int
 	}
 
 	return nil, nil
+}
+
+func (m *manager) getChartDownloadURL(chartName, version string) (string, error) {
+	indexFile, err := m.render.GetIndexFile(GreptimeChartIndexURL)
+	if err != nil {
+		return "", err
+	}
+
+	var downloadURL string
+	if version == "" {
+		chartVersion, err := m.render.GetLatestChart(indexFile, chartName)
+		if err != nil {
+			return "", err
+		}
+		downloadURL = chartVersion.URLs[0]
+	} else {
+		// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
+		chartName := chartName + "-" + version
+		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", GreptimeChartReleaseDownloadURL, chartName, chartName)
+	}
+
+	return downloadURL, nil
 }
