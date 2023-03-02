@@ -4,7 +4,9 @@
 
 gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. gtctl is the **All-in-One** binary that integrates multiple operations of GreptimeDB cluster.
 
-![screenshot](docs/images/screenshot.png)
+<p align="center">
+<img alt="cluster-topology" src="./docs/images/screenshot.png" width="900px">
+</p>
 
 ## Getting Started
 
@@ -66,14 +68,14 @@ Use "gtctl [command] --help" for more information about a command.
 Create your own GreptimeDB cluster and etcd cluster:
 
 ```console
-gtctl cluster create mydb -n default
+gtctl cluster create mycluster -n default
 ```
 
 After creating, the whole GreptimeDB cluster will start in `default` namespace:
 
 ```console
 # Get the cluster.
-gtctl cluster get mydb -n default
+gtctl cluster get mycluster -n default
 
 # List all clusters.
 gtctl cluster list
@@ -82,7 +84,7 @@ gtctl cluster list
 You can use `kubectl port-forward` command to forward frontend requests:
 
 ```console
-kubectl port-forward svc/mydb-frontend 4002:4002 > connections.out &
+kubectl port-forward svc/mycluster-frontend 4002:4002 > connections.out &
 ```
 
 Use your `mysql` client to connect to your cluster:
@@ -95,10 +97,10 @@ If you want to delete the cluster, you can:
 
 ```console
 # Just delete the cluster.
-gtctl cluster delete mydb -n default
+gtctl cluster delete mycluster -n default
 
 # Delete GreptimeDB cluster, including etcd cluster.
-gtctl cluster delete mydb -n default --tear-down-etcd
+gtctl cluster delete mycluster -n default --tear-down-etcd
 ```
 
 ### Dry Run Mode
@@ -106,7 +108,7 @@ gtctl cluster delete mydb -n default --tear-down-etcd
 gtctl provides `--dry-run` option in cluster creation. If a user executes the command with `--dry-run`, gtctl will output the manifests content without applying them:
 
 ```console
-gtctl cluster create mydb -n default --dry-run
+gtctl cluster create mycluster -n default --dry-run
 ```
 
 ### Experimental Feature
@@ -128,7 +130,7 @@ gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c frontend --rep
 中国用户可使用如下命令创建集群：
 
 ```console
-gtctl cluster create mydb --image-registry=uhub.service.ucloud.cn
+gtctl cluster create mycluster --image-registry=uhub.service.ucloud.cn
 ```
 
 ## Development
