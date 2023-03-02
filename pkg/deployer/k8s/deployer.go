@@ -20,8 +20,6 @@ import (
 	"strings"
 	"time"
 
-	"helm.sh/helm/v3/pkg/strvals"
-
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	. "github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
@@ -117,7 +115,7 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 		return err
 	}
 
-	values, err := d.generateClusterValues(options)
+	values, err := d.render.GenerateHelmValues(*options)
 	if err != nil {
 		return err
 	}
@@ -181,7 +179,7 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 		return err
 	}
 
-	values, err := d.generateEtcdValues(options)
+	values, err := d.render.GenerateHelmValues(*options)
 	if err != nil {
 		return err
 	}
@@ -228,7 +226,7 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 		return err
 	}
 
-	values, err := d.generateOperatorValues(options)
+	values, err := d.render.GenerateHelmValues(*options)
 	if err != nil {
 		return err
 	}
@@ -271,94 +269,6 @@ func (d *deployer) splitNamescapedName(name string) (string, string, error) {
 	}
 
 	return split[0], split[1], nil
-}
-
-func (d *deployer) generateClusterValues(options *CreateGreptimeDBClusterOptions) (map[string]interface{}, error) {
-	var rawArgs []string
-
-	// TODO(zyy17): It's very ugly to generate Helm values...
-	if len(options.ImageRegistry) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("image.registry=%s", options.ImageRegistry))
-	}
-
-	if len(options.DatanodeStorageClassName) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("datanode.storage.storageClassName=%s", options.DatanodeStorageClassName))
-	}
-
-	if len(options.DatanodeStorageSize) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("datanode.storage.storageSize=%s", options.DatanodeStorageSize))
-	}
-
-	if len(options.DatanodeStorageRetainPolicy) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("datanode.storage.storageRetainPolicy=%s", options.DatanodeStorageRetainPolicy))
-	}
-
-	if len(options.EtcdEndPoint) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("etcdEndpoints=%s", options.EtcdEndPoint))
-	}
-
-	if len(rawArgs) > 0 {
-		values, err := d.generateHelmValues(strings.Join(rawArgs, ","))
-		if err != nil {
-			return nil, err
-		}
-
-		d.logger.V(3).Infof("generate greptimedb cluster helm values: '%v'", values)
-
-		return values, nil
-	}
-
-	return nil, nil
-}
-
-func (d *deployer) generateOperatorValues(options *CreateGreptimeDBOperatorOptions) (map[string]interface{}, error) {
-	// TODO(zyy17): It's very ugly to generate Helm values...
-	if len(options.ImageRegistry) > 0 {
-		values, err := d.generateHelmValues(fmt.Sprintf("image.registry=%s", options.ImageRegistry))
-		if err != nil {
-			return nil, err
-		}
-
-		d.logger.V(3).Infof("generate greptimedb operator helm values: '%v'", values)
-		return values, nil
-	}
-
-	return nil, nil
-}
-
-func (d *deployer) generateEtcdValues(options *CreateEtcdClusterOptions) (map[string]interface{}, error) {
-	var rawArgs []string
-	if len(options.ImageRegistry) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("image.registry=%s", options.ImageRegistry))
-	}
-
-	if len(options.EtcdStorageClassName) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("storage.storageClassName=%s", options.EtcdStorageClassName))
-	}
-
-	if len(options.EtcdStorageSize) > 0 {
-		rawArgs = append(rawArgs, fmt.Sprintf("storage.volumeSize=%s", options.EtcdStorageSize))
-	}
-
-	if len(rawArgs) > 0 {
-		values, err := d.generateHelmValues(strings.Join(rawArgs, ","))
-		if err != nil {
-			return nil, err
-		}
-
-		d.logger.V(3).Infof("generate etcd helm values: '%v'", values)
-		return values, nil
-	}
-
-	return nil, nil
-}
-
-func (d *deployer) generateHelmValues(args string) (map[string]interface{}, error) {
-	values := make(map[string]interface{})
-	if err := strvals.ParseInto(args, values); err != nil {
-		return nil, err
-	}
-	return values, nil
 }
 
 func (d *deployer) getChartDownloadURL(chartName, version string) (string, error) {
