@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
@@ -31,7 +31,7 @@ type deleteClusterCliOptions struct {
 	TearDownEtcd bool
 }
 
-func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
+func NewDeleteClusterCommand(l logger.Logger) *cobra.Command {
 	var options deleteClusterCliOptions
 
 	cmd := &cobra.Command{
@@ -44,7 +44,7 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 			}
 
 			clusterName, namespace := args[0], options.Namespace
-			l.Infof("⚠️ Deleting cluster '%s' in namespace '%s'...\n", log.Bold(clusterName), log.Bold(namespace))
+			l.V(0).Infof("Deleting cluster '%s' in namespace '%s'...\n", logger.Bold(clusterName), logger.Bold(namespace))
 
 			m, err := manager.New(l, false)
 			if err != nil {
@@ -57,7 +57,7 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 				Namespace:   options.Namespace,
 			})
 			if errors.IsNotFound(err) {
-				l.Infof("Cluster '%s' in '%s' not found\n", clusterName, namespace)
+				l.V(0).Infof("Cluster '%s' in '%s' not found\n", clusterName, namespace)
 				return nil
 			}
 			if err != nil && !errors.IsNotFound(err) {
@@ -73,17 +73,17 @@ func NewDeleteClusterCommand(l log.Logger) *cobra.Command {
 			}
 
 			// TODO(zyy17): Should we wait until the cluster is actually deleted?
-			l.Infof("Cluster '%s' in namespace '%s' is deleted!\n", clusterName, namespace)
+			l.V(0).Infof("Cluster '%s' in namespace '%s' is deleted!\n", clusterName, namespace)
 
 			if options.TearDownEtcd {
-				l.Infof("⚠️ Deleting etcd cluster in namespace '%s'...\n", log.Bold(etcdNamespace))
+				l.V(0).Infof("Deleting etcd cluster in namespace '%s'...\n", logger.Bold(etcdNamespace))
 				if err := m.DeleteEtcdCluster(ctx, &manager.DeleteEtcdClusterOption{
 					Name:      clusterName + "-etcd",
 					Namespace: etcdNamespace,
 				}); err != nil {
 					return err
 				}
-				l.Infof("Etcd cluster in namespace '%s' is deleted!\n", etcdNamespace)
+				l.V(0).Infof("Etcd cluster in namespace '%s' is deleted!\n", etcdNamespace)
 			}
 
 			return nil

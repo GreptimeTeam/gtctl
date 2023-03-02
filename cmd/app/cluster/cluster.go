@@ -24,10 +24,10 @@ import (
 	"github.com/GreptimeTeam/gtctl/cmd/app/cluster/get"
 	"github.com/GreptimeTeam/gtctl/cmd/app/cluster/list"
 	"github.com/GreptimeTeam/gtctl/cmd/app/cluster/scale"
-	"github.com/GreptimeTeam/gtctl/pkg/log"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
-func NewClusterCommand() *cobra.Command {
+func NewClusterCommand(l logger.Logger) *cobra.Command {
 	cmd := &cobra.Command{
 		Args:  cobra.NoArgs,
 		Use:   "cluster",
@@ -42,12 +42,11 @@ func NewClusterCommand() *cobra.Command {
 		},
 	}
 
-	// TODO(zyy17): Maybe ugly to use NewLogger in every command.
-	cmd.AddCommand(create.NewCreateClusterCommand(log.NewLogger()))
-	cmd.AddCommand(delete.NewDeleteClusterCommand(log.NewLogger()))
-	cmd.AddCommand(scale.NewScaleClusterCommand(log.NewLogger()))
-	cmd.AddCommand(get.NewGetClusterCommand(log.NewLogger()))
-	cmd.AddCommand(list.NewListClustersCommand(log.NewLogger()))
+	cmd.AddCommand(create.NewCreateClusterCommand(l))
+	cmd.AddCommand(delete.NewDeleteClusterCommand(l))
+	cmd.AddCommand(scale.NewScaleClusterCommand(l))
+	cmd.AddCommand(get.NewGetClusterCommand(l))
+	cmd.AddCommand(list.NewListClustersCommand(l))
 
 	return cmd
 }
