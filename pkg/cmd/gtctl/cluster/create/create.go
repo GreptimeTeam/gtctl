@@ -90,6 +90,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				spinner.Stop(false, "Installing greptimedb-operator failed")
 				return err
 			}
+
 			spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
 
 			spinner.Start("Installing etcd cluster...")
@@ -107,6 +108,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				spinner.Stop(false, "Installing etcd cluster failed")
 				return err
 			}
+
 			spinner.Stop(true, "Installing etcd cluster successfully 🎉")
 
 			spinner.Start("Installing GreptimeDB cluster...")
@@ -126,6 +128,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				spinner.Stop(false, "Installing GreptimeDB cluster failed")
 				return err
 			}
+
 			spinner.Stop(true, "Installing GreptimeDB cluster successfully 🎉")
 
 			if !options.DryRun {

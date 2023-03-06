@@ -1,4 +1,4 @@
-// Copyright 2022 Greptime Team
+// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package constants
 
-import (
-	"fmt"
-	"os"
-)
-
-func main() {
-	if err := NewRootCommand().Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
+// GtctlTextBanner is the following text banner for gtctl.
+//           __       __  __
+//    ____ _/ /______/ /_/ /
+//   / __ `/ __/ ___/ __/ /
+//  / /_/ / /_/ /__/ /_/ /
+//  \__, /\__/\___/\__/_/
+// /____/
+const GtctlTextBanner = "          __       __  __\n   ____ _/ /______/ /_/ /\n  / __ `/ __/ ___/ __/ / \n / /_/ / /_/ /__/ /_/ /  \n \\__, /\\__/\\___/\\__/_/   \n/____/   \n"

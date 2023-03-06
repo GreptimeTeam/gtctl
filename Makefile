@@ -17,7 +17,7 @@ CLUSTER=e2e-cluster
 .PHONY: gtctl
 LDFLAGS = $(shell ./hack/version.sh)
 gtctl:
-	@go build -ldflags '${LDFLAGS}' -o bin/gtctl ./cmd
+	@go build -ldflags '${LDFLAGS}' -o bin/gtctl ./cmd/gtctl
 
 .PHONY: setup-e2e
 setup-e2e: ## Setup e2e test environment.
