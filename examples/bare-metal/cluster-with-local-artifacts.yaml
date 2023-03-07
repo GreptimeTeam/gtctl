@@ -1,0 +1,16 @@
+cluster:
+  name: "mycluster" # name of the cluster
+  artifact:
+    local: "./bin/greptime"
+  frontend:
+  datanode:
+    replicas: 3
+    rpcPort: 14100
+    mysqlPort: 14200
+  meta:
+    storeAddr: "127.0.0.1:2379"
+    serverAddr: "0.0.0.0:3002"
+
+etcd:
+  artifact:
+    local: "./bin/etcd"

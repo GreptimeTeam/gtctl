@@ -17,19 +17,23 @@ package create
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/common"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/status"
 )
 
 type createClusterCliOptions struct {
+	// The options for deploying GreptimeDBCluster in K8s.
 	Namespace                      string
 	OperatorNamespace              string
 	EtcdNamespace                  string
@@ -44,8 +48,13 @@ type createClusterCliOptions struct {
 	EtcdStorageClassName           string
 	EtcdStorageSize                string
 
-	DryRun  bool
+	// The options for deploying GreptimeDBCluster in bare-metal.
+	BareMetal bool
+	Config    string
+
+	// Common options.
 	Timeout int
+	DryRun  bool
 }
 
 func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
@@ -60,11 +69,6 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				return fmt.Errorf("cluster name should be set")
 			}
 
-			k8sDeployer, err := k8s.NewDeployer(l, k8s.WithDryRun(options.DryRun), k8s.WithTimeout(time.Duration(options.Timeout)*time.Second))
-			if err != nil {
-				return err
-			}
-
 			var (
 				clusterName = args[0]
 
@@ -72,65 +76,49 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				ctx = context.TODO()
 			)
 
+			clusterDeployer, err := newDeployer(l, clusterName, &options)
+			if err != nil {
+				return err
+			}
+
 			spinner, err := status.NewSpinner()
 			if err != nil {
 				return err
 			}
 
-			l.V(0).Infof("Creating GreptimeDB cluster '%s' in namespace '%s' ...", logger.Bold(clusterName), logger.Bold(options.Namespace))
+			if !options.BareMetal {
+				l.V(0).Infof("Creating GreptimeDB cluster '%s' in namespace '%s' ...", logger.Bold(clusterName), logger.Bold(options.Namespace))
+			} else {
+				l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal envrionment...", logger.Bold(clusterName))
+			}
 
-			spinner.Start("Installing greptimedb-operator...")
-			createGreptimeDBOperatorOptions := &deployer.CreateGreptimeDBOperatorOptions{
-				GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
-				ImageRegistry:                  options.ImageRegistry,
+			if !options.BareMetal {
+				if err := deployGreptimeDBOperator(ctx, l, &options, spinner, clusterDeployer); err != nil {
+					return err
+				}
 			}
-			name := types.NamespacedName{Namespace: options.Namespace, Name: "greptimedb-operator"}.String()
-			if err := k8sDeployer.CreateGreptimeDBOperator(ctx, name, createGreptimeDBOperatorOptions); err != nil {
-				spinner.Stop(false, "Installing greptimedb-operator failed")
-				return err
-			}
-			spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
 
-			spinner.Start("Installing etcd cluster...")
-			createEtcdClusterOptions := &deployer.CreateEtcdClusterOptions{
-				ImageRegistry:        options.ImageRegistry,
-				EtcdChartVersion:     options.EtcdChartVersion,
-				EtcdStorageClassName: options.EtcdStorageClassName,
-				EtcdStorageSize:      options.EtcdStorageSize,
-			}
-			name = types.NamespacedName{Namespace: options.EtcdNamespace, Name: common.EtcdClusterName(clusterName)}.String()
-			if err := k8sDeployer.CreateEtcdCluster(ctx, name, createEtcdClusterOptions); err != nil {
+			if err := deployEtcdCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
 				spinner.Stop(false, "Installing etcd cluster failed")
 				return err
 			}
 
-			spinner.Stop(true, "Installing etcd cluster successfully 🎉")
-
-			spinner.Start("Installing GreptimeDB cluster...")
-			createGreptimeDBClusterOptions := &deployer.CreateGreptimeDBClusterOptions{
-				GreptimeDBChartVersion: options.GreptimeDBChartVersion,
-				ImageRegistry:          options.ImageRegistry,
-				EtcdEndPoint:           fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
-			}
-			name = types.NamespacedName{Namespace: options.Namespace, Name: clusterName}.String()
-			if err := k8sDeployer.CreateGreptimeDBCluster(ctx, name, createGreptimeDBClusterOptions); err != nil {
-				spinner.Stop(false, "Installing GreptimeDB cluster failed")
+			if err := deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
 				return err
 			}
 
-			spinner.Stop(true, "Installing GreptimeDB cluster successfully 🎉")
-
 			if !options.DryRun {
-				l.V(0).Infof("\nNow you can use the following commands to access the GreptimeDB cluster:")
-				l.V(0).Infof("\n%s", logger.Bold("MySQL >"))
-				l.V(0).Infof("%s", fmt.Sprintf("%s kubectl port-forward svc/%s-frontend -n %s 4002:4002 > connections-mysql.out &", logger.Bold("$"), clusterName, options.Namespace))
-				l.V(0).Infof("%s", fmt.Sprintf("%s mysql -h 127.0.0.1 -P 4002", logger.Bold("$")))
-				l.V(0).Infof("\n%s", logger.Bold("PostgreSQL >"))
-				l.V(0).Infof("%s", fmt.Sprintf("%s kubectl port-forward svc/%s-frontend -n %s 4003:4003 > connections-pg.out &", logger.Bold("$"), clusterName, options.Namespace))
-				l.V(0).Infof("%s", fmt.Sprintf("%s psql -h 127.0.0.1 -p 4003", logger.Bold("$")))
-				l.V(0).Infof("\nThank you for using %s! Check for more information on %s. 😊", logger.Bold("GreptimeDB"), logger.Bold("https://greptime.com"))
-				l.V(0).Infof("\n%s 🔑", logger.Bold("Invest in Data, Harvest over Time."))
+				printTips(l, clusterName, &options)
 			}
+
+			if options.BareMetal {
+				fmt.Printf("\x1b[32m%s\x1b[0m", "The cluster is running in bare-metal mode now...\n")
+				// Wait for all the child processes to exit.
+				if err := clusterDeployer.Wait(ctx); err != nil {
+					return err
+				}
+			}
+
 			return nil
 		},
 	}
@@ -149,6 +137,128 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
 	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
 	cmd.Flags().StringVar(&options.EtcdStorageSize, "etcd-storage-size", "10Gi", "the etcd persistent volume size.")
+	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal envrionment.")
+	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal envrionment.")
 
 	return cmd
+}
+
+func newDeployer(l logger.Logger, clusterName string, options *createClusterCliOptions) (deployer.Deployer, error) {
+	if !options.BareMetal {
+		k8sDeployer, err := k8s.NewDeployer(l, k8s.WithDryRun(options.DryRun),
+			k8s.WithTimeout(time.Duration(options.Timeout)*time.Second))
+		if err != nil {
+			return nil, err
+		}
+		return k8sDeployer, nil
+	}
+
+	var opts baremetal.Option
+	if options.Config != "" {
+		var config baremetal.Config
+		data, err := ioutil.ReadFile(options.Config)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := yaml.Unmarshal(data, &config); err != nil {
+			return nil, err
+		}
+
+		opts = baremetal.WithConfig(&config)
+	}
+
+	baremetalDeployer, err := baremetal.NewDeployer(l, clusterName, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return baremetalDeployer, nil
+}
+
+func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
+	spinner *status.Spinner, clusterDeployer deployer.Deployer) error {
+
+	spinner.Start("Installing greptimedb-operator...")
+	createGreptimeDBOperatorOptions := &deployer.CreateGreptimeDBOperatorOptions{
+		GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
+		ImageRegistry:                  options.ImageRegistry,
+	}
+	name := types.NamespacedName{Namespace: options.Namespace, Name: "greptimedb-operator"}.String()
+	if err := clusterDeployer.CreateGreptimeDBOperator(ctx, name, createGreptimeDBOperatorOptions); err != nil {
+		spinner.Stop(false, "Installing greptimedb-operator failed")
+		return err
+	}
+	spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
+
+	return nil
+}
+
+func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
+	spinner *status.Spinner, clusterDeployer deployer.Deployer, clusterName string) error {
+
+	spinner.Start("Installing etcd cluster...")
+	createEtcdClusterOptions := &deployer.CreateEtcdClusterOptions{
+		ImageRegistry:        options.ImageRegistry,
+		EtcdChartVersion:     options.EtcdChartVersion,
+		EtcdStorageClassName: options.EtcdStorageClassName,
+		EtcdStorageSize:      options.EtcdStorageSize,
+	}
+
+	var name string
+	if options.BareMetal {
+		name = clusterName
+	} else {
+		name = types.NamespacedName{Namespace: options.EtcdNamespace, Name: common.EtcdClusterName(clusterName)}.String()
+	}
+
+	if err := clusterDeployer.CreateEtcdCluster(ctx, name, createEtcdClusterOptions); err != nil {
+		spinner.Stop(false, "Installing etcd cluster failed")
+		return err
+	}
+	spinner.Stop(true, "Installing etcd cluster successfully 🎉")
+
+	return nil
+}
+
+func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
+	spinner *status.Spinner, clusterDeployer deployer.Deployer, clusterName string) error {
+
+	spinner.Start("Installing GreptimeDB cluster...")
+	createGreptimeDBClusterOptions := &deployer.CreateGreptimeDBClusterOptions{
+		GreptimeDBChartVersion: options.GreptimeDBChartVersion,
+		ImageRegistry:          options.ImageRegistry,
+		EtcdEndPoint:           fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
+	}
+
+	var name string
+	if options.BareMetal {
+		name = clusterName
+	} else {
+		name = types.NamespacedName{Namespace: options.Namespace, Name: clusterName}.String()
+	}
+
+	if err := clusterDeployer.CreateGreptimeDBCluster(ctx, name, createGreptimeDBClusterOptions); err != nil {
+		spinner.Stop(false, "Installing GreptimeDB cluster failed")
+		return err
+	}
+	spinner.Stop(true, "Installing GreptimeDB cluster successfully 🎉")
+
+	return nil
+}
+
+func printTips(l logger.Logger, clusterName string, options *createClusterCliOptions) {
+	l.V(0).Infof("\nNow you can use the following commands to access the GreptimeDB cluster:")
+	l.V(0).Infof("\n%s", logger.Bold("MySQL >"))
+	if !options.BareMetal {
+		l.V(0).Infof("%s", fmt.Sprintf("%s kubectl port-forward svc/%s-frontend -n %s 4002:4002 > connections-mysql.out &", logger.Bold("$"), clusterName, options.Namespace))
+	}
+	l.V(0).Infof("%s", fmt.Sprintf("%s mysql -h 127.0.0.1 -P 4002", logger.Bold("$")))
+	l.V(0).Infof("\n%s", logger.Bold("PostgreSQL >"))
+	if !options.BareMetal {
+		l.V(0).Infof("%s", fmt.Sprintf("%s kubectl port-forward svc/%s-frontend -n %s 4003:4003 > connections-pg.out &", logger.Bold("$"), clusterName, options.Namespace))
+	}
+	l.V(0).Infof("%s", fmt.Sprintf("%s psql -h 127.0.0.1 -p 4003", logger.Bold("$")))
+	l.V(0).Infof("\nThank you for using %s! Check for more information on %s. 😊", logger.Bold("GreptimeDB"), logger.Bold("https://greptime.com"))
+	l.V(0).Infof("\n%s 🔑", logger.Bold("Invest in Data, Harvest over Time."))
 }

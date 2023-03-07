@@ -51,6 +51,9 @@ type Deployer interface {
 	// The name is the namespaced name(<namespace>/<name>) in Kubernetes.
 	// The API only works for Kubernetes.
 	CreateGreptimeDBOperator(ctx context.Context, name string, options *CreateGreptimeDBOperatorOptions) error
+
+	// Wait waits for all the child-process to exit. It uses for the bare-metal deployment.
+	Wait(ctx context.Context) error
 }
 
 // GreptimeDBCluster is the internal type of gtctl to describe GreptimeDB cluster.

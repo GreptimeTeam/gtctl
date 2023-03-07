@@ -264,6 +264,10 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 	return d.client.WaitForDeploymentReady(resourceName, resourceNamespace, d.timeout)
 }
 
+func (d *deployer) Wait(ctx context.Context) error {
+	return fmt.Errorf("unsupported operation")
+}
+
 func (d *deployer) splitNamescapedName(name string) (string, string, error) {
 	if name == "" {
 		return "", "", fmt.Errorf("empty namespaced name")
