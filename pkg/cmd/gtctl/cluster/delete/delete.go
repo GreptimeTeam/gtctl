@@ -21,18 +21,20 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
+	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
-type deleteClusterCliOptions struct {
+type deleteClusterOptions struct {
 	Namespace    string
 	TearDownEtcd bool
 }
 
 func NewDeleteClusterCommand(l logger.Logger) *cobra.Command {
-	var options deleteClusterCliOptions
+	var options deleteClusterOptions
 
 	cmd := &cobra.Command{
 		Use:   "delete",
@@ -46,29 +48,29 @@ func NewDeleteClusterCommand(l logger.Logger) *cobra.Command {
 			clusterName, namespace := args[0], options.Namespace
 			l.V(0).Infof("Deleting cluster '%s' in namespace '%s'...\n", logger.Bold(clusterName), logger.Bold(namespace))
 
-			m, err := manager.New(l, false)
+			k8sDeployer, err := k8s.NewDeployer(l)
 			if err != nil {
 				return err
 			}
 
 			ctx := context.TODO()
-			cluster, err := m.GetCluster(ctx, &manager.GetClusterOptions{
-				ClusterName: clusterName,
-				Namespace:   options.Namespace,
-			})
+			name := types.NamespacedName{Namespace: options.Namespace, Name: clusterName}.String()
+			cluster, err := k8sDeployer.GetGreptimeDBCluster(ctx, name, nil)
 			if errors.IsNotFound(err) {
 				l.V(0).Infof("Cluster '%s' in '%s' not found\n", clusterName, namespace)
 				return nil
 			}
-			if err != nil && !errors.IsNotFound(err) {
+			if err != nil {
 				return err
 			}
 
-			etcdNamespace := strings.Split(strings.Split(cluster.Spec.Meta.EtcdEndpoints[0], ".")[1], ":")[0]
-			if err := m.DeleteCluster(ctx, &manager.DeleteClusterOption{
-				ClusterName: clusterName,
-				Namespace:   options.Namespace,
-			}); err != nil {
+			rawCluster, ok := cluster.Raw.(*greptimedbclusterv1alpha1.GreptimeDBCluster)
+			if !ok {
+				return fmt.Errorf("invalid cluster type")
+			}
+
+			name = types.NamespacedName{Namespace: options.Namespace, Name: clusterName}.String()
+			if err := k8sDeployer.DeleteGreptimeDBCluster(ctx, name, nil); err != nil {
 				return err
 			}
 
@@ -76,11 +78,10 @@ func NewDeleteClusterCommand(l logger.Logger) *cobra.Command {
 			l.V(0).Infof("Cluster '%s' in namespace '%s' is deleted!\n", clusterName, namespace)
 
 			if options.TearDownEtcd {
+				etcdNamespace := strings.Split(strings.Split(rawCluster.Spec.Meta.EtcdEndpoints[0], ".")[1], ":")[0]
 				l.V(0).Infof("Deleting etcd cluster in namespace '%s'...\n", logger.Bold(etcdNamespace))
-				if err := m.DeleteEtcdCluster(ctx, &manager.DeleteEtcdClusterOption{
-					Name:      clusterName + "-etcd",
-					Namespace: etcdNamespace,
-				}); err != nil {
+				name = types.NamespacedName{Namespace: etcdNamespace, Name: clusterName + "-etcd"}.String()
+				if err := k8sDeployer.DeleteEtcdCluster(ctx, name, nil); err != nil {
 					return err
 				}
 				l.V(0).Infof("Etcd cluster in namespace '%s' is deleted!\n", etcdNamespace)

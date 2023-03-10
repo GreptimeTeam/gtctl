@@ -17,14 +17,15 @@ package scale
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
-	greptimev1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
 type scaleCliOptions struct {
@@ -50,8 +51,8 @@ func NewScaleClusterCommand(l logger.Logger) *cobra.Command {
 				return fmt.Errorf("component type is required")
 			}
 
-			if options.ComponentType != string(greptimev1alpha1.FrontendComponentKind) &&
-				options.ComponentType != string(greptimev1alpha1.DatanodeComponentKind) {
+			if options.ComponentType != string(greptimedbclusterv1alpha1.FrontendComponentKind) &&
+				options.ComponentType != string(greptimedbclusterv1alpha1.DatanodeComponentKind) {
 				return fmt.Errorf("component type is invalid")
 			}
 
@@ -59,7 +60,7 @@ func NewScaleClusterCommand(l logger.Logger) *cobra.Command {
 				return fmt.Errorf("replicas should be equal or greater than 1")
 			}
 
-			m, err := manager.New(l, false)
+			k8sDeployer, err := k8s.NewDeployer(l)
 			if err != nil {
 				return err
 			}
@@ -70,10 +71,11 @@ func NewScaleClusterCommand(l logger.Logger) *cobra.Command {
 				namespace   = options.Namespace
 			)
 
-			cluster, err := m.GetCluster(ctx, &manager.GetClusterOptions{
-				ClusterName: clusterName,
-				Namespace:   namespace,
-			})
+			name := types.NamespacedName{
+				Namespace: options.Namespace,
+				Name:      clusterName,
+			}.String()
+			cluster, err := k8sDeployer.GetGreptimeDBCluster(ctx, name, nil)
 			if err != nil && errors.IsNotFound(err) {
 				l.Errorf("cluster %s in %s not found\n", clusterName, namespace)
 				return nil
@@ -82,24 +84,26 @@ func NewScaleClusterCommand(l logger.Logger) *cobra.Command {
 				return err
 			}
 
-			var oldReplicas int32
-			if options.ComponentType == string(greptimev1alpha1.FrontendComponentKind) {
-				oldReplicas = cluster.Spec.Frontend.Replicas
-				cluster.Spec.Frontend.Replicas = options.Replicas
+			rawCluster, ok := cluster.Raw.(*greptimedbclusterv1alpha1.GreptimeDBCluster)
+			if !ok {
+				return fmt.Errorf("invalid cluster type")
 			}
 
-			if options.ComponentType == string(greptimev1alpha1.DatanodeComponentKind) {
-				oldReplicas = cluster.Spec.Datanode.Replicas
-				cluster.Spec.Datanode.Replicas = options.Replicas
+			var oldReplicas int32
+			if options.ComponentType == string(greptimedbclusterv1alpha1.FrontendComponentKind) {
+				oldReplicas = rawCluster.Spec.Frontend.Replicas
+				rawCluster.Spec.Frontend.Replicas = options.Replicas
+			}
+
+			if options.ComponentType == string(greptimedbclusterv1alpha1.DatanodeComponentKind) {
+				oldReplicas = rawCluster.Spec.Datanode.Replicas
+				rawCluster.Spec.Datanode.Replicas = options.Replicas
 			}
 
 			l.V(0).Infof("Scaling cluster %s in %s... from %d to %d\n", clusterName, namespace, oldReplicas, options.Replicas)
 
-			if err := m.UpdateCluster(ctx, &manager.UpdateClusterOptions{
-				ClusterName: clusterName,
-				Namespace:   namespace,
-				NewCluster:  cluster,
-				Timeout:     time.Duration(options.Timeout) * time.Second,
+			if err := k8sDeployer.UpdateGreptimeDBCluster(ctx, name, &deployer.UpdateGreptimeDBClusterOptions{
+				NewCluster: &deployer.GreptimeDBCluster{Raw: rawCluster},
 			}); err != nil {
 				return err
 			}

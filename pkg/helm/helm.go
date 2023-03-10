@@ -18,16 +18,23 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
 	"io"
 	"log"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	. "helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v3/pkg/strvals"
 	"sigs.k8s.io/yaml"
+)
+
+const (
+	helmFieldTag = "helm"
 )
 
 type TemplateRender interface {
@@ -78,6 +85,34 @@ func (r *Render) GenerateManifests(releaseName, namespace string, chart *chart.C
 	}
 
 	return manifests.Bytes(), nil
+}
+
+func (r *Render) GenerateHelmValues(input interface{}) (map[string]interface{}, error) {
+	var rawArgs []string
+	valueOf := reflect.ValueOf(input)
+
+	// Make sure we are handling with a struct here.
+	if valueOf.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("invalid input type, should be struct")
+	}
+
+	typeOf := reflect.TypeOf(input)
+	for i := 0; i < valueOf.NumField(); i++ {
+		helmValueKey := typeOf.Field(i).Tag.Get(helmFieldTag)
+		if helmValueKey != "" && valueOf.Field(i).Len() > 0 {
+			rawArgs = append(rawArgs, fmt.Sprintf("%s=%s\n", helmValueKey, valueOf.Field(i)))
+		}
+	}
+
+	if len(rawArgs) > 0 {
+		values := make(map[string]interface{})
+		if err := strvals.ParseInto(strings.Join(rawArgs, ","), values); err != nil {
+			return nil, err
+		}
+		return values, nil
+	}
+
+	return nil, nil
 }
 
 func (r *Render) GetLatestChart(indexFile *IndexFile, chartName string) (*ChartVersion, error) {

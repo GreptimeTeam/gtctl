@@ -20,9 +20,11 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
+	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/manager"
 )
 
 type getClusterCliOptions struct {
@@ -40,7 +42,7 @@ func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 				return fmt.Errorf("cluster name should be set")
 			}
 
-			m, err := manager.New(l, false)
+			k8sDeployer, err := k8s.NewDeployer(l)
 			if err != nil {
 				return err
 			}
@@ -51,10 +53,11 @@ func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 				namespace   = options.Namespace
 			)
 
-			cluster, err := m.GetCluster(ctx, &manager.GetClusterOptions{
-				ClusterName: clusterName,
-				Namespace:   namespace,
-			})
+			name := types.NamespacedName{
+				Namespace: options.Namespace,
+				Name:      clusterName,
+			}.String()
+			cluster, err := k8sDeployer.GetGreptimeDBCluster(ctx, name, nil)
 			if err != nil && errors.IsNotFound(err) {
 				l.Errorf("cluster %s in %s not found\n", clusterName, namespace)
 				return nil
@@ -63,7 +66,13 @@ func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 				return err
 			}
 
-			l.V(0).Infof("Cluster '%s' in '%s' namespace is running, create at %s\n", cluster.Name, cluster.Namespace, cluster.CreationTimestamp)
+			rawCluster, ok := cluster.Raw.(*greptimedbclusterv1alpha1.GreptimeDBCluster)
+			if !ok {
+				return fmt.Errorf("invalid cluster type")
+			}
+
+			l.V(0).Infof("Cluster '%s' in '%s' namespace is running, create at %s\n",
+				rawCluster.Name, rawCluster.Namespace, rawCluster.CreationTimestamp)
 			return nil
 		},
 	}
