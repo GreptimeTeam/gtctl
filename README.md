@@ -2,11 +2,19 @@
 
 ## Overview
 
-gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. gtctl is the **All-in-One** binary that integrates multiple operations of GreptimeDB cluster.
+`gtctl`(`g-t-control`) is a command-line tool for managing the [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. gtctl is the **All-in-One** binary that integrates multiple operations of the GreptimeDB cluster.
 
 <p align="center">
-<img alt="cluster-topology" src="./docs/images/screenshot.png" width="900px">
+<img alt="screenshot" src="./docs/images/screenshot.png" width="800px">
 </p>
+
+## One-line installation
+
+```console
+curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
+```
+
+After downloading, the `gtctl` will be in the current directory.
 
 ## Getting Started
 
@@ -14,56 +22,13 @@ gtctl(`g-t-control`) is a command-line tool for managing [GreptimeDB](https://gi
 
 - **Kubernetes 1.18 or higher version is required**
 
-  You can use [kind](https://kind.sigs.k8s.io/) to create your own Kubernetes cluster:
+  You can use the [`kind`](https://kind.sigs.k8s.io/) to create your own Kubernetes cluster:
 
   ```console
   kind create cluster
   ```
 
-### Quick start
-
-Install your `gtctl` in one line:
-
-```console
-curl -L https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
-```
-
-After downloading, your `gtctl` will be in the current directory.
-
-If you want to install the specific version of `gtctl`, you can:
-
-```console
-curl -L https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh -s <version>
-```
-
-Run `gtctl --help` to get started:
-
-```console
-gtctl --help
-          __       __  __
-   ____ _/ /______/ /_/ /
-  / __ `/ __/ ___/ __/ /
- / /_/ / /_/ /__/ /_/ /
- \__, /\__/\___/\__/_/
-/____/
-
-gtctl is a command-line tool for managing GreptimeDB cluster.
-
-Usage:
-  gtctl [command]
-
-Available Commands:
-  cluster     Manage GreptimeDB cluster
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  version     Print the version of gtctl and exit
-
-Flags:
-  -h, --help      help for gtctl
-  -v, --version   version for gtctl
-
-Use "gtctl [command] --help" for more information about a command.
-```
+### Cluster Operations
 
 Create your own GreptimeDB cluster and etcd cluster:
 
@@ -96,16 +61,16 @@ mysql -h 127.0.0.1 -P 4002
 If you want to delete the cluster, you can:
 
 ```console
-# Just delete the cluster.
+# Delete the cluster.
 gtctl cluster delete mycluster -n default
 
-# Delete GreptimeDB cluster, including etcd cluster.
+# Delete the cluster, including etcd cluster.
 gtctl cluster delete mycluster -n default --tear-down-etcd
 ```
 
 ### Dry Run Mode
 
-gtctl provides `--dry-run` option in cluster creation. If a user executes the command with `--dry-run`, gtctl will output the manifests content without applying them:
+`gtctl` provides `--dry-run` option in cluster creation. If a user executes the command with `--dry-run`, `gtctl` will output the manifests content without applying them:
 
 ```console
 gtctl cluster create mycluster -n default --dry-run
@@ -125,7 +90,7 @@ gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c frontend --rep
 
 ### Specify the image registry
 
-`gtctl` uses DockerHub as the default image registry and also supports to specify image registry when creating cluster with `--image-registry` option (the UCloud image registry mirror `uhub.service.ucloud.cn` is now available).
+`gtctl` uses DockerHub as the default image registry and also supports specifying image registry when creating a cluster with the `--image-registry` option (the UCloud image registry mirror `uhub.service.ucloud.cn` is now available).
 
 中国用户可使用如下命令创建集群：
 
@@ -145,5 +110,5 @@ gtctl cluster create mycluster --image-registry=uhub.service.ucloud.cn
 
 ## License
 
-gtctl uses the [Apache 2.0 license](./LICENSE) to strike a balance between
-open contributions and allowing you to use the software however you want.
+`gtctl` uses the [Apache 2.0 license](./LICENSE) to strike a balance between open contributions and allowing you to use the software however you want.
+
