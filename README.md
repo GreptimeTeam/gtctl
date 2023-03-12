@@ -2,7 +2,7 @@
 
 ## Overview
 
-`gtctl`(`g-t-control`) is a command-line tool for managing the [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. gtctl is the **All-in-One** binary that integrates multiple operations of the GreptimeDB cluster.
+`gtctl`(`g-t-control`) is a command-line tool for managing the [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. `gtctl` is the **All-in-One** binary that integrates multiple operations of the GreptimeDB cluster.
 
 <p align="center">
 <img alt="screenshot" src="./docs/images/screenshot.png" width="800px">
