@@ -33,13 +33,21 @@ type flagArgs struct {
 }
 
 func NewRootCommand() *cobra.Command {
-	flags := &flagArgs{}
+	var (
+		flags = &flagArgs{}
+
+		l = logger.New(os.Stdout, log.Level(flags.Verbosity), logger.WithColored())
+	)
+
 	cmd := &cobra.Command{
 		Args:    cobra.NoArgs,
 		Use:     "gtctl",
 		Short:   "gtctl is a command-line tool for managing GreptimeDB cluster.",
 		Long:    fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", constants.GtctlTextBanner),
 		Version: internalversion.Get().String(),
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return runE(l, flags, cmd)
+		},
 	}
 
 	cmd.PersistentFlags().Int32VarP(
@@ -50,11 +58,31 @@ func NewRootCommand() *cobra.Command {
 		"info log verbosity, higher value produces more output",
 	)
 
-	l := logger.New(os.Stdout, log.Level(flags.Verbosity), logger.WithColored())
-
 	// Add all top level subcommands.
 	cmd.AddCommand(version.NewVersionCommand(l))
 	cmd.AddCommand(cluster.NewClusterCommand(l))
 
 	return cmd
+}
+
+func runE(logger log.Logger, flags *flagArgs, _ *cobra.Command) error {
+	if err := maybeSetVerbosity(logger, log.Level(flags.Verbosity)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// maybeSetVerbosity will call logger.SetVerbosity(verbosity) if logger has a SetVerbosity method.
+func maybeSetVerbosity(logger log.Logger, verbosity log.Level) error {
+	type verboser interface {
+		SetVerbosity(log.Level)
+	}
+	v, ok := logger.(verboser)
+	if ok {
+		v.SetVerbosity(verbosity)
+		return nil
+	}
+
+	return fmt.Errorf("logger does not implement SetVerbosity")
 }
