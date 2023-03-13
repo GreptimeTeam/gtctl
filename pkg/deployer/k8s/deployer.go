@@ -119,7 +119,7 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 	if err != nil {
 		return err
 	}
-	d.logger.V(3).Infof("create cluster with values: %v", values)
+	d.logger.V(3).Infof("create greptimedb cluster with values: %v", values)
 
 	downloadURL, err := d.getChartDownloadURL(GreptimeDBChartName, options.GreptimeDBChartVersion)
 	if err != nil {
