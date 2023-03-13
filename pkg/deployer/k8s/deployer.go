@@ -119,6 +119,7 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 	if err != nil {
 		return err
 	}
+	d.logger.V(3).Infof("create greptimedb cluster with values: %v", values)
 
 	downloadURL, err := d.getChartDownloadURL(GreptimeDBChartName, options.GreptimeDBChartVersion)
 	if err != nil {
@@ -134,6 +135,7 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 	if err != nil {
 		return err
 	}
+	d.logger.V(3).Infof("create greptimedb cluster with manifests: %s", string(manifests))
 
 	if d.dryRun {
 		d.logger.V(0).Info(string(manifests))
@@ -183,6 +185,7 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 	if err != nil {
 		return err
 	}
+	d.logger.V(3).Infof("create etcd cluster with values: %v", values)
 
 	downloadURL, err := d.getChartDownloadURL(GreptimeDBEtcdChartName, options.EtcdChartVersion)
 	if err != nil {
@@ -198,6 +201,7 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 	if err != nil {
 		return err
 	}
+	d.logger.V(3).Infof("create etcd cluster with manifests: %s", string(manifests))
 
 	if d.dryRun {
 		d.logger.V(0).Info(string(manifests))
@@ -230,6 +234,7 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 	if err != nil {
 		return err
 	}
+	d.logger.V(3).Infof("create greptimedb-operator with values: %v", values)
 
 	downloadURL, err := d.getChartDownloadURL(GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion)
 	if err != nil {
@@ -245,6 +250,7 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 	if err != nil {
 		return err
 	}
+	d.logger.V(3).Infof("create greptimedb-operator with manifests: %s", string(manifests))
 
 	if d.dryRun {
 		d.logger.V(0).Info(string(manifests))
