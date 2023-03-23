@@ -203,7 +203,7 @@ func (c *Client) UpdateCluster(ctx context.Context, namespace string, cluster *g
 }
 
 func (c *Client) DeleteEtcdCluster(ctx context.Context, name, namespace string) error {
-	if err := c.kubeClient.CoreV1().Services(namespace).Delete(ctx, name+"-svc", metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+	if err := c.kubeClient.CoreV1().Services(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
