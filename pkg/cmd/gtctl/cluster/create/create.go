@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/common"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -66,7 +67,6 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 
 			var (
 				clusterName = args[0]
-				etcdSvcName = fmt.Sprintf("%s-etcd-svc", args[0])
 
 				// TODO(zyy17): should use timeout context.
 				ctx = context.TODO()
@@ -98,7 +98,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				EtcdStorageClassName: options.EtcdStorageClassName,
 				EtcdStorageSize:      options.EtcdStorageSize,
 			}
-			name = types.NamespacedName{Namespace: options.EtcdNamespace, Name: args[0] + "-etcd"}.String()
+			name = types.NamespacedName{Namespace: options.EtcdNamespace, Name: common.EtcdClusterName(clusterName)}.String()
 			if err := k8sDeployer.CreateEtcdCluster(ctx, name, createEtcdClusterOptions); err != nil {
 				spinner.Stop(false, "Installing etcd cluster failed")
 				return err
@@ -110,9 +110,9 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			createGreptimeDBClusterOptions := &deployer.CreateGreptimeDBClusterOptions{
 				GreptimeDBChartVersion: options.GreptimeDBChartVersion,
 				ImageRegistry:          options.ImageRegistry,
-				EtcdEndPoint:           fmt.Sprintf("%s.%s:2379", etcdSvcName, options.EtcdNamespace),
+				EtcdEndPoint:           fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
 			}
-			name = types.NamespacedName{Namespace: options.Namespace, Name: args[0]}.String()
+			name = types.NamespacedName{Namespace: options.Namespace, Name: clusterName}.String()
 			if err := k8sDeployer.CreateGreptimeDBCluster(ctx, name, createGreptimeDBClusterOptions); err != nil {
 				spinner.Stop(false, "Installing GreptimeDB cluster failed")
 				return err
