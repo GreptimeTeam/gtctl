@@ -91,6 +91,12 @@ func WithConfig(config *Config) Option {
 	}
 }
 
+func WithGreptimeVersion(version string) Option {
+	return func(d *deployer) {
+		d.config.Cluster.Artifact.Version = version
+	}
+}
+
 func (d *deployer) GetGreptimeDBCluster(ctx context.Context, name string, options *GetGreptimeDBClusterOptions) (*GreptimeDBCluster, error) {
 	return nil, fmt.Errorf("unsupported operation")
 }
@@ -226,6 +232,8 @@ func (d *deployer) runBinary(binary string, args []string, logDir string, pidDir
 	outputFileWriter := bufio.NewWriter(outputFile)
 	cmd.Stdout = outputFileWriter
 	cmd.Stderr = outputFileWriter
+
+	d.logger.V(3).Infof("run binary '%s' with args: '%v', log: '%s', pid: '%s'", binary, args, logDir, pidDir)
 
 	if err := cmd.Start(); err != nil {
 		return err

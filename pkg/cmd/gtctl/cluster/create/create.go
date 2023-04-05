@@ -50,8 +50,9 @@ type createClusterCliOptions struct {
 	EtcdStorageSize                string
 
 	// The options for deploying GreptimeDBCluster in bare-metal.
-	BareMetal bool
-	Config    string
+	BareMetal          bool
+	Config             string
+	GreptimeBinVersion string
 
 	// Common options.
 	Timeout int
@@ -139,6 +140,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
 	cmd.Flags().StringVar(&options.EtcdStorageSize, "etcd-storage-size", "10Gi", "the etcd persistent volume size.")
 	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal envrionment.")
+	cmd.Flags().StringVar(&options.GreptimeBinVersion, "greptime-bin-version", "", "The version of greptime binary(can be override by config file).")
 	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal envrionment.")
 
 	return cmd
@@ -154,7 +156,12 @@ func newDeployer(l logger.Logger, clusterName string, options *createClusterCliO
 		return k8sDeployer, nil
 	}
 
-	var opts baremetal.Option
+	var opts []baremetal.Option
+
+	if options.GreptimeBinVersion != "" {
+		opts = append(opts, baremetal.WithGreptimeVersion(options.GreptimeBinVersion))
+	}
+
 	if options.Config != "" {
 		var config baremetal.Config
 		data, err := ioutil.ReadFile(options.Config)
@@ -166,10 +173,10 @@ func newDeployer(l logger.Logger, clusterName string, options *createClusterCliO
 			return nil, err
 		}
 
-		opts = baremetal.WithConfig(&config)
+		opts = append(opts, baremetal.WithConfig(&config))
 	}
 
-	baremetalDeployer, err := baremetal.NewDeployer(l, clusterName, opts)
+	baremetalDeployer, err := baremetal.NewDeployer(l, clusterName, opts...)
 	if err != nil {
 		return nil, err
 	}
