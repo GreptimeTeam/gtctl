@@ -104,67 +104,20 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName stri
 		return err
 	}
 
-	bin, err := d.am.BinaryPath(GreptimeArtifactType, d.config.Cluster.Artifact)
+	binary, err := d.am.BinaryPath(GreptimeArtifactType, d.config.Cluster.Artifact)
 	if err != nil {
 		return err
 	}
 
-	// Starting metasrv.
-	var (
-		metasrvLogDir = path.Join(d.logsDir, "metasrv")
-		metasrvPidDir = path.Join(d.pidsDir, "metasrv")
-		metasrvDirs   = []string{metasrvLogDir, metasrvPidDir}
-	)
-	for _, dir := range metasrvDirs {
-		if err := utils.CreateDirIfNotExists(dir); err != nil {
-			return err
-		}
-	}
-
-	if err := d.runBinary(bin, d.buildMetaStartArgs(), metasrvLogDir, metasrvPidDir); err != nil {
+	if err := d.startMetasrv(binary); err != nil {
 		return err
 	}
 
-	// FIXME(zyy17): Wait for the metasrv to start. The datanode will fail to start if the metasrv is not ready.
-	time.Sleep(2 * time.Second)
-
-	// Starting datanode.
-	for i := 0; i < d.config.Cluster.Datanode.Replicas; i++ {
-		dirName := fmt.Sprintf("datanode.%d", i)
-
-		datanodeLogDir := path.Join(d.logsDir, dirName)
-		if err := utils.CreateDirIfNotExists(datanodeLogDir); err != nil {
-			return err
-		}
-
-		datanodePidDir := path.Join(d.pidsDir, dirName)
-		if err := utils.CreateDirIfNotExists(datanodePidDir); err != nil {
-			return err
-		}
-
-		datanodeDataDir := path.Join(d.dataDir, dirName)
-		if err := utils.CreateDirIfNotExists(datanodeDataDir); err != nil {
-			return err
-		}
-
-		if err := d.runBinary(bin, d.buildDatanodeArgs(i, datanodeDataDir), datanodeLogDir, datanodePidDir); err != nil {
-			return err
-		}
+	if err := d.startDatanodes(binary, d.config.Cluster.Datanode.Replicas); err != nil {
+		return err
 	}
 
-	// Starting frontend.
-	var (
-		frontendLogDir = path.Join(d.logsDir, "frontend")
-		frontendPidDir = path.Join(d.pidsDir, "frontend")
-		frontendDirs   = []string{frontendLogDir, frontendPidDir}
-	)
-	for _, dir := range frontendDirs {
-		if err := utils.CreateDirIfNotExists(dir); err != nil {
-			return err
-		}
-	}
-
-	if err = d.runBinary(bin, d.buildFrontendArgs(), frontendLogDir, frontendPidDir); err != nil {
+	if err := d.startFrontend(binary); err != nil {
 		return err
 	}
 
@@ -300,7 +253,75 @@ func (d *deployer) runBinary(binary string, args []string, logDir string, pidDir
 	return nil
 }
 
-func (d *deployer) buildMetaStartArgs() []string {
+func (d *deployer) startMetasrv(binary string) error {
+	var (
+		metasrvLogDir = path.Join(d.logsDir, "metasrv")
+		metasrvPidDir = path.Join(d.pidsDir, "metasrv")
+		metasrvDirs   = []string{metasrvLogDir, metasrvPidDir}
+	)
+	for _, dir := range metasrvDirs {
+		if err := utils.CreateDirIfNotExists(dir); err != nil {
+			return err
+		}
+	}
+
+	if err := d.runBinary(binary, d.buildMetasrvArgs(), metasrvLogDir, metasrvPidDir); err != nil {
+		return err
+	}
+
+	// FIXME(zyy17): Wait for the metasrv to start. The datanode will fail to start if the metasrv is not ready.
+	time.Sleep(2 * time.Second)
+
+	return nil
+}
+
+func (d *deployer) startDatanodes(binary string, datanodeNum int) error {
+	for i := 0; i < datanodeNum; i++ {
+		dirName := fmt.Sprintf("datanode.%d", i)
+
+		datanodeLogDir := path.Join(d.logsDir, dirName)
+		if err := utils.CreateDirIfNotExists(datanodeLogDir); err != nil {
+			return err
+		}
+
+		datanodePidDir := path.Join(d.pidsDir, dirName)
+		if err := utils.CreateDirIfNotExists(datanodePidDir); err != nil {
+			return err
+		}
+
+		datanodeDataDir := path.Join(d.dataDir, dirName)
+		if err := utils.CreateDirIfNotExists(datanodeDataDir); err != nil {
+			return err
+		}
+
+		if err := d.runBinary(binary, d.buildDatanodeArgs(i, datanodeDataDir), datanodeLogDir, datanodePidDir); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (d *deployer) startFrontend(binary string) error {
+	var (
+		frontendLogDir = path.Join(d.logsDir, "frontend")
+		frontendPidDir = path.Join(d.pidsDir, "frontend")
+		frontendDirs   = []string{frontendLogDir, frontendPidDir}
+	)
+	for _, dir := range frontendDirs {
+		if err := utils.CreateDirIfNotExists(dir); err != nil {
+			return err
+		}
+	}
+
+	if err := d.runBinary(binary, d.buildFrontendArgs(), frontendLogDir, frontendPidDir); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *deployer) buildMetasrvArgs() []string {
 	args := []string{
 		"metasrv", "start",
 		"--store-addr", d.config.Cluster.Meta.StoreAddr,
