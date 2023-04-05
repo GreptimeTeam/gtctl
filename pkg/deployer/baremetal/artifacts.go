@@ -320,7 +320,7 @@ func (am *ArtifactManager) untar(file, dst string) error {
 
 	tarReader := tar.NewReader(stream)
 
-	for true {
+	for {
 		header, err := tarReader.Next()
 
 		if err == io.EOF {
