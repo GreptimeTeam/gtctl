@@ -14,6 +14,11 @@
 
 package baremetal
 
+import (
+	"fmt"
+	"os"
+)
+
 // Config is the desired state of a GreptimeDB cluster on bare metal.
 type Config struct {
 	Cluster *Cluster `yaml:"cluster"`
@@ -62,6 +67,43 @@ type Artifact struct {
 	// Version is the release version of binary(greptime or etcd).
 	// Usually, it points to the version of binary of GitHub release.
 	Version string `yaml:"version"`
+}
+
+func (c *Config) Validate() error {
+	// TODO(zyy17): Add the validation of the options.
+	if c.Cluster == nil || c.Cluster.Artifact == nil {
+		return fmt.Errorf("invalid cluster config")
+	}
+
+	if c.Etcd == nil || c.Etcd.Artifact == nil {
+		return fmt.Errorf("invalid etcd config")
+	}
+
+	if c.Cluster.Artifact.Version == "" && c.Cluster.Artifact.Local == "" {
+		return fmt.Errorf("empty artifact")
+	}
+
+	if c.Cluster.Artifact.Local != "" {
+		if _, err := os.Stat(c.Cluster.Artifact.Local); os.IsNotExist(err) {
+			return fmt.Errorf("local artifact %s does not exist", c.Cluster.Artifact.Local)
+		}
+	}
+
+	if c.Etcd.Artifact.Local != "" {
+		if _, err := os.Stat(c.Etcd.Artifact.Local); os.IsNotExist(err) {
+			return fmt.Errorf("local artifact %s does not exist", c.Etcd.Artifact.Local)
+		}
+	}
+
+	if c.Cluster.Datanode == nil {
+		return fmt.Errorf("invalid datanode")
+	}
+
+	if c.Cluster.Datanode.Replicas <= 0 {
+		return fmt.Errorf("invalid replicas '%d'", c.Cluster.Datanode.Replicas)
+	}
+
+	return nil
 }
 
 func defaultConfig() *Config {

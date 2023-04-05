@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -112,7 +113,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			}
 
 			if options.BareMetal {
-				fmt.Printf("\x1b[32m%s\x1b[0m", "The cluster is running in bare-metal mode now...\n")
+				fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("The cluster(pid=%d) is running in bare-metal mode now...\n", os.Getpid()))
 				// Wait for all the child processes to exit.
 				if err := clusterDeployer.Wait(ctx); err != nil {
 					return err

@@ -18,25 +18,6 @@ const (
 	// GtctlDir is the root directory that contains states of cluster info.
 	GtctlDir = ".gtctl"
 
-	// PackagesDir will store the downloaded binary packages.
-	PackagesDir = "packages"
-
-	// BinaryDir will store the uncompressed and executable binary.
-	BinaryDir = "bin"
-
-	// LogsDir will store the logging from multiple components.
-	LogsDir = "logs"
-
-	// PidsDir will store the pid of multiple components.
-	PidsDir = "pids"
-
-	// DataDir will store the data of cluster, incluing metadata and data.
-	DataDir = "data"
-
 	DefaultEtcdVersion     = "v3.5.7"
 	DefaultGreptimeVersion = "v0.1.2"
-
-	EtcdBinaryDownloadURLPrefix = "https://github.com/etcd-io/etcd/releases/download/v3.5.7/etcd-v3.5.7-"
-
-	GreptimeBinaryDownloadURLPrefix = "https://github.com/GreptimeTeam/greptimedb/releases/download"
 )
