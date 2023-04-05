@@ -35,11 +35,11 @@ type deployer struct {
 	dryRun  bool
 }
 
-var _ Deployer = &deployer{}
+var _ Interface = &deployer{}
 
 type Option func(*deployer)
 
-func NewDeployer(l logger.Logger, opts ...Option) (Deployer, error) {
+func NewDeployer(l logger.Logger, opts ...Option) (Interface, error) {
 	d := &deployer{
 		render: &helm.Render{},
 		logger: l,
@@ -262,10 +262,6 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 	}
 
 	return d.client.WaitForDeploymentReady(resourceName, resourceNamespace, d.timeout)
-}
-
-func (d *deployer) Wait(ctx context.Context) error {
-	return fmt.Errorf("unsupported operation")
 }
 
 func (d *deployer) splitNamescapedName(name string) (string, string, error) {

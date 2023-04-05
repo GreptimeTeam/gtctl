@@ -30,7 +30,7 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/utils"
 )
 
-type deployer struct {
+type Deployer struct {
 	logger logger.Logger
 	config *Config
 	am     *ArtifactManager
@@ -42,12 +42,12 @@ type deployer struct {
 	dataDir    string
 }
 
-var _ Deployer = &deployer{}
+var _ Interface = &Deployer{}
 
-type Option func(*deployer)
+type Option func(*Deployer)
 
-func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Deployer, error) {
-	d := &deployer{
+func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface, error) {
+	d := &Deployer{
 		logger: l,
 		config: defaultConfig(),
 	}
@@ -86,26 +86,26 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Deployer,
 
 func WithConfig(config *Config) Option {
 	// TODO(zyy17): Should merge the default configuration.
-	return func(d *deployer) {
+	return func(d *Deployer) {
 		d.config = config
 	}
 }
 
 func WithGreptimeVersion(version string) Option {
-	return func(d *deployer) {
+	return func(d *Deployer) {
 		d.config.Cluster.Artifact.Version = version
 	}
 }
 
-func (d *deployer) GetGreptimeDBCluster(ctx context.Context, name string, options *GetGreptimeDBClusterOptions) (*GreptimeDBCluster, error) {
+func (d *Deployer) GetGreptimeDBCluster(ctx context.Context, name string, options *GetGreptimeDBClusterOptions) (*GreptimeDBCluster, error) {
 	return nil, fmt.Errorf("unsupported operation")
 }
 
-func (d *deployer) ListGreptimeDBClusters(ctx context.Context, options *ListGreptimeDBClustersOptions) ([]*GreptimeDBCluster, error) {
+func (d *Deployer) ListGreptimeDBClusters(ctx context.Context, options *ListGreptimeDBClustersOptions) ([]*GreptimeDBCluster, error) {
 	return nil, fmt.Errorf("unsupported operation")
 }
 
-func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName string, options *CreateGreptimeDBClusterOptions) error {
+func (d *Deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName string, options *CreateGreptimeDBClusterOptions) error {
 	if err := d.am.PrepareArtifact(GreptimeArtifactType, d.config.Cluster.Artifact); err != nil {
 		return err
 	}
@@ -130,15 +130,15 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName stri
 	return nil
 }
 
-func (d *deployer) UpdateGreptimeDBCluster(ctx context.Context, name string, options *UpdateGreptimeDBClusterOptions) error {
+func (d *Deployer) UpdateGreptimeDBCluster(ctx context.Context, name string, options *UpdateGreptimeDBClusterOptions) error {
 	return fmt.Errorf("unsupported operation")
 }
 
-func (d *deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, options *DeleteGreptimeDBClusterOption) error {
+func (d *Deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, options *DeleteGreptimeDBClusterOption) error {
 	return fmt.Errorf("unsupported operation")
 }
 
-func (d *deployer) CreateEtcdCluster(ctx context.Context, clusterName string, options *CreateEtcdClusterOptions) error {
+func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, options *CreateEtcdClusterOptions) error {
 	if err := d.am.PrepareArtifact(EtcdArtifactType, d.config.Etcd.Artifact); err != nil {
 		return err
 	}
@@ -171,21 +171,25 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 	return nil
 }
 
-func (d *deployer) DeleteEtcdCluster(ctx context.Context, name string, options *DeleteEtcdClusterOption) error {
+func (d *Deployer) DeleteEtcdCluster(ctx context.Context, name string, options *DeleteEtcdClusterOption) error {
 	return fmt.Errorf("unsupported operation")
 }
 
-func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, options *CreateGreptimeDBOperatorOptions) error {
+func (d *Deployer) CreateGreptimeDBOperator(ctx context.Context, name string, options *CreateGreptimeDBOperatorOptions) error {
 	// We don't need to implement this method because we don't need to deploy GreptimeDB Operator.
-	return fmt.Errorf("only support for k8s deployer")
+	return fmt.Errorf("only support for k8s Deployer")
 }
 
-func (d *deployer) Wait(ctx context.Context) error {
+func (d *Deployer) Wait(ctx context.Context) error {
 	d.wg.Wait()
 	return nil
 }
 
-func (d *deployer) createClusterDirs(clusterName string) error {
+func (d *Deployer) Config() *Config {
+	return d.config
+}
+
+func (d *Deployer) createClusterDirs(clusterName string) error {
 	var (
 		// ${HOME}/${GtctlDir}/${ClusterName}/logs.
 		logsDir = path.Join(d.workingDir, clusterName, "logs")
@@ -219,7 +223,7 @@ func (d *deployer) createClusterDirs(clusterName string) error {
 	return nil
 }
 
-func (d *deployer) runBinary(binary string, args []string, logDir string, pidDir string) error {
+func (d *Deployer) runBinary(binary string, args []string, logDir string, pidDir string) error {
 	cmd := exec.Command(binary, args...)
 
 	// output to binary.
@@ -261,7 +265,7 @@ func (d *deployer) runBinary(binary string, args []string, logDir string, pidDir
 	return nil
 }
 
-func (d *deployer) startMetasrv(binary string) error {
+func (d *Deployer) startMetasrv(binary string) error {
 	var (
 		metasrvLogDir = path.Join(d.logsDir, "metasrv")
 		metasrvPidDir = path.Join(d.pidsDir, "metasrv")
@@ -283,7 +287,7 @@ func (d *deployer) startMetasrv(binary string) error {
 	return nil
 }
 
-func (d *deployer) startDatanodes(binary string, datanodeNum int) error {
+func (d *Deployer) startDatanodes(binary string, datanodeNum int) error {
 	for i := 0; i < datanodeNum; i++ {
 		dirName := fmt.Sprintf("datanode.%d", i)
 
@@ -310,7 +314,7 @@ func (d *deployer) startDatanodes(binary string, datanodeNum int) error {
 	return nil
 }
 
-func (d *deployer) startFrontend(binary string) error {
+func (d *Deployer) startFrontend(binary string) error {
 	var (
 		frontendLogDir = path.Join(d.logsDir, "frontend")
 		frontendPidDir = path.Join(d.pidsDir, "frontend")
@@ -329,7 +333,7 @@ func (d *deployer) startFrontend(binary string) error {
 	return nil
 }
 
-func (d *deployer) buildMetasrvArgs() []string {
+func (d *Deployer) buildMetasrvArgs() []string {
 	args := []string{
 		"metasrv", "start",
 		"--store-addr", d.config.Cluster.Meta.StoreAddr,
@@ -338,7 +342,7 @@ func (d *deployer) buildMetasrvArgs() []string {
 	return args
 }
 
-func (d *deployer) buildDatanodeArgs(nodeID int, dataDir string) []string {
+func (d *Deployer) buildDatanodeArgs(nodeID int, dataDir string) []string {
 	rpcPort := d.config.Cluster.Datanode.RPCPort + nodeID
 	mysqlPort := d.config.Cluster.Datanode.MySQLPort + nodeID
 	args := []string{
@@ -353,7 +357,7 @@ func (d *deployer) buildDatanodeArgs(nodeID int, dataDir string) []string {
 	return args
 }
 
-func (d *deployer) buildFrontendArgs() []string {
+func (d *Deployer) buildFrontendArgs() []string {
 	args := []string{
 		"frontend", "start",
 		fmt.Sprintf("--metasrv-addr=%s", d.config.Cluster.Meta.ServerAddr),
