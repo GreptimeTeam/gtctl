@@ -8,7 +8,7 @@
 <img alt="screenshot" src="./docs/images/screenshot.png" width="800px">
 </p>
 
-## One-line installation
+## One-line Installation
 
 ```console
 curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
@@ -18,9 +18,29 @@ After downloading, the `gtctl` will be in the current directory.
 
 ## Getting Started
 
-### Prerequisites
+### Deploy in Bare-Metal Environment
 
-- **Kubernetes 1.18 or higher version is required**
+You can deploy the GreptimeDB cluster on a bare-metal environment by the following simple command:
+
+```console
+gtctl cluster create mycluster --bare-metal
+```
+
+It will create all the meta information on `${HOME}/.gtctl`.
+
+If you want to do more configurations, you can use the yaml format config file:
+
+```console
+gtctl cluster create mycluster --bare-metal --config <your-config-file>
+```
+
+You can refer to the example [`cluster.yaml`](./examples/bare-metal/cluster.yaml) and [`cluster-with-local-artifacts.yaml`](./examples/bare-metal/cluster-with-local-artifacts.yaml).
+
+### Deploy in Kubernetes
+
+#### Prerequisites
+
+- **Kubernetes 1.18 or higher version is required.**
 
   You can use the [`kind`](https://kind.sigs.k8s.io/) to create your own Kubernetes cluster:
 
@@ -28,7 +48,7 @@ After downloading, the `gtctl` will be in the current directory.
   kind create cluster
   ```
 
-### Cluster Operations
+#### Cluster Operations
 
 Create your own GreptimeDB cluster and etcd cluster:
 
@@ -36,7 +56,7 @@ Create your own GreptimeDB cluster and etcd cluster:
 gtctl cluster create mycluster -n default
 ```
 
-After creating, the whole GreptimeDB cluster will start in `default` namespace:
+After creating, the whole GreptimeDB cluster will start in the `default` namespace:
 
 ```console
 # Get the cluster.
@@ -68,7 +88,7 @@ gtctl cluster delete mycluster -n default
 gtctl cluster delete mycluster -n default --tear-down-etcd
 ```
 
-### Dry Run Mode
+#### Dry Run Mode
 
 `gtctl` provides `--dry-run` option in cluster creation. If a user executes the command with `--dry-run`, `gtctl` will output the manifests content without applying them:
 
@@ -76,7 +96,7 @@ gtctl cluster delete mycluster -n default --tear-down-etcd
 gtctl cluster create mycluster -n default --dry-run
 ```
 
-### Experimental Feature
+#### Experimental Feature
 
 You can use the following commands to scale (or down-scale) your cluster:
 
@@ -88,7 +108,7 @@ gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c datanode --rep
 gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c frontend --replicas 5
 ```
 
-### Specify the image registry
+#### Specify the image registry
 
 `gtctl` uses DockerHub as the default image registry and also supports specifying image registry when creating a cluster with the `--image-registry` option (the UCloud image registry mirror `uhub.service.ucloud.cn` is now available).
 
