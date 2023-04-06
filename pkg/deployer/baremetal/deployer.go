@@ -162,12 +162,9 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 	}
 
 	args := []string{"--data-dir", etcdDataDir}
-	go func() {
-		err := d.runBinary(bin, args, etcdLogDir, etcdPidDir)
-		if err != nil {
-			panic(err)
-		}
-	}()
+	if err := d.runBinary(bin, args, etcdLogDir, etcdPidDir); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -259,7 +256,7 @@ func (d *Deployer) runBinary(binary string, args []string, logDir string, pidDir
 		defer d.wg.Done()
 		d.wg.Add(1)
 		if err := cmd.Wait(); err != nil {
-			panic(err)
+			d.logger.Errorf("binary '%s' exited with error: %v", binary, err)
 		}
 	}()
 
