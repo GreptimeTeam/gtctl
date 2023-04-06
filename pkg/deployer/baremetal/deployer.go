@@ -161,8 +161,7 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 		}
 	}
 
-	args := []string{"--data-dir", etcdDataDir}
-	if err := d.runBinary(bin, args, etcdLogDir, etcdPidDir); err != nil {
+	if err := d.runBinary(bin, d.buildEtcdArgs(etcdDataDir), etcdLogDir, etcdPidDir); err != nil {
 		return err
 	}
 
@@ -385,6 +384,10 @@ func (d *Deployer) startFrontend(binary string) error {
 	}
 
 	return nil
+}
+
+func (d *Deployer) buildEtcdArgs(dataDir string) []string {
+	return []string{"--data-dir", dataDir}
 }
 
 func (d *Deployer) buildMetasrvArgs() []string {
