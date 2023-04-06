@@ -291,13 +291,13 @@ func (d *Deployer) startMetasrv(binary string) error {
 func (d *Deployer) isMetasrvRunning() bool {
 	_, httpPort, err := net.SplitHostPort(d.config.Cluster.Meta.HTTPAddr)
 	if err != nil {
-		d.logger.V(3).Infof("failed to split host port: %s", err)
+		d.logger.V(5).Infof("failed to split host port: %s", err)
 		return false
 	}
 
 	rsp, err := http.Get(fmt.Sprintf("http://localhost:%s/health", httpPort))
 	if err != nil {
-		d.logger.V(3).Infof("failed to get metasrv health: %s", err)
+		d.logger.V(5).Infof("failed to get metasrv health: %s", err)
 		return false
 	}
 	defer rsp.Body.Close()
@@ -344,13 +344,13 @@ func (d *Deployer) isDatanodesRunning() bool {
 		addr := d.generateDatanodeAddr(d.config.Cluster.Datanode.HTTPAddr, i)
 		_, httpPort, err := net.SplitHostPort(addr)
 		if err != nil {
-			d.logger.V(3).Infof("failed to split host port: %s", err)
+			d.logger.V(5).Infof("failed to split host port: %s", err)
 			return false
 		}
 
 		rsp, err := http.Get(fmt.Sprintf("http://localhost:%s/health", httpPort))
 		if err != nil {
-			d.logger.V(3).Infof("failed to get datanode health: %s", err)
+			d.logger.V(5).Infof("failed to get datanode health: %s", err)
 			return false
 		}
 		defer rsp.Body.Close()
