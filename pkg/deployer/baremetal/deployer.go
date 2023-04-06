@@ -302,11 +302,7 @@ func (d *Deployer) isMetasrvRunning() bool {
 	}
 	defer rsp.Body.Close()
 
-	if rsp.StatusCode != http.StatusOK {
-		return false
-	}
-
-	return true
+	return rsp.StatusCode == http.StatusOK
 }
 
 func (d *Deployer) startDatanodes(binary string, datanodeNum int) error {
