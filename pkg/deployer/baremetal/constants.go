@@ -19,5 +19,5 @@ const (
 	GtctlDir = ".gtctl"
 
 	DefaultEtcdVersion     = "v3.5.7"
-	DefaultGreptimeVersion = "v0.1.2"
+	DefaultGreptimeVersion = "latest"
 )

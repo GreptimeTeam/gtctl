@@ -18,12 +18,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
 	"sync"
-	"time"
 
 	. "github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -281,10 +282,35 @@ func (d *Deployer) startMetasrv(binary string) error {
 		return err
 	}
 
-	// FIXME(zyy17): Wait for the metasrv to start. The datanode will fail to start if the metasrv is not ready.
-	time.Sleep(2 * time.Second)
+	// FIXME(zyy17): Should add a timeout here.
+	for {
+		if d.isMetasrvRunning() {
+			break
+		}
+	}
 
 	return nil
+}
+
+func (d *Deployer) isMetasrvRunning() bool {
+	_, httpPort, err := net.SplitHostPort(d.config.Cluster.Meta.HTTPAddr)
+	if err != nil {
+		d.logger.V(3).Infof("failed to split host port: %s", err)
+		return false
+	}
+
+	rsp, err := http.Get(fmt.Sprintf("http://localhost:%s/health", httpPort))
+	if err != nil {
+		d.logger.V(3).Infof("failed to get metasrv health: %s", err)
+		return false
+	}
+	defer rsp.Body.Close()
+
+	if rsp.StatusCode != http.StatusOK {
+		return false
+	}
+
+	return true
 }
 
 func (d *Deployer) startDatanodes(binary string, datanodeNum int) error {
@@ -311,7 +337,38 @@ func (d *Deployer) startDatanodes(binary string, datanodeNum int) error {
 		}
 	}
 
+	// FIXME(zyy17): Should add a timeout here.
+	for {
+		if d.isDatanodesRunning() {
+			break
+		}
+	}
+
 	return nil
+}
+
+func (d *Deployer) isDatanodesRunning() bool {
+	for i := 0; i < d.config.Cluster.Datanode.Replicas; i++ {
+		addr := d.generateDatanodeAddr(d.config.Cluster.Datanode.HTTPAddr, i)
+		_, httpPort, err := net.SplitHostPort(addr)
+		if err != nil {
+			d.logger.V(3).Infof("failed to split host port: %s", err)
+			return false
+		}
+
+		rsp, err := http.Get(fmt.Sprintf("http://localhost:%s/health", httpPort))
+		if err != nil {
+			d.logger.V(3).Infof("failed to get datanode health: %s", err)
+			return false
+		}
+		defer rsp.Body.Close()
+
+		if rsp.StatusCode != http.StatusOK {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (d *Deployer) startFrontend(binary string) error {
@@ -338,19 +395,19 @@ func (d *Deployer) buildMetasrvArgs() []string {
 		"metasrv", "start",
 		"--store-addr", d.config.Cluster.Meta.StoreAddr,
 		"--server-addr", d.config.Cluster.Meta.ServerAddr,
+		"--http-addr", d.config.Cluster.Meta.HTTPAddr,
 	}
 	return args
 }
 
 func (d *Deployer) buildDatanodeArgs(nodeID int, dataDir string) []string {
-	rpcPort := d.config.Cluster.Datanode.RPCPort + nodeID
-	mysqlPort := d.config.Cluster.Datanode.MySQLPort + nodeID
 	args := []string{
 		"datanode", "start",
 		fmt.Sprintf("--node-id=%d", nodeID),
 		fmt.Sprintf("--metasrv-addr=%s", d.config.Cluster.Meta.ServerAddr),
-		fmt.Sprintf("--rpc-addr=0.0.0.0:%d", rpcPort),
-		fmt.Sprintf("--mysql-addr=0.0.0.0:%d", mysqlPort),
+		fmt.Sprintf("--rpc-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.RPCAddr, nodeID)),
+		fmt.Sprintf("--mysql-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.MySQLAddr, nodeID)),
+		fmt.Sprintf("--http-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.HTTPAddr, nodeID)),
 		fmt.Sprintf("--data-dir=%s", path.Join(dataDir, "data")),
 		fmt.Sprintf("--wal-dir=%s", path.Join(dataDir, "wal")),
 	}
@@ -363,4 +420,12 @@ func (d *Deployer) buildFrontendArgs() []string {
 		fmt.Sprintf("--metasrv-addr=%s", d.config.Cluster.Meta.ServerAddr),
 	}
 	return args
+}
+
+// TODO(zyy17): We can support port range in the future.
+func (d *Deployer) generateDatanodeAddr(addr string, nodeID int) string {
+	// Already checked in validation.
+	host, port, _ := net.SplitHostPort(addr)
+	portInt, _ := strconv.Atoi(port)
+	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeID))
 }
