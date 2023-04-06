@@ -118,6 +118,8 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				if ok {
 					fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("The cluster(pid=%d, version=%s) is running in bare-metal mode now...\n",
 						os.Getpid(), d.Config().Cluster.Artifact.Version))
+					fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("To view dashboard by accessing: %s\n", logger.Bold("http://localhost:4000/dashboard/")))
+
 					// Wait for all the child processes to exit.
 					if err := d.Wait(ctx); err != nil {
 						return err
