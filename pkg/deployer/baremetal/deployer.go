@@ -41,6 +41,8 @@ type Deployer struct {
 	logsDir    string
 	pidsDir    string
 	dataDir    string
+
+	alwaysDownload bool
 }
 
 var _ Interface = &Deployer{}
@@ -72,7 +74,7 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		return nil, err
 	}
 
-	am, err := NewArtifactManager(d.workingDir, l, false)
+	am, err := NewArtifactManager(d.workingDir, l, d.alwaysDownload)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +97,12 @@ func WithConfig(config *Config) Option {
 func WithGreptimeVersion(version string) Option {
 	return func(d *Deployer) {
 		d.config.Cluster.Artifact.Version = version
+	}
+}
+
+func WithAlawaysDownload(alwaysDownload bool) Option {
+	return func(d *Deployer) {
+		d.alwaysDownload = alwaysDownload
 	}
 }
 

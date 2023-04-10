@@ -53,6 +53,7 @@ type createClusterCliOptions struct {
 	BareMetal          bool
 	Config             string
 	GreptimeBinVersion string
+	AlwaysDownload     bool
 
 	// Common options.
 	Timeout int
@@ -152,6 +153,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal envrionment.")
 	cmd.Flags().StringVar(&options.GreptimeBinVersion, "greptime-bin-version", "", "The version of greptime binary(can be override by config file).")
 	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal envrionment.")
+	cmd.Flags().BoolVar(&options.AlwaysDownload, "always-download", false, "If true, always download the binary.")
 
 	return cmd
 }
@@ -185,6 +187,8 @@ func newDeployer(l logger.Logger, clusterName string, options *createClusterCliO
 
 		opts = append(opts, baremetal.WithConfig(&config))
 	}
+
+	opts = append(opts, baremetal.WithAlawaysDownload(options.AlwaysDownload))
 
 	baremetalDeployer, err := baremetal.NewDeployer(l, clusterName, opts...)
 	if err != nil {

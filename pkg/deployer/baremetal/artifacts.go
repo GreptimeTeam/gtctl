@@ -186,7 +186,7 @@ func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (s
 	}
 
 	artifactFile := path.Join(pkgDir, path.Base(downloadURL))
-	if !am.alwaysDownload && version != "latest" {
+	if !am.alwaysDownload {
 		// The artifact file already exists, skip downloading.
 		if _, err := os.Stat(artifactFile); err == nil {
 			am.logger.V(3).Infof("The artifact file '%s' already exists, skip downloading.", artifactFile)
