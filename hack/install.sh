@@ -19,7 +19,7 @@ set -ue
 OS_TYPE=
 ARCH_TYPE=
 VERSION=${1:-latest}
-GITHUB_ORG=GreptimeTeam
+GITHUB_ORG=${2:-GreptimeTeam}
 GITHUB_REPO=gtctl
 BIN=gtctl
 
