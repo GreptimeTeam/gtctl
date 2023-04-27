@@ -28,7 +28,6 @@ type Config struct {
 }
 
 type Cluster struct {
-	Name     string    `yaml:"name"`
 	Artifact *Artifact `yaml:"artifact"`
 	Frontend *Frontend `yaml:"frontend"`
 	Meta     *Meta     `yaml:"meta"`
