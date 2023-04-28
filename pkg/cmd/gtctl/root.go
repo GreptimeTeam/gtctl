@@ -40,11 +40,12 @@ func NewRootCommand() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Args:    cobra.NoArgs,
-		Use:     "gtctl",
-		Short:   "gtctl is a command-line tool for managing GreptimeDB cluster.",
-		Long:    fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", constants.GtctlTextBanner),
-		Version: internalversion.Get().String(),
+		Args:         cobra.NoArgs,
+		Use:          "gtctl",
+		Short:        "gtctl is a command-line tool for managing GreptimeDB cluster.",
+		Long:         fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", constants.GtctlTextBanner),
+		Version:      internalversion.Get().String(),
+		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return runE(l, flags, cmd)
 		},
