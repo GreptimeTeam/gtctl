@@ -188,8 +188,15 @@ func (artifact *Artifact) validate() error {
 	}
 
 	if artifact.Local != "" {
-		if _, err := os.Stat(artifact.Local); os.IsNotExist(err) {
-			return fmt.Errorf("local artifact %s does not exist", artifact.Local)
+		fileinfo, err := os.Stat(artifact.Local)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("artifact '%s' not exist", artifact.Local)
+		}
+		if fileinfo.IsDir() {
+			return fmt.Errorf("artifact '%s' should be file, not directory", artifact.Local)
+		}
+		if err != nil {
+			return err
 		}
 	}
 
