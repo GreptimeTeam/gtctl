@@ -35,11 +35,11 @@ type deployer struct {
 	dryRun  bool
 }
 
-var _ Deployer = &deployer{}
+var _ Interface = &deployer{}
 
 type Option func(*deployer)
 
-func NewDeployer(l logger.Logger, opts ...Option) (Deployer, error) {
+func NewDeployer(l logger.Logger, opts ...Option) (Interface, error) {
 	d := &deployer{
 		render: &helm.Render{},
 		logger: l,

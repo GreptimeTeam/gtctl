@@ -18,8 +18,8 @@ import (
 	"context"
 )
 
-// Deployer is the general interface to handle the deployment of GreptimeDB cluster in different envrionment.
-type Deployer interface {
+// Interface is the general interface to handle the deployment of GreptimeDB cluster in different envrionment.
+type Interface interface {
 	// GetGreptimeDBCluster get the current deployed GreptimeDBCluster by its name.
 	// The name is the namespaced name(<namespace>/<name>) in Kubernetes.
 	GetGreptimeDBCluster(ctx context.Context, name string, options *GetGreptimeDBClusterOptions) (*GreptimeDBCluster, error)

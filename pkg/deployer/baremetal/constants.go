@@ -12,26 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package baremetal
 
-import (
-	"os"
-	"strings"
+const (
+	// GtctlDir is the root directory that contains states of cluster info.
+	GtctlDir = ".gtctl"
+
+	DefaultEtcdVersion     = "v3.5.7"
+	DefaultGreptimeVersion = "latest"
 )
-
-func SplitImageURL(imageURL string) (string, string) {
-	// TODO(zyy17): validation?
-	split := strings.Split(imageURL, ":")
-	if len(split) != 2 {
-		return "", ""
-	}
-
-	return split[0], split[1]
-}
-
-func CreateDirIfNotExists(dir string) (err error) {
-	if err := os.MkdirAll(dir, 0755); err != nil && !os.IsExist(err) {
-		return err
-	}
-	return nil
-}
