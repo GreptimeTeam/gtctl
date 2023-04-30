@@ -16,18 +16,7 @@ package utils
 
 import (
 	"os"
-	"strings"
 )
-
-func SplitImageURL(imageURL string) (string, string) {
-	// TODO(zyy17): validation?
-	split := strings.Split(imageURL, ":")
-	if len(split) != 2 {
-		return "", ""
-	}
-
-	return split[0], split[1]
-}
 
 func CreateDirIfNotExists(dir string) (err error) {
 	if err := os.MkdirAll(dir, 0755); err != nil && !os.IsExist(err) {

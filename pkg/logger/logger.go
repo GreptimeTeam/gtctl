@@ -32,7 +32,7 @@ type Logger interface {
 	log.Logger
 }
 
-// logger is implementation of Logger interface.
+// logger is an implementation of Logger interface.
 // The implementation of logger is based on the 'kind/pkg/internal/cli/logger.go' file.
 type logger struct {
 	writer     io.Writer
