@@ -67,11 +67,7 @@ func NewRootCommand() *cobra.Command {
 }
 
 func runE(logger log.Logger, flags *flagArgs, _ *cobra.Command) error {
-	if err := maybeSetVerbosity(logger, log.Level(flags.Verbosity)); err != nil {
-		return err
-	}
-
-	return nil
+	return maybeSetVerbosity(logger, log.Level(flags.Verbosity))
 }
 
 // maybeSetVerbosity will call logger.SetVerbosity(verbosity) if logger has a SetVerbosity method.

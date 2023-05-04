@@ -18,7 +18,7 @@ import (
 	"context"
 )
 
-// Interface is the general interface to handle the deployment of GreptimeDB cluster in different envrionment.
+// Interface is the general interface to handle the deployment of GreptimeDB cluster in different environment.
 type Interface interface {
 	// GetGreptimeDBCluster get the current deployed GreptimeDBCluster by its name.
 	// The name is the namespaced name(<namespace>/<name>) in Kubernetes.
@@ -54,7 +54,7 @@ type Interface interface {
 }
 
 // GreptimeDBCluster is the internal type of gtctl to describe GreptimeDB cluster.
-// We want to make the Depolyer decouple from K8s or any other specified envioronment.
+// We want to make the Deployer decouple from K8s or any other specified environment.
 type GreptimeDBCluster struct {
 	// Raw can be *greptimedbclusterv1alpha1.GreptimeDBCluster.
 	Raw interface{}

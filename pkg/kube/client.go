@@ -52,7 +52,7 @@ type Client struct {
 
 var addToScheme sync.Once
 
-// FIXME(zyy17): Do we have the more elegant way to get GVR of GreptimeDBCluster?
+// FIXME(zyy17): Do we have a more elegant way to get GVR of GreptimeDBCluster?
 var greptimeDBClusterGVR = schema.GroupVersionResource{
 	Group:    "greptime.io",
 	Version:  "v1alpha1",

@@ -92,7 +92,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			if !options.BareMetal {
 				l.V(0).Infof("Creating GreptimeDB cluster '%s' in namespace '%s' ...", logger.Bold(clusterName), logger.Bold(options.Namespace))
 			} else {
-				l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal envrionment...", logger.Bold(clusterName))
+				l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal environment...", logger.Bold(clusterName))
 			}
 
 			if !options.BareMetal {
@@ -150,9 +150,9 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
 	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
 	cmd.Flags().StringVar(&options.EtcdStorageSize, "etcd-storage-size", "10Gi", "the etcd persistent volume size.")
-	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal envrionment.")
+	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal environment.")
 	cmd.Flags().StringVar(&options.GreptimeBinVersion, "greptime-bin-version", "", "The version of greptime binary(can be override by config file).")
-	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal envrionment.")
+	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal environment.")
 	cmd.Flags().BoolVar(&options.AlwaysDownload, "always-download", false, "If true, always download the binary.")
 
 	return cmd
