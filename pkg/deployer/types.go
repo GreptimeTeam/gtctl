@@ -71,6 +71,7 @@ type CreateGreptimeDBClusterOptions struct {
 	GreptimeDBChartVersion string
 
 	ImageRegistry               string `helm:"image.registry"`
+	InitializerImageRegistry    string `helm:"initializer.registry"`
 	DatanodeStorageClassName    string `helm:"datanode.storage.storageClassName"`
 	DatanodeStorageSize         string `helm:"datanode.storage.storageSize"`
 	DatanodeStorageRetainPolicy string `helm:"datanode.storage.storageRetainPolicy"`

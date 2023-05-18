@@ -248,9 +248,10 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *crea
 
 	spinner.Start("Installing GreptimeDB cluster...")
 	createGreptimeDBClusterOptions := &deployer.CreateGreptimeDBClusterOptions{
-		GreptimeDBChartVersion: options.GreptimeDBChartVersion,
-		ImageRegistry:          options.ImageRegistry,
-		EtcdEndPoint:           fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
+		GreptimeDBChartVersion:   options.GreptimeDBChartVersion,
+		ImageRegistry:            options.ImageRegistry,
+		InitializerImageRegistry: options.ImageRegistry,
+		EtcdEndPoint:             fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
 	}
 
 	var name string
