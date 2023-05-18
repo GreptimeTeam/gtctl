@@ -99,7 +99,7 @@ func (r *Render) GenerateHelmValues(input interface{}) (map[string]interface{}, 
 	for i := 0; i < valueOf.NumField(); i++ {
 		helmValueKey := typeOf.Field(i).Tag.Get(helmFieldTag)
 		if helmValueKey != "" && valueOf.Field(i).Len() > 0 {
-			rawArgs = append(rawArgs, fmt.Sprintf("%s=%s\n", helmValueKey, valueOf.Field(i)))
+			rawArgs = append(rawArgs, fmt.Sprintf("%s=%s", helmValueKey, valueOf.Field(i)))
 		}
 	}
 
