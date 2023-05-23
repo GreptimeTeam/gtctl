@@ -48,6 +48,7 @@ type createClusterCliOptions struct {
 	EtcdChartVersion               string
 	EtcdStorageClassName           string
 	EtcdStorageSize                string
+	EtcdDataDir                    string
 
 	// The options for deploying GreptimeDBCluster in bare-metal.
 	BareMetal          bool
@@ -150,6 +151,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
 	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
 	cmd.Flags().StringVar(&options.EtcdStorageSize, "etcd-storage-size", "10Gi", "the etcd persistent volume size.")
+	cmd.Flags().StringVar(&options.EtcdDataDir, "etcd-data-dir", "/var/lib/etcd", "the etcd data directory.")
 	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal environment.")
 	cmd.Flags().StringVar(&options.GreptimeBinVersion, "greptime-bin-version", "", "The version of greptime binary(can be override by config file).")
 	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal environment.")
@@ -201,17 +203,24 @@ func newDeployer(l logger.Logger, clusterName string, options *createClusterCliO
 func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface) error {
 
-	spinner.Start("Installing greptimedb-operator...")
+	if !options.DryRun {
+		spinner.Start("Installing greptimedb-operator...")
+	}
+
 	createGreptimeDBOperatorOptions := &deployer.CreateGreptimeDBOperatorOptions{
 		GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
 		ImageRegistry:                  options.ImageRegistry,
 	}
-	name := types.NamespacedName{Namespace: options.Namespace, Name: "greptimedb-operator"}.String()
+
+	name := types.NamespacedName{Namespace: options.OperatorNamespace, Name: "greptimedb-operator"}.String()
 	if err := clusterDeployer.CreateGreptimeDBOperator(ctx, name, createGreptimeDBOperatorOptions); err != nil {
 		spinner.Stop(false, "Installing greptimedb-operator failed")
 		return err
 	}
-	spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
+
+	if !options.DryRun {
+		spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
+	}
 
 	return nil
 }
@@ -219,12 +228,16 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *cre
 func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface, clusterName string) error {
 
-	spinner.Start("Installing etcd cluster...")
+	if !options.DryRun {
+		spinner.Start("Installing etcd cluster...")
+	}
+
 	createEtcdClusterOptions := &deployer.CreateEtcdClusterOptions{
 		ImageRegistry:        options.ImageRegistry,
 		EtcdChartVersion:     options.EtcdChartVersion,
 		EtcdStorageClassName: options.EtcdStorageClassName,
 		EtcdStorageSize:      options.EtcdStorageSize,
+		EtcdDataDir:          options.EtcdDataDir,
 	}
 
 	var name string
@@ -238,7 +251,10 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClus
 		spinner.Stop(false, "Installing etcd cluster failed")
 		return err
 	}
-	spinner.Stop(true, "Installing etcd cluster successfully 🎉")
+
+	if !options.DryRun {
+		spinner.Stop(true, "Installing etcd cluster successfully 🎉")
+	}
 
 	return nil
 }
@@ -246,12 +262,18 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClus
 func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface, clusterName string) error {
 
-	spinner.Start("Installing GreptimeDB cluster...")
+	if !options.DryRun {
+		spinner.Start("Installing GreptimeDB cluster...")
+	}
+
 	createGreptimeDBClusterOptions := &deployer.CreateGreptimeDBClusterOptions{
-		GreptimeDBChartVersion:   options.GreptimeDBChartVersion,
-		ImageRegistry:            options.ImageRegistry,
-		InitializerImageRegistry: options.ImageRegistry,
-		EtcdEndPoint:             fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
+		GreptimeDBChartVersion:      options.GreptimeDBChartVersion,
+		ImageRegistry:               options.ImageRegistry,
+		InitializerImageRegistry:    options.ImageRegistry,
+		DatanodeStorageClassName:    options.StorageClassName,
+		DatanodeStorageSize:         options.StorageSize,
+		DatanodeStorageRetainPolicy: options.StorageRetainPolicy,
+		EtcdEndPoint:                fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
 	}
 
 	var name string
@@ -265,7 +287,10 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *crea
 		spinner.Stop(false, "Installing GreptimeDB cluster failed")
 		return err
 	}
-	spinner.Stop(true, "Installing GreptimeDB cluster successfully 🎉")
+
+	if !options.DryRun {
+		spinner.Stop(true, "Installing GreptimeDB cluster successfully 🎉")
+	}
 
 	return nil
 }

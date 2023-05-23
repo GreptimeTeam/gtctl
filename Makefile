@@ -27,6 +27,10 @@ setup-e2e: ## Setup e2e test environment.
 e2e: gtctl setup-e2e ## Run e2e.
 	go test -timeout 8m -v ./tests/e2e/... && kind delete clusters ${CLUSTER}
 
+.PHONY: test
+test: ## Run unit test.
+	go test -timeout 1m -v ./pkg/...
+
 .PHONY: fix-license-header
 fix-license-header: license-eye ## Fix license header.
 	license-eye -c .licenserc.yaml header fix

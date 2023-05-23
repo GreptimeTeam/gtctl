@@ -98,36 +98,99 @@ func TestRender_GetLatestChartLatestChart(t *testing.T) {
 	}
 }
 
-func TestRender_GenerateHelmValues(t *testing.T) {
+func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
 	options := deployer.CreateGreptimeDBClusterOptions{
 		GreptimeDBChartVersion:      "",
-		ImageRegistry:               "docker.io",
-		DatanodeStorageClassName:    "standard",
-		DatanodeStorageSize:         "10Gi",
-		DatanodeStorageRetainPolicy: "Retain",
-		EtcdEndPoint:                "localhost:2379",
+		ImageRegistry:               "registry.cn-hangzhou.aliyuncs.com",
+		DatanodeStorageClassName:    "ebs-sc",
+		DatanodeStorageSize:         "11Gi",
+		DatanodeStorageRetainPolicy: "Delete",
+		EtcdEndPoint:                "127.0.0.1:2379",
+		InitializerImageRegistry:    "registry.cn-hangzhou.aliyuncs.com",
 	}
 
 	r := &Render{}
 	values, err := r.GenerateHelmValues(options)
 	if err != nil {
-		t.Errorf("generate helm values failed, err: %v", err)
+		t.Errorf("generate greptimedb helm values failed, err: %v", err)
 	}
 
 	ArgsStr := []string{
-		"image.registry=docker.io\n",
-		"datanode.storage.storageClassName=standard\n",
-		"datanode.storage.storageSize=10Gi\n",
-		"datanode.storage.storageRetainPolicy=Retain\n",
-		"etcdEndpoints=localhost:2379\n",
+		"image.registry=registry.cn-hangzhou.aliyuncs.com",
+		"datanode.storage.storageClassName=ebs-sc",
+		"datanode.storage.storageSize=11Gi",
+		"datanode.storage.storageRetainPolicy=Delete",
+		"etcdEndpoints=127.0.0.1:2379",
+		"initializer.registry=registry.cn-hangzhou.aliyuncs.com",
 	}
+
 	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
 	if err != nil {
-		t.Errorf("parse helm values failed, err: %v", err)
+		t.Errorf("parse greptimedb helm values failed, err: %v", err)
 	}
 
 	if !cmp.Equal(values, valuesWanted) {
-		t.Errorf("generate helm values not match, expect: %v, got: %v", valuesWanted, values)
+		t.Errorf("generate greptimedb helm values not match, expect: %v, got: %v", valuesWanted, values)
+		t.Errorf("diff: %v", cmp.Diff(valuesWanted, values))
+	}
+}
+
+func TestRender_GenerateGreptimeDBOperatorHelmValues(t *testing.T) {
+	options := deployer.CreateGreptimeDBOperatorOptions{
+		GreptimeDBOperatorChartVersion: "",
+		ImageRegistry:                  "registry.cn-hangzhou.aliyuncs.com",
+	}
+
+	r := &Render{}
+	values, err := r.GenerateHelmValues(options)
+	if err != nil {
+		t.Errorf("generate greptimedb operator helm values failed, err: %v", err)
+	}
+
+	ArgsStr := []string{
+		"image.registry=registry.cn-hangzhou.aliyuncs.com",
+	}
+
+	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
+	if err != nil {
+		t.Errorf("parse greptimedb operator helm values failed, err: %v", err)
+	}
+
+	if !cmp.Equal(values, valuesWanted) {
+		t.Errorf("generate greptimedb operator helm values not match, expect: %v, got: %v", valuesWanted, values)
+		t.Errorf("diff: %v", cmp.Diff(valuesWanted, values))
+	}
+}
+
+func TestRender_GenerateEtcdHelmValues(t *testing.T) {
+	options := deployer.CreateEtcdClusterOptions{
+		EtcdChartVersion:     "",
+		ImageRegistry:        "registry.cn-hangzhou.aliyuncs.com",
+		EtcdStorageClassName: "ebs-sc",
+		EtcdStorageSize:      "11Gi",
+		EtcdDataDir:          "/var/etcd",
+	}
+
+	r := &Render{}
+	values, err := r.GenerateHelmValues(options)
+	if err != nil {
+		t.Errorf("generate etcd helm values failed, err: %v", err)
+	}
+
+	ArgsStr := []string{
+		"image.registry=registry.cn-hangzhou.aliyuncs.com",
+		"storage.storageClassName=ebs-sc",
+		"storage.volumeSize=11Gi",
+		"storage.dataDir=/var/etcd",
+	}
+
+	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
+	if err != nil {
+		t.Errorf("parse etcd helm values failed, err: %v", err)
+	}
+
+	if !cmp.Equal(values, valuesWanted) {
+		t.Errorf("generate etcd helm values not match, expect: %v, got: %v", valuesWanted, values)
 		t.Errorf("diff: %v", cmp.Diff(valuesWanted, values))
 	}
 }

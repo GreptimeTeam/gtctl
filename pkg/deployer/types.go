@@ -93,6 +93,7 @@ type CreateEtcdClusterOptions struct {
 	ImageRegistry        string `helm:"image.registry"`
 	EtcdStorageClassName string `helm:"storage.storageClassName"`
 	EtcdStorageSize      string `helm:"storage.volumeSize"`
+	EtcdDataDir          string `helm:"storage.dataDir"`
 }
 
 // DeleteEtcdClusterOption is the options to delete an etcd cluster.
