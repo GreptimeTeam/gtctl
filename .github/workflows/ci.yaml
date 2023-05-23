@@ -28,6 +28,10 @@ jobs:
           version: v1.50.0
           args: --timeout 10m0s
 
+      - name: unit test
+        run: |
+          make test
+
       - name: e2e test of basic cluster
         run: |
           make e2e
