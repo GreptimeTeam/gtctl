@@ -203,7 +203,10 @@ func newDeployer(l logger.Logger, clusterName string, options *createClusterCliO
 func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface) error {
 
-	spinner.Start("Installing greptimedb-operator...")
+	if !options.DryRun {
+		spinner.Start("Installing greptimedb-operator...")
+	}
+
 	createGreptimeDBOperatorOptions := &deployer.CreateGreptimeDBOperatorOptions{
 		GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
 		ImageRegistry:                  options.ImageRegistry,
@@ -214,7 +217,10 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *cre
 		spinner.Stop(false, "Installing greptimedb-operator failed")
 		return err
 	}
-	spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
+
+	if !options.DryRun {
+		spinner.Stop(true, "Installing greptimedb-operator successfully 🎉")
+	}
 
 	return nil
 }
@@ -222,7 +228,10 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *cre
 func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface, clusterName string) error {
 
-	spinner.Start("Installing etcd cluster...")
+	if !options.DryRun {
+		spinner.Start("Installing etcd cluster...")
+	}
+
 	createEtcdClusterOptions := &deployer.CreateEtcdClusterOptions{
 		ImageRegistry:        options.ImageRegistry,
 		EtcdChartVersion:     options.EtcdChartVersion,
@@ -242,7 +251,10 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClus
 		spinner.Stop(false, "Installing etcd cluster failed")
 		return err
 	}
-	spinner.Stop(true, "Installing etcd cluster successfully 🎉")
+
+	if !options.DryRun {
+		spinner.Stop(true, "Installing etcd cluster successfully 🎉")
+	}
 
 	return nil
 }
@@ -250,7 +262,10 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClus
 func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface, clusterName string) error {
 
-	spinner.Start("Installing GreptimeDB cluster...")
+	if !options.DryRun {
+		spinner.Start("Installing GreptimeDB cluster...")
+	}
+
 	createGreptimeDBClusterOptions := &deployer.CreateGreptimeDBClusterOptions{
 		GreptimeDBChartVersion:      options.GreptimeDBChartVersion,
 		ImageRegistry:               options.ImageRegistry,
@@ -272,7 +287,10 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *crea
 		spinner.Stop(false, "Installing GreptimeDB cluster failed")
 		return err
 	}
-	spinner.Stop(true, "Installing GreptimeDB cluster successfully 🎉")
+
+	if !options.DryRun {
+		spinner.Stop(true, "Installing GreptimeDB cluster successfully 🎉")
+	}
 
 	return nil
 }
