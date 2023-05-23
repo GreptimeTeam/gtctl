@@ -48,6 +48,7 @@ type createClusterCliOptions struct {
 	EtcdChartVersion               string
 	EtcdStorageClassName           string
 	EtcdStorageSize                string
+	EtcdDataDir                    string
 
 	// The options for deploying GreptimeDBCluster in bare-metal.
 	BareMetal          bool
@@ -150,6 +151,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
 	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
 	cmd.Flags().StringVar(&options.EtcdStorageSize, "etcd-storage-size", "10Gi", "the etcd persistent volume size.")
+	cmd.Flags().StringVar(&options.EtcdDataDir, "etcd-data-dir", "/var/lib/etcd", "the etcd data directory.")
 	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal environment.")
 	cmd.Flags().StringVar(&options.GreptimeBinVersion, "greptime-bin-version", "", "The version of greptime binary(can be override by config file).")
 	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal environment.")
@@ -206,6 +208,7 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *cre
 		GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
 		ImageRegistry:                  options.ImageRegistry,
 	}
+
 	name := types.NamespacedName{Namespace: options.OperatorNamespace, Name: "greptimedb-operator"}.String()
 	if err := clusterDeployer.CreateGreptimeDBOperator(ctx, name, createGreptimeDBOperatorOptions); err != nil {
 		spinner.Stop(false, "Installing greptimedb-operator failed")
@@ -225,6 +228,7 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClus
 		EtcdChartVersion:     options.EtcdChartVersion,
 		EtcdStorageClassName: options.EtcdStorageClassName,
 		EtcdStorageSize:      options.EtcdStorageSize,
+		EtcdDataDir:          options.EtcdDataDir,
 	}
 
 	var name string

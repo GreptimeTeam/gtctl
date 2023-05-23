@@ -123,6 +123,7 @@ func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
 		"etcdEndpoints=127.0.0.1:2379",
 		"initializer.registry=registry.cn-hangzhou.aliyuncs.com",
 	}
+
 	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
 	if err != nil {
 		t.Errorf("parse greptimedb helm values failed, err: %v", err)
@@ -149,6 +150,7 @@ func TestRender_GenerateGreptimeDBOperatorHelmValues(t *testing.T) {
 	ArgsStr := []string{
 		"image.registry=registry.cn-hangzhou.aliyuncs.com",
 	}
+
 	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
 	if err != nil {
 		t.Errorf("parse greptimedb operator helm values failed, err: %v", err)
@@ -166,6 +168,7 @@ func TestRender_GenerateEtcdHelmValues(t *testing.T) {
 		ImageRegistry:        "registry.cn-hangzhou.aliyuncs.com",
 		EtcdStorageClassName: "ebs-sc",
 		EtcdStorageSize:      "11Gi",
+		EtcdDataDir:          "/var/etcd",
 	}
 
 	r := &Render{}
@@ -178,7 +181,9 @@ func TestRender_GenerateEtcdHelmValues(t *testing.T) {
 		"image.registry=registry.cn-hangzhou.aliyuncs.com",
 		"storage.storageClassName=ebs-sc",
 		"storage.volumeSize=11Gi",
+		"storage.dataDir=/var/etcd",
 	}
+
 	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
 	if err != nil {
 		t.Errorf("parse etcd helm values failed, err: %v", err)
