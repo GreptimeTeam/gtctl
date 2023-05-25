@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -25,14 +26,23 @@ func CreateDirIfNotExists(dir string) (err error) {
 	return nil
 }
 
-func FileExists(filepath string) (bool, error) {
+func IsFileExists(filepath string) (bool, error) {
 	info, err := os.Stat(filepath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		} else {
-			return false, err
-		}
+	if os.IsNotExist(err) {
+		// file does not exist
+		return false, nil
 	}
-	return !info.IsDir(), nil
- }
+
+	if err != nil {
+		// Other errors happened.
+		return false, err
+	}
+
+	if info.IsDir() {
+		// It's a directory.
+		return false, fmt.Errorf("'%s' is directory, not file", filepath)
+	}
+
+	// The file exists.
+	return true, nil
+}
