@@ -24,3 +24,15 @@ func CreateDirIfNotExists(dir string) (err error) {
 	}
 	return nil
 }
+
+func FileExists(filepath string) (bool, error) {
+	info, err := os.Stat(filepath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+	return !info.IsDir(), nil
+ }

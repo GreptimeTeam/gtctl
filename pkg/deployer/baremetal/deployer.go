@@ -24,7 +24,9 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	. "github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -173,7 +175,60 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 		return err
 	}
 
+	if err := d.checkEtcdHealth(bin); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (d *Deployer) checkEtcdHealth(etcdBin string) error {
+	// It's very likey that "etcdctl" is under the same directory of "etcd".
+	etcdctlBin := path.Join(etcdBin, "../etcdctl")
+	exists, err := utils.FileExists(etcdctlBin)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		d.logger.V(3).Infof("'etcdctl' is not found under the same directory of 'etcd', skip checking the healthy of Etcd.")
+		return nil
+	}
+
+	for retry := 0; retry < 10; retry++ {
+		outputRaw, err := exec.Command(etcdctlBin, "endpoint", "status").Output()
+		if err != nil {
+			return err
+		}
+		output := string(outputRaw)
+		statuses := strings.Split(output, "\n")
+
+		hasLeader := false
+		for i := 0; i < len(statuses); i++ {
+			fields := strings.Split(statuses[i], ",")
+
+			// We are checking Etcd status with default output format("--write-out=simple"), example output:
+			// 127.0.0.1:2379, 8e9e05c52164694d, 3.5.0, 131 kB, true, false, 3, 75, 75,
+			//
+			// The output fields are corresponding to the following table's columns (with format "--write-out=table"):
+			// +----------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+			// |    ENDPOINT    |        ID        | VERSION | DB SIZE | IS LEADER | IS LEARNER | RAFT TERM | RAFT INDEX | RAFT APPLIED INDEX | ERRORS |
+			// +----------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+			// | 127.0.0.1:2379 | 8e9e05c52164694d |   3.5.0 |  131 kB |      true |      false |         3 |         72 |                 72 |        |
+			// +----------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+			//
+			// So we can just check the "IS LEADER" field.
+			if strings.TrimSpace(fields[4]) == "true" {
+				hasLeader = true
+				break
+			}
+		}
+		if hasLeader {
+			return nil
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+	return fmt.Errorf("Etcd is not ready in 10 second! You can find its logs in %s", path.Join(d.logsDir, "etcd"))
 }
 
 func (d *Deployer) DeleteEtcdCluster(ctx context.Context, name string, options *DeleteEtcdClusterOption) error {
@@ -314,6 +369,11 @@ func (d *Deployer) isMetasrvRunning() bool {
 }
 
 func (d *Deployer) startDatanodes(binary string, datanodeNum int) error {
+	dataHome := path.Join(d.dataDir, "home")
+	if err := utils.CreateDirIfNotExists(dataHome); err != nil {
+		return err
+	}
+
 	for i := 0; i < datanodeNum; i++ {
 		dirName := fmt.Sprintf("datanode.%d", i)
 
@@ -327,12 +387,12 @@ func (d *Deployer) startDatanodes(binary string, datanodeNum int) error {
 			return err
 		}
 
-		datanodeDataDir := path.Join(d.dataDir, dirName)
-		if err := utils.CreateDirIfNotExists(datanodeDataDir); err != nil {
+		walDir := path.Join(d.dataDir, dirName, "wal")
+		if err := utils.CreateDirIfNotExists(walDir); err != nil {
 			return err
 		}
 
-		if err := d.runBinary(binary, d.buildDatanodeArgs(i, datanodeDataDir), datanodeLogDir, datanodePidDir); err != nil {
+		if err := d.runBinary(binary, d.buildDatanodeArgs(i, dataHome, walDir), datanodeLogDir, datanodePidDir); err != nil {
 			return err
 		}
 	}
@@ -404,7 +464,7 @@ func (d *Deployer) buildMetasrvArgs() []string {
 	return args
 }
 
-func (d *Deployer) buildDatanodeArgs(nodeID int, dataDir string) []string {
+func (d *Deployer) buildDatanodeArgs(nodeID int, dataHome string, walDir string) []string {
 	args := []string{
 		"datanode", "start",
 		fmt.Sprintf("--node-id=%d", nodeID),
@@ -412,8 +472,8 @@ func (d *Deployer) buildDatanodeArgs(nodeID int, dataDir string) []string {
 		fmt.Sprintf("--rpc-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.RPCAddr, nodeID)),
 		fmt.Sprintf("--mysql-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.MySQLAddr, nodeID)),
 		fmt.Sprintf("--http-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.HTTPAddr, nodeID)),
-		fmt.Sprintf("--data-dir=%s", path.Join(dataDir, "data")),
-		fmt.Sprintf("--wal-dir=%s", path.Join(dataDir, "wal")),
+		fmt.Sprintf("--data-home=%s", dataHome),
+		fmt.Sprintf("--wal-dir=%s", walDir),
 	}
 	return args
 }
