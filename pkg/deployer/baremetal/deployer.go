@@ -183,7 +183,7 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 }
 
 func (d *Deployer) checkEtcdHealth(etcdBin string) error {
-	// It's very likey that "etcdctl" is under the same directory of "etcd".
+	// It's very likely that "etcdctl" is under the same directory of "etcd".
 	etcdctlBin := path.Join(etcdBin, "../etcdctl")
 	exists, err := utils.FileExists(etcdctlBin)
 	if err != nil {
