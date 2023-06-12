@@ -470,7 +470,6 @@ func (d *Deployer) buildDatanodeArgs(nodeID int, dataHome string, walDir string)
 		fmt.Sprintf("--node-id=%d", nodeID),
 		fmt.Sprintf("--metasrv-addr=%s", d.config.Cluster.Meta.ServerAddr),
 		fmt.Sprintf("--rpc-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.RPCAddr, nodeID)),
-		fmt.Sprintf("--mysql-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.MySQLAddr, nodeID)),
 		fmt.Sprintf("--http-addr=%s", d.generateDatanodeAddr(d.config.Cluster.Datanode.HTTPAddr, nodeID)),
 		fmt.Sprintf("--data-home=%s", dataHome),
 		fmt.Sprintf("--wal-dir=%s", walDir),

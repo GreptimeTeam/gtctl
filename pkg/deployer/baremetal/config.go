@@ -45,9 +45,8 @@ type Datanode struct {
 	Replicas int `yaml:"replicas"`
 	NodeID   int `yaml:"nodeID"`
 
-	MySQLAddr string `yaml:"mysqlAddr"`
-	RPCAddr   string `yaml:"rpcAddr"`
-	HTTPAddr  string `yaml:"httpAddr"`
+	RPCAddr  string `yaml:"rpcAddr"`
+	HTTPAddr string `yaml:"httpAddr"`
 
 	DataDir      string `yaml:"dataDir"`
 	WalDir       string `yaml:"walDir"`
@@ -158,13 +157,6 @@ func (datanode *Datanode) validate() error {
 		return fmt.Errorf("invalid nodeID '%d'", datanode.NodeID)
 	}
 
-	if datanode.MySQLAddr == "" {
-		return fmt.Errorf("empty datanode mysql addr")
-	}
-	if err := checkAddr(datanode.MySQLAddr); err != nil {
-		return err
-	}
-
 	if datanode.RPCAddr == "" {
 		return fmt.Errorf("empty datanode rpc addr")
 	}
@@ -235,10 +227,9 @@ func defaultConfig() *Config {
 				HTTPAddr:   "0.0.0.0:14001",
 			},
 			Datanode: &Datanode{
-				Replicas:  3,
-				RPCAddr:   "0.0.0.0:14100",
-				MySQLAddr: "0.0.0.0:14200",
-				HTTPAddr:  "0.0.0.0:14300",
+				Replicas: 3,
+				RPCAddr:  "0.0.0.0:14100",
+				HTTPAddr: "0.0.0.0:14300",
 			},
 		},
 		Etcd: &Etcd{
