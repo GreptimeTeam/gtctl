@@ -42,6 +42,7 @@ const (
 
 	ZipExtension   = ".zip"
 	TarGzExtension = ".tar.gz"
+	TarExtension   = ".tar"
 )
 
 // ArtifactManager is responsible for managing the artifacts of a GreptimeDB cluster.
@@ -151,8 +152,8 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 	artifactFile = path.Base(artifactFile)
 	// If the artifactFile is '${pkgDir}/etcd-v3.5.7-darwin-arm64.zip', it will get '${pkgDir}/etcd-v3.5.7-darwin-arm64'.
 	uncompressedDir := path.Join(pkgDir, artifactFile[:len(artifactFile)-len(filepath.Ext(artifactFile))])
-	if strings.HasSuffix(uncompressedDir, ".tar") {
-		uncompressedDir = uncompressedDir[:len(uncompressedDir)-len(".tar")]
+	if strings.HasSuffix(uncompressedDir, TarExtension) {
+		uncompressedDir = uncompressedDir[:len(uncompressedDir)-len(TarExtension)]
 	}
 	binaries := []string{"etcd", "etcdctl", "etcdutl"}
 	for _, binary := range binaries {
