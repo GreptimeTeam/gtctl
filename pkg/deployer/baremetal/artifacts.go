@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/utils"
@@ -38,6 +39,9 @@ const (
 
 	EtcdGitHubOrg  = "etcd-io"
 	EtcdGithubRepo = "etcd"
+
+	ZipExtension   = ".zip"
+	TarGzExtension = ".tar.gz"
 )
 
 // ArtifactManager is responsible for managing the artifacts of a GreptimeDB cluster.
@@ -147,6 +151,9 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 	artifactFile = path.Base(artifactFile)
 	// If the artifactFile is '${pkgDir}/etcd-v3.5.7-darwin-arm64.zip', it will get '${pkgDir}/etcd-v3.5.7-darwin-arm64'.
 	uncompressedDir := path.Join(pkgDir, artifactFile[:len(artifactFile)-len(filepath.Ext(artifactFile))])
+	if strings.HasSuffix(uncompressedDir, ".tar") {
+		uncompressedDir = uncompressedDir[:len(uncompressedDir)-len(".tar")]
+	}
 	binaries := []string{"etcd", "etcdctl", "etcdutl"}
 	for _, binary := range binaries {
 		if err := am.copyFile(path.Join(uncompressedDir, binary), path.Join(binDir, binary)); err != nil {
@@ -176,7 +183,7 @@ func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
 }
 
 func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (string, error) {
-	downloadURL, err := am.artifactURL(typ, version)
+	downloadURL, err := am.artifactURL(typ, version, ZipExtension)
 	if err != nil {
 		return "", err
 	}
@@ -200,16 +207,33 @@ func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (s
 	}
 
 	httpClient := &http.Client{}
-	req, err := http.NewRequest(http.MethodGet, downloadURL, nil)
-	if err != nil {
-		return "", err
-	}
 
 	am.logger.V(3).Infof("Downloading artifact from '%s' to '%s'", downloadURL, artifactFile)
 
-	resp, err := httpClient.Do(req)
+	resp, err := am.startDownload(downloadURL, httpClient)
 	if err != nil {
-		return "", err
+		downloadURL, err = am.artifactURL(typ, version, TarGzExtension)
+		if err != nil {
+			return "", err
+		}
+		artifactFile = path.Join(pkgDir, path.Base(downloadURL))
+		if !am.alwaysDownload {
+			// The artifact file already exists, skip downloading.
+			if _, err := os.Stat(artifactFile); err == nil {
+				am.logger.V(3).Infof("The artifact file '%s' already exists, skip downloading.", artifactFile)
+				return artifactFile, nil
+			}
+
+			// Other error happened, return it.
+			if err != nil && !os.IsNotExist(err) {
+				return "", err
+			}
+		}
+		resp, err = am.startDownload(downloadURL, httpClient)
+		if err != nil {
+			return "", err
+		}
+
 	}
 	defer resp.Body.Close()
 
@@ -231,7 +255,23 @@ func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (s
 	return artifactFile, nil
 }
 
-func (am *ArtifactManager) artifactURL(typ ArtifactType, version string) (string, error) {
+func (am *ArtifactManager) startDownload(downloadURL string, client *http.Client) (*http.Response, error) {
+	resp := &http.Response{}
+	request, err := http.NewRequest(http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return resp, err
+	}
+	resp, err = client.Do(request)
+	if resp.StatusCode != http.StatusOK {
+		return resp, fmt.Errorf("download failed, status code: %d", resp.StatusCode)
+	}
+	if err != nil {
+		return resp, err
+	}
+	return resp, nil
+}
+
+func (am *ArtifactManager) artifactURL(typ ArtifactType, version, ext string) (string, error) {
 	switch typ {
 	case GreptimeArtifactType:
 		var downloadURL string
@@ -245,8 +285,8 @@ func (am *ArtifactManager) artifactURL(typ ArtifactType, version string) (string
 		return downloadURL, nil
 	case EtcdArtifactType:
 		// For the function stability, we use the specific version of etcd.
-		downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s.zip",
-			EtcdGitHubOrg, EtcdGithubRepo, version, string(typ), version, runtime.GOOS, runtime.GOARCH)
+		downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s%s",
+			EtcdGitHubOrg, EtcdGithubRepo, version, string(typ), version, runtime.GOOS, runtime.GOARCH, ext)
 		return downloadURL, nil
 	default:
 		return "", fmt.Errorf("unsupported artifact type: %v", typ)
@@ -259,6 +299,8 @@ func (am *ArtifactManager) uncompress(file, dst string) error {
 	case ".zip":
 		return am.unzip(file, dst)
 	case ".tgz":
+		return am.untar(file, dst)
+	case ".gz":
 		return am.untar(file, dst)
 	default:
 		return fmt.Errorf("unsupported file type: %s", fileType)
