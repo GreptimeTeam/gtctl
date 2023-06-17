@@ -152,9 +152,7 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 	artifactFile = path.Base(artifactFile)
 	// If the artifactFile is '${pkgDir}/etcd-v3.5.7-darwin-arm64.zip', it will get '${pkgDir}/etcd-v3.5.7-darwin-arm64'.
 	uncompressedDir := path.Join(pkgDir, artifactFile[:len(artifactFile)-len(filepath.Ext(artifactFile))])
-	if strings.HasSuffix(uncompressedDir, TarExtension) {
-		uncompressedDir = uncompressedDir[:len(uncompressedDir)-len(TarExtension)]
-	}
+	uncompressedDir = strings.TrimSuffix(uncompressedDir, TarExtension)
 	binaries := []string{"etcd", "etcdctl", "etcdutl"}
 	for _, binary := range binaries {
 		if err := am.copyFile(path.Join(uncompressedDir, binary), path.Join(binDir, binary)); err != nil {
