@@ -43,6 +43,9 @@ const (
 	ZipExtension   = ".zip"
 	TarGzExtension = ".tar.gz"
 	TarExtension   = ".tar"
+
+	GOOSDarwin = "darwin"
+	GOOSLinux  = "linux"
 )
 
 // ArtifactManager is responsible for managing the artifacts of a GreptimeDB cluster.
@@ -182,7 +185,15 @@ func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
 }
 
 func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (string, error) {
-	downloadURL, err := am.artifactURL(typ, version, ZipExtension)
+	var extension string
+	if runtime.GOOS == GOOSDarwin {
+		extension = ZipExtension
+	} else if runtime.GOOS == GOOSLinux {
+		extension = TarGzExtension
+	} else {
+		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	}
+	downloadURL, err := am.artifactURL(typ, version, extension)
 	if err != nil {
 		return "", err
 	}
@@ -209,30 +220,16 @@ func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (s
 
 	am.logger.V(3).Infof("Downloading artifact from '%s' to '%s'", downloadURL, artifactFile)
 
-	resp, err := am.startDownload(downloadURL, httpClient)
+	req, err := http.NewRequest(http.MethodGet, downloadURL, nil)
 	if err != nil {
-		downloadURL, err = am.artifactURL(typ, version, TarGzExtension)
-		if err != nil {
-			return "", err
-		}
-		artifactFile = path.Join(pkgDir, path.Base(downloadURL))
-		if !am.alwaysDownload {
-			// The artifact file already exists, skip downloading.
-			if _, err := os.Stat(artifactFile); err == nil {
-				am.logger.V(3).Infof("The artifact file '%s' already exists, skip downloading.", artifactFile)
-				return artifactFile, nil
-			}
-
-			// Other error happened, return it.
-			if err != nil && !os.IsNotExist(err) {
-				return "", err
-			}
-		}
-		resp, err = am.startDownload(downloadURL, httpClient)
-		if err != nil {
-			return "", err
-		}
-
+		return "", err
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("download failed, status code: %d", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 
@@ -252,22 +249,6 @@ func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (s
 	}
 
 	return artifactFile, nil
-}
-
-func (am *ArtifactManager) startDownload(downloadURL string, client *http.Client) (*http.Response, error) {
-	resp := &http.Response{}
-	request, err := http.NewRequest(http.MethodGet, downloadURL, nil)
-	if err != nil {
-		return resp, err
-	}
-	resp, err = client.Do(request)
-	if resp.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("download failed, status code: %d", resp.StatusCode)
-	}
-	if err != nil {
-		return resp, err
-	}
-	return resp, nil
 }
 
 func (am *ArtifactManager) artifactURL(typ ArtifactType, version, ext string) (string, error) {
