@@ -39,6 +39,8 @@ type Frontend struct {
 	HTTPAddr     string `yaml:"httpAddr"`
 	PostgresAddr string `yaml:"postgresAddr"`
 	MetaAddr     string `yaml:"metaAddr"`
+
+	LogLevel string `yaml:"logLevel"`
 }
 
 type Datanode struct {
@@ -51,6 +53,8 @@ type Datanode struct {
 	DataDir      string `yaml:"dataDir"`
 	WalDir       string `yaml:"walDir"`
 	ProcedureDir string `yaml:"procedureDir"`
+
+	LogLevel string `yaml:"logLevel"`
 }
 
 type Meta struct {
@@ -58,6 +62,8 @@ type Meta struct {
 	ServerAddr string `yaml:"serverAddr"`
 	BindAddr   string `yaml:"bindAddr"`
 	HTTPAddr   string `yaml:"httpAddr"`
+
+	LogLevel string `yaml:"logLevel"`
 }
 
 type Etcd struct {
