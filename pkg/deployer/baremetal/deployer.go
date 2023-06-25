@@ -455,7 +455,12 @@ func (d *Deployer) buildEtcdArgs(dataDir string) []string {
 }
 
 func (d *Deployer) buildMetasrvArgs() []string {
+	logLevel := d.config.Cluster.Meta.LogLevel
+	if logLevel == "" {
+		logLevel = "info"
+	}
 	args := []string{
+		fmt.Sprintf("--log-level=%s", logLevel),
 		"metasrv", "start",
 		"--store-addr", d.config.Cluster.Meta.StoreAddr,
 		"--server-addr", d.config.Cluster.Meta.ServerAddr,
@@ -465,7 +470,12 @@ func (d *Deployer) buildMetasrvArgs() []string {
 }
 
 func (d *Deployer) buildDatanodeArgs(nodeID int, dataHome string, walDir string) []string {
+	logLevel := d.config.Cluster.Datanode.LogLevel
+	if logLevel == "" {
+		logLevel = "info"
+	}
 	args := []string{
+		fmt.Sprintf("--log-level=%s", logLevel),
 		"datanode", "start",
 		fmt.Sprintf("--node-id=%d", nodeID),
 		fmt.Sprintf("--metasrv-addr=%s", d.config.Cluster.Meta.ServerAddr),
@@ -478,7 +488,12 @@ func (d *Deployer) buildDatanodeArgs(nodeID int, dataHome string, walDir string)
 }
 
 func (d *Deployer) buildFrontendArgs() []string {
+	logLevel := d.config.Cluster.Frontend.LogLevel
+	if logLevel == "" {
+		logLevel = "info"
+	}
 	args := []string{
+		fmt.Sprintf("--log-level=%s", logLevel),
 		"frontend", "start",
 		fmt.Sprintf("--metasrv-addr=%s", d.config.Cluster.Meta.ServerAddr),
 	}
