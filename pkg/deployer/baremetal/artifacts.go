@@ -43,6 +43,8 @@ const (
 	ZipExtension   = ".zip"
 	TarGzExtension = ".tar.gz"
 	TarExtension   = ".tar"
+	TgzExtension   = ".tgz"
+	GzExtension    = ".gz"
 
 	GOOSDarwin = "darwin"
 	GOOSLinux  = "linux"
@@ -186,11 +188,12 @@ func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
 
 func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (string, error) {
 	var extension string
-	if runtime.GOOS == GOOSDarwin {
+	switch runtime.GOOS {
+	case GOOSDarwin:
 		extension = ZipExtension
-	} else if runtime.GOOS == GOOSLinux {
+	case GOOSLinux:
 		extension = TarGzExtension
-	} else {
+	default:
 		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
 	}
 	downloadURL, err := am.artifactURL(typ, version, extension)
@@ -276,11 +279,11 @@ func (am *ArtifactManager) artifactURL(typ ArtifactType, version, ext string) (s
 func (am *ArtifactManager) uncompress(file, dst string) error {
 	fileType := path.Ext(file)
 	switch fileType {
-	case ".zip":
+	case ZipExtension:
 		return am.unzip(file, dst)
-	case ".tgz":
+	case TgzExtension:
 		return am.untar(file, dst)
-	case ".gz":
+	case GzExtension:
 		return am.untar(file, dst)
 	default:
 		return fmt.Errorf("unsupported file type: %s", fileType)
