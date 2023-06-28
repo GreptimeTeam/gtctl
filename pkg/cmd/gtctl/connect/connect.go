@@ -22,6 +22,11 @@ import (
 	"strings"
 )
 
+const (
+	SplitSeparator = "://"
+	MySQL          = "mysql"
+)
+
 func NewConnectCommand(l logger.Logger) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "connect",
@@ -34,13 +39,13 @@ func NewConnectCommand(l logger.Logger) *cobra.Command {
 
 func connectCommand(cmd *cobra.Command, args []string) error {
 	s := args[0]
-	split := strings.Split(s, "://")
+	split := strings.Split(s, SplitSeparator)
 	if len(split) != 2 {
 		return errors.New("invalid argument, you can try gtctl connect mysql://user:password@host:port")
 	}
 	prefix := split[0]
 	switch prefix {
-	case "mysql":
+	case MySQL:
 		return mysql.ConnectCommand(cmd, args)
 	default:
 		return errors.New("invalid argument, you can try gtctl connect mysql://user:password@host:port")

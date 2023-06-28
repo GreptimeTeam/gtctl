@@ -23,18 +23,29 @@ import (
 	"strings"
 )
 
+const (
+	UpSeparator    = ":"
+	AtSeparator    = "@"
+	ArgHost        = "-h"
+	ArgPort        = "-P"
+	ArgUser        = "-u"
+	ArgPassword    = "-p"
+	MySQL          = "mysql"
+	SplitSeparator = "://"
+)
+
 func ConnectCommand(cmd *cobra.Command, args []string) error {
 	s := args[0]
-	suffix := strings.Split(s, "://")[1]
-	split := strings.Split(suffix, "@")
+	suffix := strings.Split(s, SplitSeparator)[1]
+	split := strings.Split(suffix, AtSeparator)
 	if len(split) != 2 {
 		return errors.New("invalid argument, you can try gtctl connect mysql://user:password@host:port")
 	}
-	up := strings.Split(split[0], ":")
+	up := strings.Split(split[0], UpSeparator)
 	if len(up) != 2 {
 		return errors.New("invalid argument, you can try gtctl connect mysql://user:password@host:port")
 	}
-	hp := strings.Split(split[1], ":")
+	hp := strings.Split(split[1], UpSeparator)
 	if len(hp) != 2 {
 		return errors.New("invalid argument, you can try gtctl connect mysql://user:password@host:port")
 	}
@@ -46,7 +57,7 @@ func ConnectCommand(cmd *cobra.Command, args []string) error {
 }
 
 func Connect(user, password, host, port string) error {
-	cmd := exec.Command("mysql", "-h", host, "-P", port, "-u", user, "-p", password)
+	cmd := exec.Command(MySQL, ArgHost, host, ArgPort, port, ArgUser, user, ArgPassword, password)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
