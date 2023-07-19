@@ -57,8 +57,11 @@ type createClusterCliOptions struct {
 	AlwaysDownload     bool
 
 	// Common options.
-	Timeout int
-	DryRun  bool
+	Timeout     int
+	DryRun      bool
+	Set         string
+	SetEtcd     string
+	SetOperator string
 }
 
 func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
@@ -144,10 +147,13 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
+	cmd.Flags().StringVar(&options.Set, "set", "", "set values on the command line for greptimedb (can specify multiple or separate values with commas: key1=val1,key2=val2).")
+	cmd.Flags().StringVar(&options.SetEtcd, "set-etcd", "", "set values on the command line for greptimedb-etcd.")
+	cmd.Flags().StringVar(&options.SetOperator, "set-operator", "", "set values on the command line for greptimedb-operator.")
 	cmd.Flags().StringVar(&options.GreptimeDBChartVersion, "greptimedb-chart-version", "", "The greptimedb helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.GreptimeDBOperatorChartVersion, "greptimedb-operator-chart-version", "", "The greptimedb-operator helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.EtcdChartVersion, "etcd-chart-version", "", "The greptimedb-etcd helm chart version, use latest version if not specified.")
-	cmd.Flags().StringVar(&options.ImageRegistry, "image-registry", "", "The image registry")
+	cmd.Flags().StringVar(&options.ImageRegistry, "image-registry", "", "The image registry.")
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
 	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
 	cmd.Flags().StringVar(&options.EtcdStorageSize, "etcd-storage-size", "10Gi", "the etcd persistent volume size.")
@@ -210,6 +216,7 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *cre
 	createGreptimeDBOperatorOptions := &deployer.CreateGreptimeDBOperatorOptions{
 		GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
 		ImageRegistry:                  options.ImageRegistry,
+		ConfigValues:                   options.SetOperator,
 	}
 
 	name := types.NamespacedName{Namespace: options.OperatorNamespace, Name: "greptimedb-operator"}.String()
@@ -238,6 +245,7 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClus
 		EtcdStorageClassName: options.EtcdStorageClassName,
 		EtcdStorageSize:      options.EtcdStorageSize,
 		EtcdDataDir:          options.EtcdDataDir,
+		ConfigValues:         options.SetEtcd,
 	}
 
 	var name string
@@ -274,6 +282,7 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *crea
 		DatanodeStorageSize:         options.StorageSize,
 		DatanodeStorageRetainPolicy: options.StorageRetainPolicy,
 		EtcdEndPoint:                fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
+		ConfigValues:                options.Set,
 	}
 
 	var name string
