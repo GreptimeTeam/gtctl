@@ -18,27 +18,42 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"strconv"
+	"strings"
+)
+
+const (
+	ValidationTag = "validate"
+
+	validateNotNil   = "not-nil"
+	validateNotEmpty = "not-empty"
+	validateIsAddr   = "is-addr"
 )
 
 // Config is the desired state of a GreptimeDB cluster on bare metal.
+//
+// The field of Config that with `validate` tag will be validated
+// against its requirement. Each filed has only one requirement.
+//
+// Each field of Config can also have its own exported method `Validate`.
 type Config struct {
-	Cluster *Cluster `yaml:"cluster"`
-	Etcd    *Etcd    `yaml:"etcd"`
+	Cluster *Cluster `yaml:"cluster" validate:"not-nil"`
+	Etcd    *Etcd    `yaml:"etcd" validate:"not-nil"`
 }
 
 type Cluster struct {
-	Artifact *Artifact `yaml:"artifact"`
-	Frontend *Frontend `yaml:"frontend"`
-	Meta     *Meta     `yaml:"meta"`
-	Datanode *Datanode `yaml:"datanode"`
+	Artifact *Artifact `yaml:"artifact" validate:"not-nil"`
+	Frontend *Frontend `yaml:"frontend" validate:"not-nil"`
+	Meta     *Meta     `yaml:"meta" validate:"not-nil"`
+	Datanode *Datanode `yaml:"datanode" validate:"not-nil"`
 }
 
 type Frontend struct {
-	GRPCAddr     string `yaml:"grpcAddr"`
-	HTTPAddr     string `yaml:"httpAddr"`
-	PostgresAddr string `yaml:"postgresAddr"`
-	MetaAddr     string `yaml:"metaAddr"`
+	GRPCAddr     string `yaml:"grpcAddr" validate:"is-addr"`
+	HTTPAddr     string `yaml:"httpAddr" validate:"is-addr"`
+	PostgresAddr string `yaml:"postgresAddr" validate:"is-addr"`
+	MetaAddr     string `yaml:"metaAddr" validate:"is-addr"`
 
 	LogLevel string `yaml:"logLevel"`
 }
@@ -47,8 +62,8 @@ type Datanode struct {
 	Replicas int `yaml:"replicas"`
 	NodeID   int `yaml:"nodeID"`
 
-	RPCAddr  string `yaml:"rpcAddr"`
-	HTTPAddr string `yaml:"httpAddr"`
+	RPCAddr  string `yaml:"rpcAddr" validate:"not-empty,is-addr"`
+	HTTPAddr string `yaml:"httpAddr" validate:"not-empty,is-addr"`
 
 	DataDir      string `yaml:"dataDir"`
 	WalDir       string `yaml:"walDir"`
@@ -58,16 +73,16 @@ type Datanode struct {
 }
 
 type Meta struct {
-	StoreAddr  string `yaml:"storeAddr"`
-	ServerAddr string `yaml:"serverAddr"`
-	BindAddr   string `yaml:"bindAddr"`
-	HTTPAddr   string `yaml:"httpAddr"`
+	StoreAddr  string `yaml:"storeAddr" validate:"is-addr"`
+	ServerAddr string `yaml:"serverAddr" validate:"is-addr"`
+	BindAddr   string `yaml:"bindAddr" validate:"is-addr"`
+	HTTPAddr   string `yaml:"httpAddr" validate:"not-empty,is-addr"`
 
 	LogLevel string `yaml:"logLevel"`
 }
 
 type Etcd struct {
-	Artifact *Artifact `yaml:"artifact"`
+	Artifact *Artifact `yaml:"artifact" validate:"not-nil"`
 }
 
 type Artifact struct {
@@ -79,82 +94,100 @@ type Artifact struct {
 	Version string `yaml:"version"`
 }
 
-func (c *Config) Validate() error {
-	if c.Cluster == nil {
-		return fmt.Errorf("empty cluster config")
-	}
-	if c.Etcd == nil {
-		return fmt.Errorf("empty etcd config")
+// ValidateConfig validate config in bare-metal mode.
+func ValidateConfig(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("no config to validate")
 	}
 
-	if err := c.Cluster.validate(); err != nil {
-		return err
-	}
-	if err := c.Etcd.validate(); err != nil {
+	err := validateConfigWithSingleValue(config, "")
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (cluster *Cluster) validate() error {
-	if cluster.Artifact == nil {
-		return fmt.Errorf("cluster artifact field is nil")
+// validateConfigWithSingleValue validate every single config value.
+func validateConfigWithSingleValue(config interface{}, path string) error {
+	valueOf := reflect.ValueOf(config)
+	if valueOf.Kind() == reflect.Ptr {
+		valueOf = valueOf.Elem()
 	}
-	if err := cluster.Artifact.validate(); err != nil {
+	if valueOf.Kind() != reflect.Struct {
+		return nil
+	}
+
+	typeOf := reflect.TypeOf(config)
+	if typeOf.Kind() == reflect.Ptr {
+		typeOf = typeOf.Elem()
+	}
+	for i := 0; i < valueOf.NumField(); i++ {
+		validateTypes := typeOf.Field(i).Tag.Get(ValidationTag)
+
+		fieldPath := fmt.Sprintf("%s.%s", path, typeOf.Field(i).Name)
+		if len(validateTypes) > 0 {
+			if err := validateTags(validateTypes, valueOf.Field(i)); err != nil {
+				return fmt.Errorf("error at field `%s`: %v", fieldPath, err)
+			}
+		}
+		// Perform field validation that defined by `Validate` method.
+		if method := valueOf.Field(i).MethodByName("Validate"); method.IsValid() {
+			if err := method.Call(nil)[0]; !err.IsNil() {
+				return fmt.Errorf("error at field `%s`: %v", fieldPath, err)
+			}
+		}
+
+		if err := validateConfigWithSingleValue(valueOf.Field(i).Interface(), fieldPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateTags(types string, value reflect.Value) error {
+	tags := strings.Split(types, ",")
+	for _, tag := range tags {
+		switch tag {
+		case validateNotNil:
+			if value.Type().Kind() == reflect.Ptr && value.IsNil() {
+				return fmt.Errorf("got nil")
+			}
+		case validateNotEmpty:
+			if value.Type().Kind() != reflect.Ptr && value.Len() == 0 {
+				return fmt.Errorf("got empty")
+			}
+		case validateIsAddr:
+			if value.Type().Kind() == reflect.String && value.Len() > 0 {
+				return validateAddr(value.String())
+			}
+		default:
+			return fmt.Errorf("unfamilier validate tag: %s", tag)
+		}
+	}
+	return nil
+}
+
+func validateAddr(addr string) error {
+	addr, port, err := net.SplitHostPort(addr)
+	if err != nil {
 		return err
 	}
 
-	if cluster.Frontend == nil {
-		return fmt.Errorf("frontend field is nil")
-	}
-	if err := cluster.Frontend.validate(); err != nil {
-		return err
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return fmt.Errorf("invalid ip address '%s'", addr)
 	}
 
-	if cluster.Meta == nil {
-		return fmt.Errorf("meta field is nil")
-	}
-	if err := cluster.Meta.validate(); err != nil {
-		return err
-	}
-
-	if cluster.Datanode == nil {
-		return fmt.Errorf("datanode field is nil")
-	}
-	if err := cluster.Datanode.validate(); err != nil {
-		return err
+	p, err := strconv.Atoi(port)
+	if err != nil || p < 1 || p > 65535 {
+		return fmt.Errorf("invalid port '%s'", port)
 	}
 
 	return nil
 }
 
-func (etcd *Etcd) validate() error {
-	if etcd.Artifact == nil {
-		return fmt.Errorf("etcd artifact field is nil")
-	}
-	if err := etcd.Artifact.validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-// TODO(zyy17): Add the validation of the options.
-func (frontend *Frontend) validate() error {
-	return nil
-}
-
-func (meta *Meta) validate() error {
-	if meta.HTTPAddr == "" {
-		return fmt.Errorf("empty meta http addr")
-	}
-	if err := checkAddr(meta.HTTPAddr); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (datanode *Datanode) validate() error {
+func (datanode *Datanode) Validate() error {
 	if datanode.Replicas <= 0 {
 		return fmt.Errorf("invalid replicas '%d'", datanode.Replicas)
 	}
@@ -162,25 +195,10 @@ func (datanode *Datanode) validate() error {
 	if datanode.NodeID < 0 {
 		return fmt.Errorf("invalid nodeID '%d'", datanode.NodeID)
 	}
-
-	if datanode.RPCAddr == "" {
-		return fmt.Errorf("empty datanode rpc addr")
-	}
-	if err := checkAddr(datanode.RPCAddr); err != nil {
-		return err
-	}
-
-	if datanode.HTTPAddr == "" {
-		return fmt.Errorf("empty datanode http addr")
-	}
-	if err := checkAddr(datanode.HTTPAddr); err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (artifact *Artifact) validate() error {
+func (artifact *Artifact) Validate() error {
 	if artifact.Version == "" && artifact.Local == "" {
 		return fmt.Errorf("empty artifact")
 	}
@@ -196,25 +214,6 @@ func (artifact *Artifact) validate() error {
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func checkAddr(addr string) error {
-	addr, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return err
-	}
-
-	ip := net.ParseIP(addr)
-	if ip == nil {
-		return fmt.Errorf("invalid ip address '%s'", addr)
-	}
-
-	p, err := strconv.Atoi(port)
-	if err != nil || p < 1 || p > 65535 {
-		return fmt.Errorf("invalid port '%s'", port)
 	}
 
 	return nil
