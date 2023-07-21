@@ -17,7 +17,6 @@ package create
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -57,11 +56,9 @@ type createClusterCliOptions struct {
 	AlwaysDownload     bool
 
 	// Common options.
-	Timeout     int
-	DryRun      bool
-	Set         string
-	SetEtcd     string
-	SetOperator string
+	Timeout int
+	DryRun  bool
+	Set     configValues
 }
 
 func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
@@ -99,18 +96,23 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal environment...", logger.Bold(clusterName))
 			}
 
+			// Parse config values that set in command line
+			if err = options.Set.parseConfig(); err != nil {
+				return err
+			}
+
 			if !options.BareMetal {
-				if err := deployGreptimeDBOperator(ctx, l, &options, spinner, clusterDeployer); err != nil {
+				if err = deployGreptimeDBOperator(ctx, l, &options, spinner, clusterDeployer); err != nil {
 					return err
 				}
 			}
 
-			if err := deployEtcdCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
+			if err = deployEtcdCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
 				spinner.Stop(false, "Installing etcd cluster failed")
 				return err
 			}
 
-			if err := deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
+			if err = deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
 				return err
 			}
 
@@ -147,9 +149,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", -1, "Timeout in seconds for the command to complete, default is no timeout.")
-	cmd.Flags().StringVar(&options.Set, "set", "", "set values on the command line for greptimedb (can specify multiple or separate values with commas: key1=val1,key2=val2).")
-	cmd.Flags().StringVar(&options.SetEtcd, "set-etcd", "", "set values on the command line for greptimedb-etcd.")
-	cmd.Flags().StringVar(&options.SetOperator, "set-operator", "", "set values on the command line for greptimedb-operator.")
+	cmd.Flags().StringArrayVar(&options.Set.rawConfig, "set", []string{}, "set values on the command line for greptimedb cluster, etcd and operator (can specify multiple or separate values with commas: eg. cluster.key1=val1,etcd.key2=val2).")
 	cmd.Flags().StringVar(&options.GreptimeDBChartVersion, "greptimedb-chart-version", "", "The greptimedb helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.GreptimeDBOperatorChartVersion, "greptimedb-operator-chart-version", "", "The greptimedb-operator helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.EtcdChartVersion, "etcd-chart-version", "", "The greptimedb-etcd helm chart version, use latest version if not specified.")
@@ -184,7 +184,7 @@ func newDeployer(l logger.Logger, clusterName string, options *createClusterCliO
 
 	if options.Config != "" {
 		var config baremetal.Config
-		data, err := ioutil.ReadFile(options.Config)
+		data, err := os.ReadFile(options.Config)
 		if err != nil {
 			return nil, err
 		}
@@ -216,7 +216,7 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *cre
 	createGreptimeDBOperatorOptions := &deployer.CreateGreptimeDBOperatorOptions{
 		GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
 		ImageRegistry:                  options.ImageRegistry,
-		ConfigValues:                   options.SetOperator,
+		ConfigValues:                   options.Set.operatorConfig,
 	}
 
 	name := types.NamespacedName{Namespace: options.OperatorNamespace, Name: "greptimedb-operator"}.String()
@@ -245,7 +245,7 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClus
 		EtcdStorageClassName: options.EtcdStorageClassName,
 		EtcdStorageSize:      options.EtcdStorageSize,
 		EtcdDataDir:          options.EtcdDataDir,
-		ConfigValues:         options.SetEtcd,
+		ConfigValues:         options.Set.etcdConfig,
 	}
 
 	var name string
@@ -282,7 +282,7 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *crea
 		DatanodeStorageSize:         options.StorageSize,
 		DatanodeStorageRetainPolicy: options.StorageRetainPolicy,
 		EtcdEndPoint:                fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
-		ConfigValues:                options.Set,
+		ConfigValues:                options.Set.clusterConfig,
 	}
 
 	var name string
