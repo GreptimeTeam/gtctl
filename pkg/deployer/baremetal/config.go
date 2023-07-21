@@ -162,7 +162,7 @@ func validateTags(types string, value reflect.Value) error {
 				return validateAddr(value.String())
 			}
 		default:
-			return fmt.Errorf("unfamilier validate tag: %s", tag)
+			return fmt.Errorf("unfamiliar validation tag: %s", tag)
 		}
 	}
 	return nil
