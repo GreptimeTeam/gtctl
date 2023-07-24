@@ -48,10 +48,13 @@ func connect(host, port, clusterName string, l logger.Logger) error {
 		l.Errorf("Error starting port-forwarding: %v", err)
 		return err
 	}
+	waitGroup.Add(1)
 	go func() {
-		waitGroup.Add(1)
 		defer waitGroup.Done()
 		if err = cmd.Wait(); err != nil {
+			if err != nil && err.Error() != "signal: killed" {
+				l.V(1).Info("Shutting down port-forwarding successfully")
+			}
 		}
 	}()
 	for {
