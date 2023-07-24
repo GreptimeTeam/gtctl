@@ -16,7 +16,6 @@ package gtctl
 
 import (
 	"fmt"
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/connect"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -63,7 +62,6 @@ func NewRootCommand() *cobra.Command {
 	// Add all top level subcommands.
 	cmd.AddCommand(version.NewVersionCommand(l))
 	cmd.AddCommand(cluster.NewClusterCommand(l))
-	cmd.AddCommand(connect.NewConnectCommand(l))
 
 	return cmd
 }
