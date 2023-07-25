@@ -63,7 +63,7 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		}
 	}
 
-	if err := d.config.Validate(); err != nil {
+	if err := ValidateConfig(d.config); err != nil {
 		return nil, err
 	}
 
