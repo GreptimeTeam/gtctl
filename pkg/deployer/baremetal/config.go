@@ -16,20 +16,11 @@ package baremetal
 
 import (
 	"fmt"
-	"net"
-	"os"
-	"reflect"
-	"strconv"
-	"strings"
+
+	"github.com/go-playground/validator/v10"
 )
 
-const (
-	ValidationTag = "validate"
-
-	validateNotNil   = "not-nil"
-	validateNotEmpty = "not-empty"
-	validateIsAddr   = "is-addr"
-)
+var validate *validator.Validate
 
 // Config is the desired state of a GreptimeDB cluster on bare metal.
 //
@@ -38,56 +29,56 @@ const (
 //
 // Each field of Config can also have its own exported method `Validate`.
 type Config struct {
-	Cluster *Cluster `yaml:"cluster" validate:"not-nil"`
-	Etcd    *Etcd    `yaml:"etcd" validate:"not-nil"`
+	Cluster *Cluster `yaml:"cluster" validate:"required"`
+	Etcd    *Etcd    `yaml:"etcd" validate:"required"`
 }
 
 type Cluster struct {
-	Artifact *Artifact `yaml:"artifact" validate:"not-nil"`
-	Frontend *Frontend `yaml:"frontend" validate:"not-nil"`
-	Meta     *Meta     `yaml:"meta" validate:"not-nil"`
-	Datanode *Datanode `yaml:"datanode" validate:"not-nil"`
+	Artifact *Artifact `yaml:"artifact" validate:"required"`
+	Frontend *Frontend `yaml:"frontend" validate:"required"`
+	Meta     *Meta     `yaml:"meta" validate:"required"`
+	Datanode *Datanode `yaml:"datanode" validate:"required"`
 }
 
 type Frontend struct {
-	GRPCAddr     string `yaml:"grpcAddr" validate:"is-addr"`
-	HTTPAddr     string `yaml:"httpAddr" validate:"is-addr"`
-	PostgresAddr string `yaml:"postgresAddr" validate:"is-addr"`
-	MetaAddr     string `yaml:"metaAddr" validate:"is-addr"`
+	GRPCAddr     string `yaml:"grpcAddr" validate:"omitempty,hostname_port"`
+	HTTPAddr     string `yaml:"httpAddr" validate:"omitempty,hostname_port"`
+	PostgresAddr string `yaml:"postgresAddr" validate:"omitempty,hostname_port"`
+	MetaAddr     string `yaml:"metaAddr" validate:"omitempty,hostname_port"`
 
 	LogLevel string `yaml:"logLevel"`
 }
 
 type Datanode struct {
-	Replicas int `yaml:"replicas"`
-	NodeID   int `yaml:"nodeID"`
+	Replicas int `yaml:"replicas" validate:"gt=0"`
+	NodeID   int `yaml:"nodeID" validate:"gte=0"`
 
-	RPCAddr  string `yaml:"rpcAddr" validate:"not-empty,is-addr"`
-	HTTPAddr string `yaml:"httpAddr" validate:"not-empty,is-addr"`
+	RPCAddr  string `yaml:"rpcAddr" validate:"required,hostname_port"`
+	HTTPAddr string `yaml:"httpAddr" validate:"required,hostname_port"`
 
-	DataDir      string `yaml:"dataDir"`
-	WalDir       string `yaml:"walDir"`
-	ProcedureDir string `yaml:"procedureDir"`
+	DataDir      string `yaml:"dataDir" validate:"omitempty,dirpath"`
+	WalDir       string `yaml:"walDir" validate:"omitempty,dirpath"`
+	ProcedureDir string `yaml:"procedureDir" validate:"omitempty,dirpath"`
 
 	LogLevel string `yaml:"logLevel"`
 }
 
 type Meta struct {
-	StoreAddr  string `yaml:"storeAddr" validate:"is-addr"`
-	ServerAddr string `yaml:"serverAddr" validate:"is-addr"`
-	BindAddr   string `yaml:"bindAddr" validate:"is-addr"`
-	HTTPAddr   string `yaml:"httpAddr" validate:"not-empty,is-addr"`
+	StoreAddr  string `yaml:"storeAddr" validate:"hostname_port"`
+	ServerAddr string `yaml:"serverAddr" validate:"hostname_port"`
+	BindAddr   string `yaml:"bindAddr" validate:"omitempty,hostname_port"`
+	HTTPAddr   string `yaml:"httpAddr" validate:"required,hostname_port"`
 
 	LogLevel string `yaml:"logLevel"`
 }
 
 type Etcd struct {
-	Artifact *Artifact `yaml:"artifact" validate:"not-nil"`
+	Artifact *Artifact `yaml:"artifact" validate:"required"`
 }
 
 type Artifact struct {
 	// Local is the local path of binary(greptime or etcd).
-	Local string `yaml:"local"`
+	Local string `yaml:"local" validate:"omitempty,file"`
 
 	// Version is the release version of binary(greptime or etcd).
 	// Usually, it points to the version of binary of GitHub release.
@@ -100,7 +91,12 @@ func ValidateConfig(config *Config) error {
 		return fmt.Errorf("no config to validate")
 	}
 
-	err := validateConfigWithSingleValue(config, "")
+	validate = validator.New()
+
+	// Register custom validation method for Artifact.
+	validate.RegisterStructValidation(ValidateArtifact, Artifact{})
+
+	err := validate.Struct(config)
 	if err != nil {
 		return err
 	}
@@ -108,115 +104,11 @@ func ValidateConfig(config *Config) error {
 	return nil
 }
 
-// validateConfigWithSingleValue validate every single config value.
-func validateConfigWithSingleValue(config interface{}, path string) error {
-	valueOf := reflect.ValueOf(config)
-	if valueOf.Kind() == reflect.Ptr {
-		valueOf = valueOf.Elem()
+func ValidateArtifact(sl validator.StructLevel) {
+	artifact := sl.Current().Interface().(Artifact)
+	if len(artifact.Version) == 0 && len(artifact.Local) == 0 {
+		sl.ReportError(sl.Current().Interface(), "Artifact", "Version/Local", "", "")
 	}
-	if valueOf.Kind() != reflect.Struct {
-		return nil
-	}
-
-	typeOf := reflect.TypeOf(config)
-	if typeOf.Kind() == reflect.Ptr {
-		typeOf = typeOf.Elem()
-	}
-	for i := 0; i < valueOf.NumField(); i++ {
-		validateTypes := typeOf.Field(i).Tag.Get(ValidationTag)
-
-		fieldPath := fmt.Sprintf("%s.%s", path, typeOf.Field(i).Name)
-		if len(validateTypes) > 0 {
-			if err := validateTags(validateTypes, valueOf.Field(i)); err != nil {
-				return fmt.Errorf("error at field `%s`: %v", fieldPath, err)
-			}
-		}
-		// Perform field validation that defined by `Validate` method.
-		if method := valueOf.Field(i).MethodByName("Validate"); method.IsValid() {
-			if err := method.Call(nil)[0]; !err.IsNil() {
-				return fmt.Errorf("error at field `%s`: %v", fieldPath, err)
-			}
-		}
-
-		if err := validateConfigWithSingleValue(valueOf.Field(i).Interface(), fieldPath); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func validateTags(types string, value reflect.Value) error {
-	tags := strings.Split(types, ",")
-	for _, tag := range tags {
-		switch tag {
-		case validateNotNil:
-			if value.Type().Kind() == reflect.Ptr && value.IsNil() {
-				return fmt.Errorf("got nil")
-			}
-		case validateNotEmpty:
-			if value.Type().Kind() != reflect.Ptr && value.Len() == 0 {
-				return fmt.Errorf("got empty")
-			}
-		case validateIsAddr:
-			if value.Type().Kind() == reflect.String && value.Len() > 0 {
-				return validateAddr(value.String())
-			}
-		default:
-			return fmt.Errorf("unfamiliar validation tag: %s", tag)
-		}
-	}
-	return nil
-}
-
-func validateAddr(addr string) error {
-	addr, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return err
-	}
-
-	ip := net.ParseIP(addr)
-	if ip == nil {
-		return fmt.Errorf("invalid ip address '%s'", addr)
-	}
-
-	p, err := strconv.Atoi(port)
-	if err != nil || p < 1 || p > 65535 {
-		return fmt.Errorf("invalid port '%s'", port)
-	}
-
-	return nil
-}
-
-func (datanode *Datanode) Validate() error {
-	if datanode.Replicas <= 0 {
-		return fmt.Errorf("invalid replicas '%d'", datanode.Replicas)
-	}
-
-	if datanode.NodeID < 0 {
-		return fmt.Errorf("invalid nodeID '%d'", datanode.NodeID)
-	}
-	return nil
-}
-
-func (artifact *Artifact) Validate() error {
-	if artifact.Version == "" && artifact.Local == "" {
-		return fmt.Errorf("empty artifact")
-	}
-
-	if artifact.Local != "" {
-		fileinfo, err := os.Stat(artifact.Local)
-		if os.IsNotExist(err) {
-			return fmt.Errorf("artifact '%s' not exist", artifact.Local)
-		}
-		if fileinfo.IsDir() {
-			return fmt.Errorf("artifact '%s' should be file, not directory", artifact.Local)
-		}
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func defaultConfig() *Config {
