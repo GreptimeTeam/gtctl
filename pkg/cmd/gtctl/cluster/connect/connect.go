@@ -17,7 +17,6 @@ package connect
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,8 +29,14 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
+const (
+	connectionProtocolMySQL    = "mysql"
+	connectionProtocolPostgres = "pg"
+)
+
 type getClusterCliOptions struct {
 	Namespace string
+	Protocol  string
 }
 
 func NewConnectCommand(l logger.Logger) *cobra.Command {
@@ -69,17 +74,16 @@ func NewConnectCommand(l logger.Logger) *cobra.Command {
 			if !ok {
 				return fmt.Errorf("invalid cluster type")
 			}
-			dbType := cmd.Flag("p")
-			switch strings.ToLower(dbType.Value.String()) {
-			case "mysql":
+			switch options.Protocol {
+			case connectionProtocolMySQL:
 				err := mysql.ConnectCommand(rawCluster, l)
 				if err != nil {
-					_ = fmt.Errorf("error connecting to mysql: %v", err)
+					return fmt.Errorf("error connecting to mysql: %v", err)
 				}
-			case "pg":
+			case connectionProtocolPostgres:
 				err := pg.ConnectCommand(rawCluster, l)
 				if err != nil {
-					_ = fmt.Errorf("error connecting to postgres: %v", err)
+					return fmt.Errorf("error connecting to postgres: %v", err)
 				}
 			default:
 				return fmt.Errorf("database type not supported")
@@ -89,5 +93,6 @@ func NewConnectCommand(l logger.Logger) *cobra.Command {
 	}
 	cmd.Flags().String("p", "mysql", "Specify a database")
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
+	cmd.Flags().StringVarP(&options.Protocol, "protocol", "p", "mysql", "Specify a database")
 	return cmd
 }

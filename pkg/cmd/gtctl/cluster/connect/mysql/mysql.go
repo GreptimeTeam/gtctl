@@ -21,6 +21,7 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 
 	"github.com/go-sql-driver/mysql"
 
@@ -29,9 +30,14 @@ import (
 )
 
 const (
-	ArgHost = "-h"
-	ArgPort = "-P"
-	MySQL   = "mysql"
+	ArgHost     = "-h"
+	ArgPort     = "-P"
+	MySQL       = "mysql"
+	DefaultAddr = "127.0.0.1"
+	DefaultNet  = "tcp"
+	PrePort     = ":"
+	Kubectl     = "kubectl"
+	PortForward = "port-forward"
 )
 
 // ConnectCommand connects to a GreptimeDB cluster
@@ -42,7 +48,7 @@ func ConnectCommand(rawCluster *greptimedbclusterv1alpha1.GreptimeDBCluster, l l
 // connect connects to a GreptimeDB cluster
 func connect(host, port, clusterName string, l logger.Logger) error {
 	waitGroup := sync.WaitGroup{}
-	cmd := exec.CommandContext(context.Background(), "kubectl", "port-forward", "-n", "default", "svc/"+clusterName+"-frontend", port+":"+port)
+	cmd := exec.CommandContext(context.Background(), Kubectl, PortForward, "-n", "default", "svc/"+clusterName+"-frontend", port+PrePort+port)
 	err := cmd.Start()
 	if err != nil {
 		l.Errorf("Error starting port-forwarding: %v", err)
@@ -52,22 +58,28 @@ func connect(host, port, clusterName string, l logger.Logger) error {
 	go func() {
 		defer waitGroup.Done()
 		if err = cmd.Wait(); err != nil {
-			if err != nil && err.Error() != "signal: killed" {
-				l.V(1).Info("Shutting down port-forwarding successfully")
+			//exit status 1
+			exitError, ok := err.(*exec.ExitError)
+			if !ok {
+				l.Errorf("Error waiting for port-forwarding to finish: %v", err)
+				return
+			}
+			if exitError.Sys().(syscall.WaitStatus).ExitStatus() == 1 {
+				return
 			}
 		}
 	}()
 	for {
 		cfg := mysql.Config{
-			Net:                  "tcp",
-			Addr:                 "127.0.0.1:4002",
+			Net:                  DefaultNet,
+			Addr:                 DefaultAddr + PrePort + port,
 			User:                 "",
 			Passwd:               "",
 			DBName:               "",
 			AllowNativePasswords: true,
 		}
 
-		db, err := sql.Open("mysql", cfg.FormatDSN())
+		db, err := sql.Open(MySQL, cfg.FormatDSN())
 		if err != nil {
 			continue
 		}
@@ -79,13 +91,15 @@ func connect(host, port, clusterName string, l logger.Logger) error {
 
 		err = db.Close()
 		if err != nil {
-			l.V(1).Infof("Error closing connection: %v", err)
+			if err == os.ErrProcessDone {
+				return nil
+			}
 			return err
 		}
 		break
 	}
 
-	cmd = exec.Command(MySQL, ArgHost, host, ArgPort, port)
+	cmd = mysqlCommand(port)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -101,11 +115,16 @@ func connect(host, port, clusterName string, l logger.Logger) error {
 	// gracefully stop port-forwarding
 	err = cmd.Process.Kill()
 	if err != nil {
-		if err.Error() != "os: process already finished" {
+		if err == os.ErrProcessDone {
 			l.V(1).Info("Shutting down port-forwarding successfully")
+			return nil
 		}
 		return err
 	}
 	waitGroup.Wait()
 	return nil
+}
+
+func mysqlCommand(port string) *exec.Cmd {
+	return exec.Command(MySQL, ArgHost, DefaultAddr, ArgPort, port)
 }
