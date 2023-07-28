@@ -29,6 +29,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/utils"
 )
@@ -82,7 +83,7 @@ func NewArtifactManager(workingDir string, l logger.Logger, alwaysDownload bool)
 }
 
 // BinaryPath returns the path of the binary of the given type and version.
-func (am *ArtifactManager) BinaryPath(typ ArtifactType, artifact *Artifact) (string, error) {
+func (am *ArtifactManager) BinaryPath(typ ArtifactType, artifact *config.Artifact) (string, error) {
 	if artifact.Local != "" {
 		return artifact.Local, nil
 	}
@@ -95,7 +96,7 @@ func (am *ArtifactManager) BinaryPath(typ ArtifactType, artifact *Artifact) (str
 }
 
 // PrepareArtifact will download the artifact from the given URL and uncompressed it.
-func (am *ArtifactManager) PrepareArtifact(typ ArtifactType, artifact *Artifact) error {
+func (am *ArtifactManager) PrepareArtifact(typ ArtifactType, artifact *config.Artifact) error {
 	// If you use the local artifact, we don't need to download it.
 	if artifact.Local != "" {
 		return nil
