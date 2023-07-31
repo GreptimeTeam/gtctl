@@ -22,6 +22,7 @@ import (
 	"path"
 	"strconv"
 	"sync"
+	"syscall"
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -62,7 +63,7 @@ func NewGreptimeDBCluster(config *config.Cluster, dataDir, logsDir, pidsDir stri
 
 func runBinary(ctx context.Context, binary string, args []string, logDir string, pidDir string,
 	wait *sync.WaitGroup, logger logger.Logger) error {
-	cmd := exec.Command(binary, args...)
+	cmd := exec.CommandContext(ctx, binary, args...)
 
 	// output to binary.
 	logFile := path.Join(logDir, "log")
@@ -95,8 +96,16 @@ func runBinary(ctx context.Context, binary string, args []string, logDir string,
 	go func() {
 		defer wait.Done()
 		wait.Add(1)
-		// TODO(sh2) caught up the `signal: interrupt` error and ignore
 		if err := cmd.Wait(); err != nil {
+			// Caught signal kill and interrupt error then ignore.
+			if exit, ok := err.(*exec.ExitError); ok {
+				if status, ok := exit.Sys().(syscall.WaitStatus); ok {
+					if status.Signaled() &&
+						(status.Signal() == syscall.SIGKILL || status.Signal() == syscall.SIGINT) {
+						return
+					}
+				}
+			}
 			logger.Errorf("binary '%s' exited with error: %v", binary, err)
 		}
 	}()

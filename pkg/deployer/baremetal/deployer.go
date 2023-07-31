@@ -278,18 +278,15 @@ func (d *Deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 	return fmt.Errorf("only support for k8s Deployer")
 }
 
-func (d *Deployer) Wait(ctx context.Context, stop context.CancelFunc) error {
+func (d *Deployer) Wait(ctx context.Context) error {
 	d.wg.Wait()
 
 	d.logger.V(3).Info("Cluster shutting down. Cleaning allocated resources.")
 
-	select {
-	case <-ctx.Done():
-		stop()
-		// Delete cluster after closing, which can only happens in the foreground.
-		if err := d.deleteGreptimeDBClusterForeground(ctx); err != nil {
-			return err
-		}
+	<-ctx.Done()
+	// Delete cluster after closing, which can only happens in the foreground.
+	if err := d.deleteGreptimeDBClusterForeground(ctx); err != nil {
+		return err
 	}
 
 	return nil

@@ -91,16 +91,19 @@ func (d *dataNodes) Start(ctx context.Context, binary string) error {
 		}
 	}
 
-	// FIXME(zyy17): Should add a timeout here.
-	ticker := time.Tick(500 * time.Millisecond)
+	// Checking component running status with intervals.
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
 
-TICKER:
+CHECKER:
 	for {
 		select {
-		case <-ticker:
+		case <-ticker.C:
 			if d.IsRunning(ctx) {
-				break TICKER
+				break CHECKER
 			}
+		case <-ctx.Done():
+			return fmt.Errorf("status checking failed: %v", ctx.Err())
 		}
 	}
 
