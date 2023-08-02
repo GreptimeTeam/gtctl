@@ -82,11 +82,13 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 	}
 	d.am = am
 
-	if err := d.createClusterDirs(clusterName); err != nil {
-		return nil, err
-	}
+	if len(clusterName) > 0 {
+		if err := d.createClusterDirs(clusterName); err != nil {
+			return nil, err
+		}
 
-	d.bm = component.NewGreptimeDBCluster(d.config.Cluster, d.dataDir, d.logsDir, d.pidsDir, &d.wg, d.logger)
+		d.bm = component.NewGreptimeDBCluster(d.config.Cluster, d.dataDir, d.logsDir, d.pidsDir, &d.wg, d.logger)
+	}
 
 	return d, nil
 }
@@ -155,7 +157,7 @@ func (d *Deployer) ListGreptimeDBClusters(ctx context.Context, options *ListGrep
 }
 
 func (d *Deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName string, options *CreateGreptimeDBClusterOptions) error {
-	if err := d.am.PrepareArtifact(GreptimeArtifactType, d.config.Cluster.Artifact); err != nil {
+	if err := d.am.PrepareArtifact(ctx, GreptimeArtifactType, d.config.Cluster.Artifact); err != nil {
 		return err
 	}
 
@@ -189,9 +191,8 @@ func (d *Deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, opt
 
 // deleteGreptimeDBClusterForeground delete the whole cluster if it runs in foreground.
 func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context) error {
-	// It is really unnecessary to delete each components resources in the cluster
-	// since it is running in the foreground.
-	// So deleting the whole cluster resources will be fine.
+	// It is unnecessary to delete each component resources in cluster since it runs in the foreground.
+	// So deleting the whole cluster resources here would be fine.
 	if err := utils.DeleteDirIfExists(d.clusterDir); err != nil {
 		return err
 	}
@@ -200,7 +201,7 @@ func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context) error 
 }
 
 func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, options *CreateEtcdClusterOptions) error {
-	if err := d.am.PrepareArtifact(EtcdArtifactType, d.config.Etcd.Artifact); err != nil {
+	if err := d.am.PrepareArtifact(ctx, EtcdArtifactType, d.config.Etcd.Artifact); err != nil {
 		return err
 	}
 

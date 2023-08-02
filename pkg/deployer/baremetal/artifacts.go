@@ -19,9 +19,9 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -96,7 +96,7 @@ func (am *ArtifactManager) BinaryPath(typ ArtifactType, artifact *config.Artifac
 }
 
 // PrepareArtifact will download the artifact from the given URL and uncompressed it.
-func (am *ArtifactManager) PrepareArtifact(typ ArtifactType, artifact *config.Artifact) error {
+func (am *ArtifactManager) PrepareArtifact(ctx context.Context, typ ArtifactType, artifact *config.Artifact) error {
 	// If you use the local artifact, we don't need to download it.
 	if artifact.Local != "" {
 		return nil
@@ -107,7 +107,7 @@ func (am *ArtifactManager) PrepareArtifact(typ ArtifactType, artifact *config.Ar
 		binDir = path.Join(am.dir, typ.String(), artifact.Version, "bin")
 	)
 
-	artifactFile, err := am.download(typ, artifact.Version, pkgDir)
+	artifactFile, err := am.download(ctx, typ, artifact.Version, pkgDir)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
 	return nil
 }
 
-func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (string, error) {
+func (am *ArtifactManager) download(ctx context.Context, typ ArtifactType, version, pkgDir string) (string, error) {
 	var extension string
 	switch runtime.GOOS {
 	case GOOSDarwin:
@@ -224,7 +224,7 @@ func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (s
 
 	am.logger.V(3).Infof("Downloading artifact from '%s' to '%s'", downloadURL, artifactFile)
 
-	req, err := http.NewRequest(http.MethodGet, downloadURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return "", err
 	}
@@ -326,15 +326,20 @@ func (am *ArtifactManager) unzip(file, dst string) error {
 			return err
 		}
 
-		dstFile.Close()
-		fileInArchive.Close()
+		if err := dstFile.Close(); err != nil {
+			return err
+		}
+
+		if err := fileInArchive.Close(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (am *ArtifactManager) untar(file, dst string) error {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
@@ -366,7 +371,9 @@ func (am *ArtifactManager) untar(file, dst string) error {
 			if _, err := io.Copy(outFile, tarReader); err != nil {
 				return err
 			}
-			outFile.Close()
+			if err := outFile.Close(); err != nil {
+				return err
+			}
 		case tar.TypeDir:
 			if err := os.Mkdir(dst+"/"+header.Name, 0755); err != nil {
 				return err

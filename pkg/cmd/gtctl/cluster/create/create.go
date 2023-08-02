@@ -118,8 +118,9 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			}
 
 			if err := deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
+				// Wait the cluster closing if deploy fails in bare-metal mode.
 				if options.BareMetal {
-					if err := waitChildProcess(ctx, clusterDeployer, false); err != nil {
+					if err := waitChildProcess(ctx, clusterDeployer, true); err != nil {
 						return err
 					}
 				}
@@ -131,7 +132,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			}
 
 			if options.BareMetal {
-				if err := waitChildProcess(ctx, clusterDeployer, true); err != nil {
+				if err := waitChildProcess(ctx, clusterDeployer, false); err != nil {
 					return err
 				}
 			}
@@ -314,16 +315,19 @@ func printTips(l logger.Logger, clusterName string, options *createClusterCliOpt
 	l.V(0).Infof("\n%s 🔑", logger.Bold("Invest in Data, Harvest over Time."))
 }
 
-func waitChildProcess(ctx context.Context, deployer deployer.Interface, version bool) error {
+func waitChildProcess(ctx context.Context, deployer deployer.Interface, close bool) error {
 	d, ok := deployer.(*baremetal.Deployer)
 	if ok {
-		if version {
-			v := d.Config().Cluster.Artifact.Version
-			if v == "" {
-				v = "unknown"
-			}
+		v := d.Config().Cluster.Artifact.Version
+		if len(v) == 0 {
+			v = "unknown"
+		}
+
+		if !close {
 			fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("The cluster(pid=%d, version=%s) is running in bare-metal mode now...\n", os.Getpid(), v))
 			fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("To view dashboard by accessing: %s\n", logger.Bold("http://localhost:4000/dashboard/")))
+		} else {
+			fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("The cluster(pid=%d, version=%s) run in bare-metal has been deleted now...\n", os.Getpid(), v))
 		}
 
 		// Wait for all the child processes to exit.
