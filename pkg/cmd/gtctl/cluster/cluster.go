@@ -19,6 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/connect"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/create"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/delete"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/get"
@@ -47,6 +48,7 @@ func NewClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.AddCommand(scale.NewScaleClusterCommand(l))
 	cmd.AddCommand(get.NewGetClusterCommand(l))
 	cmd.AddCommand(list.NewListClustersCommand(l))
+	cmd.AddCommand(connect.NewConnectCommand(l))
 
 	return cmd
 }
