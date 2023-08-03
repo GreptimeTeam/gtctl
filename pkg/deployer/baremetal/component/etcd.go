@@ -27,19 +27,19 @@ type etcd struct {
 	dataDir string
 	logsDir string
 	pidsDir string
-	wait    *sync.WaitGroup
+	wg      *sync.WaitGroup
 	logger  logger.Logger
 
 	etcdDirs []string
 }
 
 func newEtcd(dataDir, logsDir, pidsDir string,
-	wait *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &etcd{
 		dataDir: dataDir,
 		logsDir: logsDir,
 		pidsDir: pidsDir,
-		wait:    wait,
+		wg:      wg,
 		logger:  logger,
 	}
 }
@@ -58,7 +58,7 @@ func (e *etcd) Start(ctx context.Context, binary string) error {
 	}
 	e.etcdDirs = etcdDirs
 
-	if err := runBinary(ctx, binary, e.BuildArgs(ctx, etcdDataDir), etcdLogDir, etcdPidDir, e.wait, e.logger); err != nil {
+	if err := runBinary(ctx, binary, e.BuildArgs(ctx, etcdDataDir), etcdLogDir, etcdPidDir, e.wg, e.logger); err != nil {
 		return err
 	}
 

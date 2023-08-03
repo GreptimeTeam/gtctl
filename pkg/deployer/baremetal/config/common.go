@@ -14,6 +14,14 @@
 
 package config
 
+const (
+	// GtctlDir is the root directory that contains states of cluster info.
+	GtctlDir = ".gtctl"
+
+	DefaultEtcdVersion     = "v3.5.7"
+	DefaultGreptimeVersion = "latest"
+)
+
 // Config is the desired state of a GreptimeDB cluster on bare metal.
 //
 // The field of Config that with `validate` tag will be validated
@@ -28,7 +36,7 @@ type Config struct {
 type Cluster struct {
 	Artifact *Artifact `yaml:"artifact" validate:"required"`
 	Frontend *Frontend `yaml:"frontend" validate:"required"`
-	Meta     *Meta     `yaml:"meta" validate:"required"`
+	MetaSrv  *MetaSrv  `yaml:"meta" validate:"required"`
 	Datanode *Datanode `yaml:"datanode" validate:"required"`
 }
 
@@ -48,7 +56,7 @@ func DefaultConfig() *Config {
 				Version: DefaultGreptimeVersion,
 			},
 			Frontend: &Frontend{},
-			Meta: &Meta{
+			MetaSrv: &MetaSrv{
 				StoreAddr:  "127.0.0.1:2379",
 				ServerAddr: "0.0.0.0:3002",
 				HTTPAddr:   "0.0.0.0:14001",

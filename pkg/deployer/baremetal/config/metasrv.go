@@ -14,7 +14,7 @@
 
 package config
 
-type Meta struct {
+type MetaSrv struct {
 	StoreAddr  string `yaml:"storeAddr" validate:"hostname_port"`
 	ServerAddr string `yaml:"serverAddr" validate:"hostname_port"`
 	BindAddr   string `yaml:"bindAddr" validate:"omitempty,hostname_port"`

@@ -170,7 +170,7 @@ func (d *Deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName stri
 		return err
 	}
 
-	if err := d.bm.DataNodes.Start(ctx, binary); err != nil {
+	if err := d.bm.Datanode.Start(ctx, binary); err != nil {
 		return err
 	}
 

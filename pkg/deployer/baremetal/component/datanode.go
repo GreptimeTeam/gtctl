@@ -29,14 +29,14 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/utils"
 )
 
-type dataNodes struct {
+type datanode struct {
 	config      *config.Datanode
 	metaSrvAddr string
 
 	dataDir string
 	logsDir string
 	pidsDir string
-	wait    *sync.WaitGroup
+	wg      *sync.WaitGroup
 	logger  logger.Logger
 
 	dataHome         string
@@ -46,19 +46,19 @@ type dataNodes struct {
 }
 
 func newDataNodes(config *config.Datanode, metaSrvAddr, dataDir, logsDir, pidsDir string,
-	wait *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
-	return &dataNodes{
+	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+	return &datanode{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
 		dataDir:     dataDir,
 		logsDir:     logsDir,
 		pidsDir:     pidsDir,
-		wait:        wait,
+		wg:          wg,
 		logger:      logger,
 	}
 }
 
-func (d *dataNodes) Start(ctx context.Context, binary string) error {
+func (d *datanode) Start(ctx context.Context, binary string) error {
 	dataHome := path.Join(d.dataDir, "home")
 	if err := utils.CreateDirIfNotExists(dataHome); err != nil {
 		return err
@@ -86,7 +86,7 @@ func (d *dataNodes) Start(ctx context.Context, binary string) error {
 		}
 		d.dataNodeDataDirs = append(d.dataNodeDataDirs, path.Join(d.dataDir, dirName))
 
-		if err := runBinary(ctx, binary, d.BuildArgs(ctx, i, walDir), datanodeLogDir, datanodePidDir, d.wait, d.logger); err != nil {
+		if err := runBinary(ctx, binary, d.BuildArgs(ctx, i, walDir), datanodeLogDir, datanodePidDir, d.wg, d.logger); err != nil {
 			return err
 		}
 	}
@@ -110,7 +110,7 @@ CHECKER:
 	return nil
 }
 
-func (d *dataNodes) BuildArgs(ctx context.Context, params ...interface{}) []string {
+func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []string {
 	logLevel := d.config.LogLevel
 	if logLevel == "" {
 		logLevel = "info"
@@ -132,7 +132,7 @@ func (d *dataNodes) BuildArgs(ctx context.Context, params ...interface{}) []stri
 	return args
 }
 
-func (d *dataNodes) IsRunning(ctx context.Context) bool {
+func (d *datanode) IsRunning(ctx context.Context) bool {
 	for i := 0; i < d.config.Replicas; i++ {
 		addr := generateDatanodeAddr(d.config.HTTPAddr, i)
 		_, httpPort, err := net.SplitHostPort(addr)
@@ -159,7 +159,7 @@ func (d *dataNodes) IsRunning(ctx context.Context) bool {
 	return true
 }
 
-func (d *dataNodes) Delete(ctx context.Context) error {
+func (d *datanode) Delete(ctx context.Context) error {
 	if err := utils.DeleteDirIfExists(d.dataHome); err != nil {
 		return err
 	}

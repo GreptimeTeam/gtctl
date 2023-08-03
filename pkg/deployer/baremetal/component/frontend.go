@@ -31,20 +31,20 @@ type frontend struct {
 
 	logsDir string
 	pidsDir string
-	wait    *sync.WaitGroup
+	wg      *sync.WaitGroup
 	logger  logger.Logger
 
 	frontendDirs []string
 }
 
 func newFrontend(config *config.Frontend, metaSrvAddr, logsDir, pidsDir string,
-	wait *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &frontend{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
 		logsDir:     logsDir,
 		pidsDir:     pidsDir,
-		wait:        wait,
+		wg:          wg,
 		logger:      logger,
 	}
 }
@@ -62,7 +62,7 @@ func (f *frontend) Start(ctx context.Context, binary string) error {
 	}
 	f.frontendDirs = frontendDirs
 
-	if err := runBinary(ctx, binary, f.BuildArgs(ctx), frontendLogDir, frontendPidDir, f.wait, f.logger); err != nil {
+	if err := runBinary(ctx, binary, f.BuildArgs(ctx), frontendLogDir, frontendPidDir, f.wg, f.logger); err != nil {
 		return err
 	}
 

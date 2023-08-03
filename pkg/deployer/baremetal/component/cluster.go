@@ -30,10 +30,10 @@ import (
 
 // BareMetalCluster describes all the components need to be deployed under bare-metal mode.
 type BareMetalCluster struct {
-	MetaSrv   BareMetalClusterComponent
-	DataNodes BareMetalClusterComponent
-	Frontend  BareMetalClusterComponent
-	Etcd      BareMetalClusterComponent
+	MetaSrv  BareMetalClusterComponent
+	Datanode BareMetalClusterComponent
+	Frontend BareMetalClusterComponent
+	Etcd     BareMetalClusterComponent
 }
 
 // BareMetalClusterComponent is the basic unit of running GreptimeDB Cluster in bare-metal mode.
@@ -52,17 +52,17 @@ type BareMetalClusterComponent interface {
 }
 
 func NewGreptimeDBCluster(config *config.Cluster, dataDir, logsDir, pidsDir string,
-	wait *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
+	wg *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
 	return &BareMetalCluster{
-		MetaSrv:   newMetaSrv(config.Meta, logsDir, pidsDir, wait, logger),
-		DataNodes: newDataNodes(config.Datanode, config.Meta.ServerAddr, dataDir, logsDir, pidsDir, wait, logger),
-		Frontend:  newFrontend(config.Frontend, config.Meta.ServerAddr, logsDir, pidsDir, wait, logger),
-		Etcd:      newEtcd(dataDir, logsDir, pidsDir, wait, logger),
+		MetaSrv:  newMetaSrv(config.MetaSrv, logsDir, pidsDir, wg, logger),
+		Datanode: newDataNodes(config.Datanode, config.MetaSrv.ServerAddr, dataDir, logsDir, pidsDir, wg, logger),
+		Frontend: newFrontend(config.Frontend, config.MetaSrv.ServerAddr, logsDir, pidsDir, wg, logger),
+		Etcd:     newEtcd(dataDir, logsDir, pidsDir, wg, logger),
 	}
 }
 
 func runBinary(ctx context.Context, binary string, args []string, logDir string, pidDir string,
-	wait *sync.WaitGroup, logger logger.Logger) error {
+	wg *sync.WaitGroup, logger logger.Logger) error {
 	cmd := exec.CommandContext(ctx, binary, args...)
 
 	// output to binary.
@@ -94,8 +94,8 @@ func runBinary(ctx context.Context, binary string, args []string, logDir string,
 	}
 
 	go func() {
-		defer wait.Done()
-		wait.Add(1)
+		defer wg.Done()
+		wg.Add(1)
 		if err := cmd.Wait(); err != nil {
 			// Caught signal kill and interrupt error then ignore.
 			if exit, ok := err.(*exec.ExitError); ok {

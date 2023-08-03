@@ -29,23 +29,23 @@ import (
 )
 
 type metaSrv struct {
-	config *config.Meta
+	config *config.MetaSrv
 
 	logsDir string
 	pidsDir string
-	wait    *sync.WaitGroup
+	wg      *sync.WaitGroup
 	logger  logger.Logger
 
 	metaSrvDirs []string
 }
 
-func newMetaSrv(config *config.Meta, logsDir, pidsDir string,
-	wait *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newMetaSrv(config *config.MetaSrv, logsDir, pidsDir string,
+	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &metaSrv{
 		config:  config,
 		logsDir: logsDir,
 		pidsDir: pidsDir,
-		wait:    wait,
+		wg:      wg,
 		logger:  logger,
 	}
 }
@@ -63,7 +63,7 @@ func (m *metaSrv) Start(ctx context.Context, binary string) error {
 	}
 	m.metaSrvDirs = metaSrvDirs
 
-	if err := runBinary(ctx, binary, m.BuildArgs(ctx), metaSrvLogDir, metaSrvPidDir, m.wait, m.logger); err != nil {
+	if err := runBinary(ctx, binary, m.BuildArgs(ctx), metaSrvLogDir, metaSrvPidDir, m.wg, m.logger); err != nil {
 		return err
 	}
 
