@@ -24,31 +24,26 @@ import (
 )
 
 type etcd struct {
-	dataDir string
-	logsDir string
-	pidsDir string
-	wg      *sync.WaitGroup
-	logger  logger.Logger
+	workDirs WorkDirs
+	wg       *sync.WaitGroup
+	logger   logger.Logger
 
 	etcdDirs []string
 }
 
-func newEtcd(dataDir, logsDir, pidsDir string,
-	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newEtcd(workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &etcd{
-		dataDir: dataDir,
-		logsDir: logsDir,
-		pidsDir: pidsDir,
-		wg:      wg,
-		logger:  logger,
+		workDirs: workDirs,
+		wg:       wg,
+		logger:   logger,
 	}
 }
 
 func (e *etcd) Start(ctx context.Context, binary string) error {
 	var (
-		etcdDataDir = path.Join(e.dataDir, "etcd")
-		etcdLogDir  = path.Join(e.logsDir, "etcd")
-		etcdPidDir  = path.Join(e.pidsDir, "etcd")
+		etcdDataDir = path.Join(e.workDirs.DataDir, "etcd")
+		etcdLogDir  = path.Join(e.workDirs.LogsDir, "etcd")
+		etcdPidDir  = path.Join(e.workDirs.PidsDir, "etcd")
 		etcdDirs    = []string{etcdDataDir, etcdLogDir, etcdPidDir}
 	)
 	for _, dir := range etcdDirs {

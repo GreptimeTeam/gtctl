@@ -28,6 +28,13 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
+// WorkDirs include all the dirs used in bare-metal mode.
+type WorkDirs struct {
+	DataDir string
+	LogsDir string
+	PidsDir string
+}
+
 // BareMetalCluster describes all the components need to be deployed under bare-metal mode.
 type BareMetalCluster struct {
 	MetaSrv  BareMetalClusterComponent
@@ -51,13 +58,12 @@ type BareMetalClusterComponent interface {
 	Delete(ctx context.Context) error
 }
 
-func NewGreptimeDBCluster(config *config.Cluster, dataDir, logsDir, pidsDir string,
-	wg *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
+func NewGreptimeDBCluster(config *config.Cluster, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
 	return &BareMetalCluster{
-		MetaSrv:  newMetaSrv(config.MetaSrv, logsDir, pidsDir, wg, logger),
-		Datanode: newDataNodes(config.Datanode, config.MetaSrv.ServerAddr, dataDir, logsDir, pidsDir, wg, logger),
-		Frontend: newFrontend(config.Frontend, config.MetaSrv.ServerAddr, logsDir, pidsDir, wg, logger),
-		Etcd:     newEtcd(dataDir, logsDir, pidsDir, wg, logger),
+		MetaSrv:  newMetaSrv(config.MetaSrv, workDirs, wg, logger),
+		Datanode: newDataNodes(config.Datanode, config.MetaSrv.ServerAddr, workDirs, wg, logger),
+		Frontend: newFrontend(config.Frontend, config.MetaSrv.ServerAddr, workDirs, wg, logger),
+		Etcd:     newEtcd(workDirs, wg, logger),
 	}
 }
 

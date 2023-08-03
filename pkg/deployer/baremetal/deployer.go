@@ -87,7 +87,12 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 			return nil, err
 		}
 
-		d.bm = component.NewGreptimeDBCluster(d.config.Cluster, d.dataDir, d.logsDir, d.pidsDir, &d.wg, d.logger)
+		workDirs := component.WorkDirs{
+			DataDir: d.dataDir,
+			LogsDir: d.logsDir,
+			PidsDir: d.pidsDir,
+		}
+		d.bm = component.NewGreptimeDBCluster(d.config.Cluster, workDirs, &d.wg, d.logger)
 	}
 
 	return d, nil

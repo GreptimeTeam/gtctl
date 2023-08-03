@@ -33,11 +33,9 @@ type datanode struct {
 	config      *config.Datanode
 	metaSrvAddr string
 
-	dataDir string
-	logsDir string
-	pidsDir string
-	wg      *sync.WaitGroup
-	logger  logger.Logger
+	workDirs WorkDirs
+	wg       *sync.WaitGroup
+	logger   logger.Logger
 
 	dataHome         string
 	dataNodeLogDirs  []string
@@ -45,21 +43,18 @@ type datanode struct {
 	dataNodeDataDirs []string
 }
 
-func newDataNodes(config *config.Datanode, metaSrvAddr, dataDir, logsDir, pidsDir string,
-	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newDataNodes(config *config.Datanode, metaSrvAddr string, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &datanode{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
-		dataDir:     dataDir,
-		logsDir:     logsDir,
-		pidsDir:     pidsDir,
+		workDirs:    workDirs,
 		wg:          wg,
 		logger:      logger,
 	}
 }
 
 func (d *datanode) Start(ctx context.Context, binary string) error {
-	dataHome := path.Join(d.dataDir, "home")
+	dataHome := path.Join(d.workDirs.DataDir, "home")
 	if err := utils.CreateDirIfNotExists(dataHome); err != nil {
 		return err
 	}
@@ -68,23 +63,23 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 	for i := 0; i < d.config.Replicas; i++ {
 		dirName := fmt.Sprintf("datanode.%d", i)
 
-		datanodeLogDir := path.Join(d.logsDir, dirName)
+		datanodeLogDir := path.Join(d.workDirs.LogsDir, dirName)
 		if err := utils.CreateDirIfNotExists(datanodeLogDir); err != nil {
 			return err
 		}
 		d.dataNodeLogDirs = append(d.dataNodeLogDirs, datanodeLogDir)
 
-		datanodePidDir := path.Join(d.pidsDir, dirName)
+		datanodePidDir := path.Join(d.workDirs.PidsDir, dirName)
 		if err := utils.CreateDirIfNotExists(datanodePidDir); err != nil {
 			return err
 		}
 		d.dataNodePidDirs = append(d.dataNodePidDirs, datanodePidDir)
 
-		walDir := path.Join(d.dataDir, dirName, "wal")
+		walDir := path.Join(d.workDirs.DataDir, dirName, "wal")
 		if err := utils.CreateDirIfNotExists(walDir); err != nil {
 			return err
 		}
-		d.dataNodeDataDirs = append(d.dataNodeDataDirs, path.Join(d.dataDir, dirName))
+		d.dataNodeDataDirs = append(d.dataNodeDataDirs, path.Join(d.workDirs.DataDir, dirName))
 
 		if err := runBinary(ctx, binary, d.BuildArgs(ctx, i, walDir), datanodeLogDir, datanodePidDir, d.wg, d.logger); err != nil {
 			return err

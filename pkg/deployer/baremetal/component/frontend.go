@@ -29,21 +29,18 @@ type frontend struct {
 	config      *config.Frontend
 	metaSrvAddr string
 
-	logsDir string
-	pidsDir string
-	wg      *sync.WaitGroup
-	logger  logger.Logger
+	workDirs WorkDirs
+	wg       *sync.WaitGroup
+	logger   logger.Logger
 
 	frontendDirs []string
 }
 
-func newFrontend(config *config.Frontend, metaSrvAddr, logsDir, pidsDir string,
-	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newFrontend(config *config.Frontend, metaSrvAddr string, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &frontend{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
-		logsDir:     logsDir,
-		pidsDir:     pidsDir,
+		workDirs:    workDirs,
 		wg:          wg,
 		logger:      logger,
 	}
@@ -51,8 +48,8 @@ func newFrontend(config *config.Frontend, metaSrvAddr, logsDir, pidsDir string,
 
 func (f *frontend) Start(ctx context.Context, binary string) error {
 	var (
-		frontendLogDir = path.Join(f.logsDir, "frontend")
-		frontendPidDir = path.Join(f.pidsDir, "frontend")
+		frontendLogDir = path.Join(f.workDirs.LogsDir, "frontend")
+		frontendPidDir = path.Join(f.workDirs.PidsDir, "frontend")
 		frontendDirs   = []string{frontendLogDir, frontendPidDir}
 	)
 	for _, dir := range frontendDirs {

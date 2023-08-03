@@ -31,29 +31,26 @@ import (
 type metaSrv struct {
 	config *config.MetaSrv
 
-	logsDir string
-	pidsDir string
-	wg      *sync.WaitGroup
-	logger  logger.Logger
+	workDirs WorkDirs
+	wg       *sync.WaitGroup
+	logger   logger.Logger
 
 	metaSrvDirs []string
 }
 
-func newMetaSrv(config *config.MetaSrv, logsDir, pidsDir string,
-	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newMetaSrv(config *config.MetaSrv, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &metaSrv{
-		config:  config,
-		logsDir: logsDir,
-		pidsDir: pidsDir,
-		wg:      wg,
-		logger:  logger,
+		config:   config,
+		workDirs: workDirs,
+		wg:       wg,
+		logger:   logger,
 	}
 }
 
 func (m *metaSrv) Start(ctx context.Context, binary string) error {
 	var (
-		metaSrvLogDir = path.Join(m.logsDir, "metasrv")
-		metaSrvPidDir = path.Join(m.pidsDir, "metasrv")
+		metaSrvLogDir = path.Join(m.workDirs.LogsDir, "metasrv")
+		metaSrvPidDir = path.Join(m.workDirs.PidsDir, "metasrv")
 		metaSrvDirs   = []string{metaSrvLogDir, metaSrvPidDir}
 	)
 	for _, dir := range metaSrvDirs {
