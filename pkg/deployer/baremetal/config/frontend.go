@@ -15,6 +15,8 @@
 package config
 
 type Frontend struct {
+	Replicas int `yaml:"replicas" validate:"gt=0"`
+
 	GRPCAddr     string `yaml:"grpcAddr" validate:"omitempty,hostname_port"`
 	HTTPAddr     string `yaml:"httpAddr" validate:"omitempty,hostname_port"`
 	PostgresAddr string `yaml:"postgresAddr" validate:"omitempty,hostname_port"`

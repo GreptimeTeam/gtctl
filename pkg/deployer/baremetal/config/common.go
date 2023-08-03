@@ -55,7 +55,9 @@ func DefaultConfig() *Config {
 			Artifact: &Artifact{
 				Version: DefaultGreptimeVersion,
 			},
-			Frontend: &Frontend{},
+			Frontend: &Frontend{
+				Replicas: 1,
+			},
 			MetaSrv: &MetaSrv{
 				StoreAddr:  "127.0.0.1:2379",
 				ServerAddr: "0.0.0.0:3002",

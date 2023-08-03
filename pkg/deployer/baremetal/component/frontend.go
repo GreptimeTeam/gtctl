@@ -33,7 +33,8 @@ type frontend struct {
 	wg       *sync.WaitGroup
 	logger   logger.Logger
 
-	frontendDirs []string
+	frontendLogDirs []string
+	frontendPidDirs []string
 }
 
 func newFrontend(config *config.Frontend, metaSrvAddr string, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
@@ -47,20 +48,24 @@ func newFrontend(config *config.Frontend, metaSrvAddr string, workDirs WorkDirs,
 }
 
 func (f *frontend) Start(ctx context.Context, binary string) error {
-	var (
-		frontendLogDir = path.Join(f.workDirs.LogsDir, "frontend")
-		frontendPidDir = path.Join(f.workDirs.PidsDir, "frontend")
-		frontendDirs   = []string{frontendLogDir, frontendPidDir}
-	)
-	for _, dir := range frontendDirs {
-		if err := utils.CreateDirIfNotExists(dir); err != nil {
+	for i := 0; i < f.config.Replicas; i++ {
+		dirName := fmt.Sprintf("frontend.%d", i)
+
+		frontendLogDir := path.Join(f.workDirs.LogsDir, dirName)
+		if err := utils.CreateDirIfNotExists(frontendLogDir); err != nil {
 			return err
 		}
-	}
-	f.frontendDirs = frontendDirs
+		f.frontendLogDirs = append(f.frontendLogDirs, frontendLogDir)
 
-	if err := runBinary(ctx, binary, f.BuildArgs(ctx), frontendLogDir, frontendPidDir, f.wg, f.logger); err != nil {
-		return err
+		frontendPidDir := path.Join(f.workDirs.PidsDir, dirName)
+		if err := utils.CreateDirIfNotExists(frontendPidDir); err != nil {
+			return err
+		}
+		f.frontendPidDirs = append(f.frontendPidDirs, frontendPidDir)
+
+		if err := runBinary(ctx, binary, f.BuildArgs(ctx), frontendLogDir, frontendPidDir, f.wg, f.logger); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -85,11 +90,17 @@ func (f *frontend) IsRunning(ctx context.Context) bool {
 }
 
 func (f *frontend) Delete(ctx context.Context) error {
-	for _, dir := range f.frontendDirs {
+	for _, dir := range f.frontendLogDirs {
 		if err := utils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}
-	f.frontendDirs = nil
+
+	for _, dir := range f.frontendPidDirs {
+		if err := utils.DeleteDirIfExists(dir); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
