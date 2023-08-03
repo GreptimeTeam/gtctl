@@ -15,10 +15,6 @@
 package baremetal
 
 import (
-	"archive/tar"
-	"archive/zip"
-	"bytes"
-	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -40,12 +36,6 @@ const (
 
 	EtcdGitHubOrg  = "etcd-io"
 	EtcdGithubRepo = "etcd"
-
-	ZipExtension   = ".zip"
-	TarGzExtension = ".tar.gz"
-	TarExtension   = ".tar"
-	TgzExtension   = ".tgz"
-	GzExtension    = ".gz"
 
 	GOOSDarwin = "darwin"
 	GOOSLinux  = "linux"
@@ -147,7 +137,7 @@ func (am *ArtifactManager) PrepareArtifact(ctx context.Context, typ ArtifactType
 }
 
 func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) error {
-	if err := am.uncompress(artifactFile, pkgDir); err != nil {
+	if err := utils.Uncompress(artifactFile, pkgDir); err != nil {
 		return err
 	}
 
@@ -158,10 +148,10 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 	artifactFile = path.Base(artifactFile)
 	// If the artifactFile is '${pkgDir}/etcd-v3.5.7-darwin-arm64.zip', it will get '${pkgDir}/etcd-v3.5.7-darwin-arm64'.
 	uncompressedDir := path.Join(pkgDir, artifactFile[:len(artifactFile)-len(filepath.Ext(artifactFile))])
-	uncompressedDir = strings.TrimSuffix(uncompressedDir, TarExtension)
+	uncompressedDir = strings.TrimSuffix(uncompressedDir, utils.TarExtension)
 	binaries := []string{"etcd", "etcdctl", "etcdutl"}
 	for _, binary := range binaries {
-		if err := am.copyFile(path.Join(uncompressedDir, binary), path.Join(binDir, binary)); err != nil {
+		if err := utils.CopyFile(path.Join(uncompressedDir, binary), path.Join(binDir, binary)); err != nil {
 			return err
 		}
 		if err := os.Chmod(path.Join(binDir, binary), 0755); err != nil {
@@ -176,7 +166,7 @@ func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
 		return err
 	}
 
-	if err := am.uncompress(artifactFile, binDir); err != nil {
+	if err := utils.Uncompress(artifactFile, binDir); err != nil {
 		return err
 	}
 
@@ -188,16 +178,7 @@ func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
 }
 
 func (am *ArtifactManager) download(ctx context.Context, typ ArtifactType, version, pkgDir string) (string, error) {
-	var extension string
-	switch runtime.GOOS {
-	case GOOSDarwin:
-		extension = ZipExtension
-	case GOOSLinux:
-		extension = TarGzExtension
-	default:
-		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-	}
-	downloadURL, err := am.artifactURL(typ, version, extension)
+	downloadURL, err := am.artifactURL(typ, version)
 	if err != nil {
 		return "", err
 	}
@@ -255,7 +236,18 @@ func (am *ArtifactManager) download(ctx context.Context, typ ArtifactType, versi
 	return artifactFile, nil
 }
 
-func (am *ArtifactManager) artifactURL(typ ArtifactType, version, ext string) (string, error) {
+func (am *ArtifactManager) artifactURL(typ ArtifactType, version string) (string, error) {
+	var etcdPackageExt string
+
+	switch runtime.GOOS {
+	case GOOSDarwin:
+		etcdPackageExt = utils.ZipExtension
+	case GOOSLinux:
+		etcdPackageExt = utils.TarGzExtension
+	default:
+		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	}
+
 	switch typ {
 	case GreptimeArtifactType:
 		var downloadURL string
@@ -270,139 +262,9 @@ func (am *ArtifactManager) artifactURL(typ ArtifactType, version, ext string) (s
 	case EtcdArtifactType:
 		// For the function stability, we use the specific version of etcd.
 		downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s%s",
-			EtcdGitHubOrg, EtcdGithubRepo, version, string(typ), version, runtime.GOOS, runtime.GOARCH, ext)
+			EtcdGitHubOrg, EtcdGithubRepo, version, string(typ), version, runtime.GOOS, runtime.GOARCH, etcdPackageExt)
 		return downloadURL, nil
 	default:
 		return "", fmt.Errorf("unsupported artifact type: %v", typ)
 	}
-}
-
-func (am *ArtifactManager) uncompress(file, dst string) error {
-	fileType := path.Ext(file)
-	switch fileType {
-	case ZipExtension:
-		return am.unzip(file, dst)
-	case TgzExtension:
-		return am.untar(file, dst)
-	case GzExtension:
-		return am.untar(file, dst)
-	default:
-		return fmt.Errorf("unsupported file type: %s", fileType)
-	}
-}
-
-func (am *ArtifactManager) unzip(file, dst string) error {
-	archive, err := zip.OpenReader(file)
-	if err != nil {
-		return err
-	}
-	defer archive.Close()
-
-	for _, f := range archive.File {
-		filePath := filepath.Join(dst, f.Name)
-
-		if f.FileInfo().IsDir() {
-			if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-				return err
-			}
-			continue
-		}
-
-		if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
-			return err
-		}
-
-		dstFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return err
-		}
-
-		fileInArchive, err := f.Open()
-		if err != nil {
-			return err
-		}
-
-		if _, err := io.Copy(dstFile, fileInArchive); err != nil {
-			return err
-		}
-
-		if err := dstFile.Close(); err != nil {
-			return err
-		}
-
-		if err := fileInArchive.Close(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (am *ArtifactManager) untar(file, dst string) error {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	stream, err := gzip.NewReader(bytes.NewReader(data))
-	if err != nil {
-		return err
-	}
-
-	tarReader := tar.NewReader(stream)
-
-	for {
-		header, err := tarReader.Next()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return err
-		}
-
-		switch header.Typeflag {
-		case tar.TypeReg:
-			outFile, err := os.Create(dst + "/" + header.Name)
-			if err != nil {
-				return err
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				return err
-			}
-			if err := outFile.Close(); err != nil {
-				return err
-			}
-		case tar.TypeDir:
-			if err := os.Mkdir(dst+"/"+header.Name, 0755); err != nil {
-				return err
-			}
-		default:
-			continue
-		}
-	}
-
-	return nil
-}
-
-func (am *ArtifactManager) copyFile(src, dst string) error {
-	r, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-
-	w, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	_, err = io.Copy(w, r)
-	if err != nil {
-		return err
-	}
-
-	return w.Sync()
 }
