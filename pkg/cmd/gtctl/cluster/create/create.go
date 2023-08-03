@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -27,6 +29,7 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/common"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal"
+	bmconfig "github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/status"
@@ -75,10 +78,17 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 
 			var (
 				clusterName = args[0]
-
-				// TODO(zyy17): should use timeout context.
-				ctx = context.TODO()
+				ctx         = context.Background()
+				cancel      context.CancelFunc
 			)
+
+			if options.Timeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, time.Duration(options.Timeout)*time.Second)
+				defer cancel()
+			}
+
+			ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+			defer stop()
 
 			clusterDeployer, err := newDeployer(l, clusterName, &options)
 			if err != nil {
@@ -113,6 +123,12 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			}
 
 			if err = deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
+				// Wait the cluster closing if deploy fails in bare-metal mode.
+				if options.BareMetal {
+					if err := waitChildProcess(ctx, clusterDeployer, true); err != nil {
+						return err
+					}
+				}
 				return err
 			}
 
@@ -121,20 +137,8 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			}
 
 			if options.BareMetal {
-				d, ok := clusterDeployer.(*baremetal.Deployer)
-				if ok {
-					version := d.Config().Cluster.Artifact.Version
-					if version == "" {
-						version = "unknown"
-					}
-					fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("The cluster(pid=%d, version=%s) is running in bare-metal mode now...\n",
-						os.Getpid(), version))
-					fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("To view dashboard by accessing: %s\n", logger.Bold("http://localhost:4000/dashboard/")))
-
-					// Wait for all the child processes to exit.
-					if err := d.Wait(ctx); err != nil {
-						return err
-					}
+				if err := waitChildProcess(ctx, clusterDeployer, false); err != nil {
+					return err
 				}
 			}
 
@@ -183,7 +187,7 @@ func newDeployer(l logger.Logger, clusterName string, options *createClusterCliO
 	}
 
 	if options.Config != "" {
-		var config baremetal.Config
+		var config bmconfig.Config
 		data, err := os.ReadFile(options.Config)
 		if err != nil {
 			return nil, err
@@ -318,4 +322,27 @@ func printTips(l logger.Logger, clusterName string, options *createClusterCliOpt
 	l.V(0).Infof("%s", fmt.Sprintf("%s psql -h 127.0.0.1 -p 4003", logger.Bold("$")))
 	l.V(0).Infof("\nThank you for using %s! Check for more information on %s. 😊", logger.Bold("GreptimeDB"), logger.Bold("https://greptime.com"))
 	l.V(0).Infof("\n%s 🔑", logger.Bold("Invest in Data, Harvest over Time."))
+}
+
+func waitChildProcess(ctx context.Context, deployer deployer.Interface, close bool) error {
+	d, ok := deployer.(*baremetal.Deployer)
+	if ok {
+		v := d.Config().Cluster.Artifact.Version
+		if len(v) == 0 {
+			v = "unknown"
+		}
+
+		if !close {
+			fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("The cluster(pid=%d, version=%s) is running in bare-metal mode now...\n", os.Getpid(), v))
+			fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("To view dashboard by accessing: %s\n", logger.Bold("http://localhost:4000/dashboard/")))
+		} else {
+			fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("The cluster(pid=%d, version=%s) run in bare-metal has been deleted now...\n", os.Getpid(), v))
+		}
+
+		// Wait for all the child processes to exit.
+		if err := d.Wait(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }

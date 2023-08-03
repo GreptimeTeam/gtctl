@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package baremetal
+package config
 
-const (
-	// GtctlDir is the root directory that contains states of cluster info.
-	GtctlDir = ".gtctl"
+type MetaSrv struct {
+	StoreAddr  string `yaml:"storeAddr" validate:"hostname_port"`
+	ServerAddr string `yaml:"serverAddr" validate:"hostname_port"`
+	BindAddr   string `yaml:"bindAddr" validate:"omitempty,hostname_port"`
+	HTTPAddr   string `yaml:"httpAddr" validate:"required,hostname_port"`
 
-	DefaultEtcdVersion     = "v3.5.7"
-	DefaultGreptimeVersion = "latest"
-)
+	LogLevel string `yaml:"logLevel"`
+}
