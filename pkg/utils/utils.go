@@ -24,6 +24,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 func CreateDirIfNotExists(dir string) (err error) {
@@ -81,6 +83,22 @@ func CopyFile(src, dst string) error {
 	}
 
 	return w.Sync()
+}
+
+// SemVerCompare compares two semantic versions.
+// It returns true if v1 is greater than v2, otherwise false.
+func SemVerCompare(v1, v2 string) (bool, error) {
+	semV1, err := semver.NewVersion(v1)
+	if err != nil {
+		return false, err
+	}
+
+	semV2, err := semver.NewVersion(v2)
+	if err != nil {
+		return false, err
+	}
+
+	return semV1.GreaterThan(semV2), nil
 }
 
 const (

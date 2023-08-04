@@ -28,17 +28,21 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	"github.com/google/go-github/v53/github"
 )
 
 const (
 	GreptimeGitHubOrg    = "GreptimeTeam"
 	GreptimeDBGithubRepo = "greptimedb"
+	GreptimeBinName      = "greptime"
 
 	EtcdGitHubOrg  = "etcd-io"
 	EtcdGithubRepo = "etcd"
 
 	GOOSDarwin = "darwin"
 	GOOSLinux  = "linux"
+
+	BreakingChangeVersion = "v0.4.0-nightly-20230802"
 )
 
 // ArtifactManager is responsible for managing the artifacts of a GreptimeDB cluster.
@@ -92,12 +96,24 @@ func (am *ArtifactManager) PrepareArtifact(ctx context.Context, typ ArtifactType
 		return nil
 	}
 
+	version := artifact.Version
+
+	// Get the latest greptime released version.
+	if typ == GreptimeArtifactType && artifact.Version == "latest" {
+		client := github.NewClient(nil)
+		release, _, err := client.Repositories.GetLatestRelease(ctx, GreptimeGitHubOrg, GreptimeDBGithubRepo)
+		if err != nil {
+			return err
+		}
+		version = *release.TagName
+	}
+
 	var (
-		pkgDir = path.Join(am.dir, typ.String(), artifact.Version, "pkg")
-		binDir = path.Join(am.dir, typ.String(), artifact.Version, "bin")
+		pkgDir = path.Join(am.dir, typ.String(), version, "pkg")
+		binDir = path.Join(am.dir, typ.String(), version, "bin")
 	)
 
-	artifactFile, err := am.download(ctx, typ, artifact.Version, pkgDir)
+	artifactFile, err := am.download(ctx, typ, version, pkgDir)
 	if err != nil {
 		return err
 	}
@@ -128,7 +144,7 @@ func (am *ArtifactManager) PrepareArtifact(ctx context.Context, typ ArtifactType
 	//                └── greptime-darwin-arm64.tgz
 	switch typ {
 	case GreptimeArtifactType:
-		return am.installGreptime(artifactFile, binDir)
+		return am.installGreptime(artifactFile, binDir, version)
 	case EtcdArtifactType:
 		return am.installEtcd(artifactFile, pkgDir, binDir)
 	default:
@@ -161,7 +177,7 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 	return nil
 }
 
-func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
+func (am *ArtifactManager) installGreptime(artifactFile, binDir, version string) error {
 	if err := utils.CreateDirIfNotExists(binDir); err != nil {
 		return err
 	}
@@ -170,7 +186,23 @@ func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
 		return err
 	}
 
-	if err := os.Chmod(path.Join(binDir, "greptime"), 0755); err != nil {
+	newVersion, err := am.isBreakingVersion(version)
+	if err != nil {
+		return err
+	}
+
+	// If it's the breaking version, adapt to the new directory layout.
+	if newVersion {
+		originalBinDir := path.Join(binDir, strings.TrimSuffix(path.Base(artifactFile), utils.TarGzExtension))
+		if err := os.Rename(path.Join(originalBinDir, GreptimeBinName), path.Join(binDir, GreptimeBinName)); err != nil {
+			return err
+		}
+		if err := os.Remove(originalBinDir); err != nil {
+			return err
+		}
+	}
+
+	if err := os.Chmod(path.Join(binDir, GreptimeBinName), 0755); err != nil {
 		return err
 	}
 
@@ -237,34 +269,66 @@ func (am *ArtifactManager) download(ctx context.Context, typ ArtifactType, versi
 }
 
 func (am *ArtifactManager) artifactURL(typ ArtifactType, version string) (string, error) {
-	var etcdPackageExt string
+	switch typ {
+	case GreptimeArtifactType:
+		return am.greptimeDownloadURL(version)
+	case EtcdArtifactType:
+		return am.etcdDownloadURL(version)
+	default:
+		return "", fmt.Errorf("unsupported artifact type: %v", typ)
+	}
+}
+
+func (am *ArtifactManager) getGreptimeLatestVersion() (string, error) {
+	client := github.NewClient(nil)
+	release, _, err := client.Repositories.GetLatestRelease(context.Background(), GreptimeGitHubOrg, GreptimeDBGithubRepo)
+	if err != nil {
+		return "", err
+	}
+	return *release.TagName, nil
+}
+
+func (am *ArtifactManager) greptimeDownloadURL(version string) (string, error) {
+	newVersion, err := am.isBreakingVersion(version)
+	if err != nil {
+		return "", err
+	}
+
+	// If version >= BreakingChangeVersion, use the new download URL.
+	if newVersion {
+		return fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s.tar.gz",
+			GreptimeGitHubOrg, GreptimeDBGithubRepo, version, string(GreptimeArtifactType), runtime.GOOS, runtime.GOARCH, version), nil
+	}
+
+	// If version < BreakingChangeVersion, use the old download URL.
+	return fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s.tgz",
+		GreptimeGitHubOrg, GreptimeDBGithubRepo, version, string(GreptimeArtifactType), runtime.GOOS, runtime.GOARCH), nil
+}
+
+func (am *ArtifactManager) etcdDownloadURL(version string) (string, error) {
+	var ext string
 
 	switch runtime.GOOS {
 	case GOOSDarwin:
-		etcdPackageExt = utils.ZipExtension
+		ext = utils.ZipExtension
 	case GOOSLinux:
-		etcdPackageExt = utils.TarGzExtension
+		ext = utils.TarGzExtension
 	default:
 		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
 	}
 
-	switch typ {
-	case GreptimeArtifactType:
-		var downloadURL string
-		if version == "latest" {
-			downloadURL = fmt.Sprintf("https://github.com/%s/%s/releases/latest/download/%s-%s-%s.tgz",
-				GreptimeGitHubOrg, GreptimeDBGithubRepo, string(typ), runtime.GOOS, runtime.GOARCH)
-		} else {
-			downloadURL = fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s.tgz",
-				GreptimeGitHubOrg, GreptimeDBGithubRepo, version, string(typ), runtime.GOOS, runtime.GOARCH)
-		}
-		return downloadURL, nil
-	case EtcdArtifactType:
-		// For the function stability, we use the specific version of etcd.
-		downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s%s",
-			EtcdGitHubOrg, EtcdGithubRepo, version, string(typ), version, runtime.GOOS, runtime.GOARCH, etcdPackageExt)
-		return downloadURL, nil
-	default:
-		return "", fmt.Errorf("unsupported artifact type: %v", typ)
+	// For the function stability, we use the specific version of etcd.
+	downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s%s",
+		EtcdGitHubOrg, EtcdGithubRepo, version, string(EtcdArtifactType), version, runtime.GOOS, runtime.GOARCH, ext)
+
+	return downloadURL, nil
+}
+
+func (am *ArtifactManager) isBreakingVersion(version string) (bool, error) {
+	newVersion, err := utils.SemVerCompare(version, BreakingChangeVersion)
+	if err != nil {
+		return false, err
 	}
+
+	return newVersion || version == BreakingChangeVersion, nil
 }
