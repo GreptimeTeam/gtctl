@@ -24,26 +24,30 @@ import (
 )
 
 type etcd struct {
-	workDirs WorkDirs
-	wg       *sync.WaitGroup
-	logger   logger.Logger
+	workingDirs WorkingDirs
+	wg          *sync.WaitGroup
+	logger      logger.Logger
 
-	etcdDirs []string
+	allocatedDirs
 }
 
-func newEtcd(workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newEtcd(workingDirs WorkingDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &etcd{
-		workDirs: workDirs,
-		wg:       wg,
-		logger:   logger,
+		workingDirs: workingDirs,
+		wg:          wg,
+		logger:      logger,
 	}
+}
+
+func (e *etcd) Name() string {
+	return "etcd"
 }
 
 func (e *etcd) Start(ctx context.Context, binary string) error {
 	var (
-		etcdDataDir = path.Join(e.workDirs.DataDir, "etcd")
-		etcdLogDir  = path.Join(e.workDirs.LogsDir, "etcd")
-		etcdPidDir  = path.Join(e.workDirs.PidsDir, "etcd")
+		etcdDataDir = path.Join(e.workingDirs.DataDir, e.Name())
+		etcdLogDir  = path.Join(e.workingDirs.LogsDir, e.Name())
+		etcdPidDir  = path.Join(e.workingDirs.PidsDir, e.Name())
 		etcdDirs    = []string{etcdDataDir, etcdLogDir, etcdPidDir}
 	)
 	for _, dir := range etcdDirs {
@@ -51,9 +55,12 @@ func (e *etcd) Start(ctx context.Context, binary string) error {
 			return err
 		}
 	}
-	e.etcdDirs = etcdDirs
+	e.dataDirs = append(e.dataDirs, etcdDataDir)
+	e.logsDirs = append(e.logsDirs, etcdLogDir)
+	e.pidsDirs = append(e.pidsDirs, etcdPidDir)
 
-	if err := runBinary(ctx, binary, e.BuildArgs(ctx, etcdDataDir), etcdLogDir, etcdPidDir, e.wg, e.logger); err != nil {
+	if err := runBinary(ctx, binary, e.Name(), etcdLogDir, etcdPidDir,
+		e.BuildArgs(ctx, etcdDataDir), e.wg, e.logger); err != nil {
 		return err
 	}
 
@@ -69,11 +76,9 @@ func (e *etcd) IsRunning(ctx context.Context) bool {
 	return false
 }
 
-func (e *etcd) Delete(ctx context.Context) error {
-	for _, dir := range e.etcdDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
+func (e *etcd) Delete(ctx context.Context, option DeleteOptions) error {
+	if err := e.delete(ctx, option); err != nil {
+		return err
 	}
 	return nil
 }

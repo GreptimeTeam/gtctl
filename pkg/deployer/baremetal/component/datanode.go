@@ -33,55 +33,59 @@ type datanode struct {
 	config      *config.Datanode
 	metaSrvAddr string
 
-	workDirs WorkDirs
-	wg       *sync.WaitGroup
-	logger   logger.Logger
+	workingDirs WorkingDirs
+	wg          *sync.WaitGroup
+	logger      logger.Logger
 
-	dataHome         string
-	dataNodeLogDirs  []string
-	dataNodePidDirs  []string
-	dataNodeDataDirs []string
+	dataHome string
+	allocatedDirs
 }
 
-func newDataNodes(config *config.Datanode, metaSrvAddr string, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newDataNodes(config *config.Datanode, metaSrvAddr string, workingDirs WorkingDirs,
+	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &datanode{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
-		workDirs:    workDirs,
+		workingDirs: workingDirs,
 		wg:          wg,
 		logger:      logger,
 	}
 }
 
+func (d *datanode) Name() string {
+	return "datanode"
+}
+
 func (d *datanode) Start(ctx context.Context, binary string) error {
-	dataHome := path.Join(d.workDirs.DataDir, "home")
+	dataHome := path.Join(d.workingDirs.DataDir, "home")
 	if err := utils.CreateDirIfNotExists(dataHome); err != nil {
 		return err
 	}
 	d.dataHome = dataHome
 
 	for i := 0; i < d.config.Replicas; i++ {
-		dirName := fmt.Sprintf("datanode.%d", i)
+		dirName := fmt.Sprintf("%s.%d", d.Name(), i)
 
-		datanodeLogDir := path.Join(d.workDirs.LogsDir, dirName)
+		datanodeLogDir := path.Join(d.workingDirs.LogsDir, dirName)
 		if err := utils.CreateDirIfNotExists(datanodeLogDir); err != nil {
 			return err
 		}
-		d.dataNodeLogDirs = append(d.dataNodeLogDirs, datanodeLogDir)
+		d.logsDirs = append(d.logsDirs, datanodeLogDir)
 
-		datanodePidDir := path.Join(d.workDirs.PidsDir, dirName)
+		datanodePidDir := path.Join(d.workingDirs.PidsDir, dirName)
 		if err := utils.CreateDirIfNotExists(datanodePidDir); err != nil {
 			return err
 		}
-		d.dataNodePidDirs = append(d.dataNodePidDirs, datanodePidDir)
+		d.pidsDirs = append(d.pidsDirs, datanodePidDir)
 
-		walDir := path.Join(d.workDirs.DataDir, dirName, "wal")
+		walDir := path.Join(d.workingDirs.DataDir, dirName, "wal")
 		if err := utils.CreateDirIfNotExists(walDir); err != nil {
 			return err
 		}
-		d.dataNodeDataDirs = append(d.dataNodeDataDirs, path.Join(d.workDirs.DataDir, dirName))
+		d.dataDirs = append(d.dataDirs, path.Join(d.workingDirs.DataDir, dirName))
 
-		if err := runBinary(ctx, binary, d.BuildArgs(ctx, i, walDir), datanodeLogDir, datanodePidDir, d.wg, d.logger); err != nil {
+		if err := runBinary(ctx, binary, dirName, datanodeLogDir, datanodePidDir,
+			d.BuildArgs(ctx, i, walDir), d.wg, d.logger); err != nil {
 			return err
 		}
 	}
@@ -116,7 +120,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
-		"datanode", "start",
+		d.Name(), "start",
 		fmt.Sprintf("--node-id=%d", nodeID),
 		fmt.Sprintf("--metasrv-addr=%s", d.metaSrvAddr),
 		fmt.Sprintf("--rpc-addr=%s", generateDatanodeAddr(d.config.RPCAddr, nodeID)),
@@ -132,13 +136,13 @@ func (d *datanode) IsRunning(ctx context.Context) bool {
 		addr := generateDatanodeAddr(d.config.HTTPAddr, i)
 		_, httpPort, err := net.SplitHostPort(addr)
 		if err != nil {
-			d.logger.V(5).Infof("failed to split host port: %s", err)
+			d.logger.V(5).Infof("failed to split host port in %s: %s", d.Name(), err)
 			return false
 		}
 
 		rsp, err := http.Get(fmt.Sprintf("http://localhost:%s/health", httpPort))
 		if err != nil {
-			d.logger.V(5).Infof("failed to get datanode health: %s", err)
+			d.logger.V(5).Infof("failed to get %s health: %s", d.Name(), err)
 			return false
 		}
 
@@ -154,27 +158,13 @@ func (d *datanode) IsRunning(ctx context.Context) bool {
 	return true
 }
 
-func (d *datanode) Delete(ctx context.Context) error {
+func (d *datanode) Delete(ctx context.Context, option DeleteOptions) error {
 	if err := utils.DeleteDirIfExists(d.dataHome); err != nil {
 		return err
 	}
 
-	for _, dir := range d.dataNodeLogDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
-	}
-
-	for _, dir := range d.dataNodePidDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
-	}
-
-	for _, dir := range d.dataNodeDataDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
+	if err := d.delete(ctx, option); err != nil {
+		return err
 	}
 
 	return nil

@@ -26,13 +26,24 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
+	"github.com/GreptimeTeam/gtctl/pkg/utils"
 )
 
-// WorkDirs include all the dirs used in bare-metal mode.
-type WorkDirs struct {
+// WorkingDirs include all the dirs used in bare-metal mode.
+type WorkingDirs struct {
 	DataDir string
 	LogsDir string
 	PidsDir string
+}
+
+type allocatedDirs struct {
+	dataDirs []string
+	logsDirs []string
+	pidsDirs []string
+}
+
+type DeleteOptions struct {
+	RetainLogs bool
 }
 
 // BareMetalCluster describes all the components need to be deployed under bare-metal mode.
@@ -55,20 +66,23 @@ type BareMetalClusterComponent interface {
 	IsRunning(ctx context.Context) bool
 
 	// Delete deletes resources that allocated in the system for current component.
-	Delete(ctx context.Context) error
+	Delete(ctx context.Context, option DeleteOptions) error
+
+	// Name return the name of component.
+	Name() string
 }
 
-func NewGreptimeDBCluster(config *config.Cluster, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
+func NewBareMetalCluster(config *config.Cluster, workingDirs WorkingDirs, wg *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
 	return &BareMetalCluster{
-		MetaSrv:  newMetaSrv(config.MetaSrv, workDirs, wg, logger),
-		Datanode: newDataNodes(config.Datanode, config.MetaSrv.ServerAddr, workDirs, wg, logger),
-		Frontend: newFrontend(config.Frontend, config.MetaSrv.ServerAddr, workDirs, wg, logger),
-		Etcd:     newEtcd(workDirs, wg, logger),
+		MetaSrv:  newMetaSrv(config.MetaSrv, workingDirs, wg, logger),
+		Datanode: newDataNodes(config.Datanode, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
+		Frontend: newFrontend(config.Frontend, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
+		Etcd:     newEtcd(workingDirs, wg, logger),
 	}
 }
 
-func runBinary(ctx context.Context, binary string, args []string, logDir string, pidDir string,
-	wg *sync.WaitGroup, logger logger.Logger) error {
+func runBinary(ctx context.Context, binary, name, logDir, pidDir string,
+	args []string, wg *sync.WaitGroup, logger logger.Logger) error {
 	cmd := exec.CommandContext(ctx, binary, args...)
 
 	// output to binary.
@@ -112,9 +126,33 @@ func runBinary(ctx context.Context, binary string, args []string, logDir string,
 					}
 				}
 			}
-			logger.Errorf("binary '%s' exited with error: %v", binary, err)
+			logger.Errorf("cluster component '%s' with binary '%s' exited: %v", name, binary, err)
 		}
 	}()
+
+	return nil
+}
+
+func (ad *allocatedDirs) delete(ctx context.Context, option DeleteOptions) error {
+	if !option.RetainLogs {
+		for _, dir := range ad.logsDirs {
+			if err := utils.DeleteDirIfExists(dir); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, dir := range ad.dataDirs {
+		if err := utils.DeleteDirIfExists(dir); err != nil {
+			return err
+		}
+	}
+
+	for _, dir := range ad.pidsDirs {
+		if err := utils.DeleteDirIfExists(dir); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

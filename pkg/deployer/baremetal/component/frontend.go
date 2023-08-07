@@ -29,41 +29,46 @@ type frontend struct {
 	config      *config.Frontend
 	metaSrvAddr string
 
-	workDirs WorkDirs
-	wg       *sync.WaitGroup
-	logger   logger.Logger
+	workingDirs WorkingDirs
+	wg          *sync.WaitGroup
+	logger      logger.Logger
 
-	frontendLogDirs []string
-	frontendPidDirs []string
+	allocatedDirs
 }
 
-func newFrontend(config *config.Frontend, metaSrvAddr string, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newFrontend(config *config.Frontend, metaSrvAddr string, workingDirs WorkingDirs,
+	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &frontend{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
-		workDirs:    workDirs,
+		workingDirs: workingDirs,
 		wg:          wg,
 		logger:      logger,
 	}
 }
 
+func (f *frontend) Name() string {
+	return "frontend"
+}
+
 func (f *frontend) Start(ctx context.Context, binary string) error {
 	for i := 0; i < f.config.Replicas; i++ {
-		dirName := fmt.Sprintf("frontend.%d", i)
+		dirName := fmt.Sprintf("%s.%d", f.Name(), i)
 
-		frontendLogDir := path.Join(f.workDirs.LogsDir, dirName)
+		frontendLogDir := path.Join(f.workingDirs.LogsDir, dirName)
 		if err := utils.CreateDirIfNotExists(frontendLogDir); err != nil {
 			return err
 		}
-		f.frontendLogDirs = append(f.frontendLogDirs, frontendLogDir)
+		f.logsDirs = append(f.logsDirs, frontendLogDir)
 
-		frontendPidDir := path.Join(f.workDirs.PidsDir, dirName)
+		frontendPidDir := path.Join(f.workingDirs.PidsDir, dirName)
 		if err := utils.CreateDirIfNotExists(frontendPidDir); err != nil {
 			return err
 		}
-		f.frontendPidDirs = append(f.frontendPidDirs, frontendPidDir)
+		f.pidsDirs = append(f.pidsDirs, frontendPidDir)
 
-		if err := runBinary(ctx, binary, f.BuildArgs(ctx), frontendLogDir, frontendPidDir, f.wg, f.logger); err != nil {
+		if err := runBinary(ctx, binary, dirName, frontendLogDir, frontendPidDir,
+			f.BuildArgs(ctx), f.wg, f.logger); err != nil {
 			return err
 		}
 	}
@@ -78,7 +83,7 @@ func (f *frontend) BuildArgs(ctx context.Context, params ...interface{}) []strin
 	}
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
-		"frontend", "start",
+		f.Name(), "start",
 		fmt.Sprintf("--metasrv-addr=%s", f.metaSrvAddr),
 	}
 	return args
@@ -89,18 +94,9 @@ func (f *frontend) IsRunning(ctx context.Context) bool {
 	return false
 }
 
-func (f *frontend) Delete(ctx context.Context) error {
-	for _, dir := range f.frontendLogDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
+func (f *frontend) Delete(ctx context.Context, option DeleteOptions) error {
+	if err := f.delete(ctx, option); err != nil {
+		return err
 	}
-
-	for _, dir := range f.frontendPidDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

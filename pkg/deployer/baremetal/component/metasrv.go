@@ -31,26 +31,31 @@ import (
 type metaSrv struct {
 	config *config.MetaSrv
 
-	workDirs WorkDirs
-	wg       *sync.WaitGroup
-	logger   logger.Logger
+	workingDirs WorkingDirs
+	wg          *sync.WaitGroup
+	logger      logger.Logger
 
-	metaSrvDirs []string
+	allocatedDirs
 }
 
-func newMetaSrv(config *config.MetaSrv, workDirs WorkDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func newMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
+	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &metaSrv{
-		config:   config,
-		workDirs: workDirs,
-		wg:       wg,
-		logger:   logger,
+		config:      config,
+		workingDirs: workingDirs,
+		wg:          wg,
+		logger:      logger,
 	}
+}
+
+func (m *metaSrv) Name() string {
+	return "metasrv"
 }
 
 func (m *metaSrv) Start(ctx context.Context, binary string) error {
 	var (
-		metaSrvLogDir = path.Join(m.workDirs.LogsDir, "metasrv")
-		metaSrvPidDir = path.Join(m.workDirs.PidsDir, "metasrv")
+		metaSrvLogDir = path.Join(m.workingDirs.LogsDir, m.Name())
+		metaSrvPidDir = path.Join(m.workingDirs.PidsDir, m.Name())
 		metaSrvDirs   = []string{metaSrvLogDir, metaSrvPidDir}
 	)
 	for _, dir := range metaSrvDirs {
@@ -58,9 +63,11 @@ func (m *metaSrv) Start(ctx context.Context, binary string) error {
 			return err
 		}
 	}
-	m.metaSrvDirs = metaSrvDirs
+	m.logsDirs = append(m.logsDirs, metaSrvLogDir)
+	m.pidsDirs = append(m.pidsDirs, metaSrvPidDir)
 
-	if err := runBinary(ctx, binary, m.BuildArgs(ctx), metaSrvLogDir, metaSrvPidDir, m.wg, m.logger); err != nil {
+	if err := runBinary(ctx, binary, m.Name(), metaSrvLogDir, metaSrvPidDir,
+		m.BuildArgs(ctx), m.wg, m.logger); err != nil {
 		return err
 	}
 
@@ -90,7 +97,7 @@ func (m *metaSrv) BuildArgs(ctx context.Context, params ...interface{}) []string
 	}
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
-		"metasrv", "start",
+		m.Name(), "start",
 		"--store-addr", m.config.StoreAddr,
 		"--server-addr", m.config.ServerAddr,
 		"--http-addr", m.config.HTTPAddr,
@@ -101,13 +108,13 @@ func (m *metaSrv) BuildArgs(ctx context.Context, params ...interface{}) []string
 func (m *metaSrv) IsRunning(ctx context.Context) bool {
 	_, httpPort, err := net.SplitHostPort(m.config.HTTPAddr)
 	if err != nil {
-		m.logger.V(5).Infof("failed to split host port: %s", err)
+		m.logger.V(5).Infof("failed to split host port in %s: %s", m.Name(), err)
 		return false
 	}
 
 	rsp, err := http.Get(fmt.Sprintf("http://localhost:%s/health", httpPort))
 	if err != nil {
-		m.logger.V(5).Infof("failed to get metasrv health: %s", err)
+		m.logger.V(5).Infof("failed to get %s health: %s", m.Name(), err)
 		return false
 	}
 	if err = rsp.Body.Close(); err != nil {
@@ -117,11 +124,9 @@ func (m *metaSrv) IsRunning(ctx context.Context) bool {
 	return rsp.StatusCode == http.StatusOK
 }
 
-func (m *metaSrv) Delete(ctx context.Context) error {
-	for _, dir := range m.metaSrvDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
+func (m *metaSrv) Delete(ctx context.Context, option DeleteOptions) error {
+	if err := m.delete(ctx, option); err != nil {
+		return err
 	}
 	return nil
 }
