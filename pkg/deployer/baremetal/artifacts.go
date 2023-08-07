@@ -27,7 +27,8 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
+	semverutils "github.com/GreptimeTeam/gtctl/pkg/utils/semver"
 	"github.com/google/go-github/v53/github"
 )
 
@@ -69,7 +70,7 @@ func (t ArtifactType) String() string {
 
 func NewArtifactManager(workingDir string, l logger.Logger, alwaysDownload bool) (*ArtifactManager, error) {
 	dir := path.Join(workingDir, "artifacts")
-	if err := utils.CreateDirIfNotExists(dir); err != nil {
+	if err := fileutils.CreateDirIfNotExists(dir); err != nil {
 		return nil, err
 	}
 
@@ -153,21 +154,21 @@ func (am *ArtifactManager) PrepareArtifact(ctx context.Context, typ ArtifactType
 }
 
 func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) error {
-	if err := utils.Uncompress(artifactFile, pkgDir); err != nil {
+	if err := fileutils.Uncompress(artifactFile, pkgDir); err != nil {
 		return err
 	}
 
-	if err := utils.CreateDirIfNotExists(binDir); err != nil {
+	if err := fileutils.CreateDirIfNotExists(binDir); err != nil {
 		return err
 	}
 
 	artifactFile = path.Base(artifactFile)
 	// If the artifactFile is '${pkgDir}/etcd-v3.5.7-darwin-arm64.zip', it will get '${pkgDir}/etcd-v3.5.7-darwin-arm64'.
 	uncompressedDir := path.Join(pkgDir, artifactFile[:len(artifactFile)-len(filepath.Ext(artifactFile))])
-	uncompressedDir = strings.TrimSuffix(uncompressedDir, utils.TarExtension)
+	uncompressedDir = strings.TrimSuffix(uncompressedDir, fileutils.TarExtension)
 	binaries := []string{"etcd", "etcdctl", "etcdutl"}
 	for _, binary := range binaries {
-		if err := utils.CopyFile(path.Join(uncompressedDir, binary), path.Join(binDir, binary)); err != nil {
+		if err := fileutils.CopyFile(path.Join(uncompressedDir, binary), path.Join(binDir, binary)); err != nil {
 			return err
 		}
 		if err := os.Chmod(path.Join(binDir, binary), 0755); err != nil {
@@ -178,11 +179,11 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 }
 
 func (am *ArtifactManager) installGreptime(artifactFile, binDir, version string) error {
-	if err := utils.CreateDirIfNotExists(binDir); err != nil {
+	if err := fileutils.CreateDirIfNotExists(binDir); err != nil {
 		return err
 	}
 
-	if err := utils.Uncompress(artifactFile, binDir); err != nil {
+	if err := fileutils.Uncompress(artifactFile, binDir); err != nil {
 		return err
 	}
 
@@ -193,7 +194,7 @@ func (am *ArtifactManager) installGreptime(artifactFile, binDir, version string)
 
 	// If it's the breaking version, adapt to the new directory layout.
 	if newVersion {
-		originalBinDir := path.Join(binDir, strings.TrimSuffix(path.Base(artifactFile), utils.TarGzExtension))
+		originalBinDir := path.Join(binDir, strings.TrimSuffix(path.Base(artifactFile), fileutils.TarGzExtension))
 		if err := os.Rename(path.Join(originalBinDir, GreptimeBinName), path.Join(binDir, GreptimeBinName)); err != nil {
 			return err
 		}
@@ -215,7 +216,7 @@ func (am *ArtifactManager) download(ctx context.Context, typ ArtifactType, versi
 		return "", err
 	}
 
-	if err := utils.CreateDirIfNotExists(pkgDir); err != nil {
+	if err := fileutils.CreateDirIfNotExists(pkgDir); err != nil {
 		return "", err
 	}
 
@@ -310,9 +311,9 @@ func (am *ArtifactManager) etcdDownloadURL(version string) (string, error) {
 
 	switch runtime.GOOS {
 	case GOOSDarwin:
-		ext = utils.ZipExtension
+		ext = fileutils.ZipExtension
 	case GOOSLinux:
-		ext = utils.TarGzExtension
+		ext = fileutils.TarGzExtension
 	default:
 		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
 	}
@@ -325,7 +326,7 @@ func (am *ArtifactManager) etcdDownloadURL(version string) (string, error) {
 }
 
 func (am *ArtifactManager) isBreakingVersion(version string) (bool, error) {
-	newVersion, err := utils.SemVerCompare(version, BreakingChangeVersion)
+	newVersion, err := semverutils.Compare(version, BreakingChangeVersion)
 	if err != nil {
 		return false, err
 	}

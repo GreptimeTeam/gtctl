@@ -28,7 +28,7 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 type Deployer struct {
@@ -72,7 +72,7 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		return nil, err
 	}
 	d.workingDir = path.Join(homeDir, config.GtctlDir)
-	if err := utils.CreateDirIfNotExists(d.workingDir); err != nil {
+	if err := fileutils.CreateDirIfNotExists(d.workingDir); err != nil {
 		return nil, err
 	}
 
@@ -121,7 +121,7 @@ func (d *Deployer) createClusterDirs(clusterName string) error {
 	}
 
 	for _, dir := range dirs {
-		if err := utils.CreateDirIfNotExists(dir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(dir); err != nil {
 			return err
 		}
 	}
@@ -198,7 +198,7 @@ func (d *Deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, opt
 func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context) error {
 	// It is unnecessary to delete each component resources in cluster since it runs in the foreground.
 	// So deleting the whole cluster resources here would be fine.
-	if err := utils.DeleteDirIfExists(d.clusterDir); err != nil {
+	if err := fileutils.DeleteDirIfExists(d.clusterDir); err != nil {
 		return err
 	}
 
@@ -229,7 +229,7 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 func (d *Deployer) checkEtcdHealth(etcdBin string) error {
 	// It's very likely that "etcdctl" is under the same directory of "etcd".
 	etcdctlBin := path.Join(etcdBin, "../etcdctl")
-	exists, err := utils.IsFileExists(etcdctlBin)
+	exists, err := fileutils.IsFileExists(etcdctlBin)
 	if err != nil {
 		return err
 	}
