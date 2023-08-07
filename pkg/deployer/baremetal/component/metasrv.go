@@ -25,7 +25,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 type metaSrv struct {
@@ -54,7 +54,7 @@ func (m *metaSrv) Start(ctx context.Context, binary string) error {
 		metaSrvDirs   = []string{metaSrvLogDir, metaSrvPidDir}
 	)
 	for _, dir := range metaSrvDirs {
-		if err := utils.CreateDirIfNotExists(dir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(dir); err != nil {
 			return err
 		}
 	}
@@ -119,7 +119,7 @@ func (m *metaSrv) IsRunning(ctx context.Context) bool {
 
 func (m *metaSrv) Delete(ctx context.Context) error {
 	for _, dir := range m.metaSrvDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}

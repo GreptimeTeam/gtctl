@@ -22,7 +22,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 type frontend struct {
@@ -52,13 +52,13 @@ func (f *frontend) Start(ctx context.Context, binary string) error {
 		dirName := fmt.Sprintf("frontend.%d", i)
 
 		frontendLogDir := path.Join(f.workDirs.LogsDir, dirName)
-		if err := utils.CreateDirIfNotExists(frontendLogDir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(frontendLogDir); err != nil {
 			return err
 		}
 		f.frontendLogDirs = append(f.frontendLogDirs, frontendLogDir)
 
 		frontendPidDir := path.Join(f.workDirs.PidsDir, dirName)
-		if err := utils.CreateDirIfNotExists(frontendPidDir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(frontendPidDir); err != nil {
 			return err
 		}
 		f.frontendPidDirs = append(f.frontendPidDirs, frontendPidDir)
@@ -91,13 +91,13 @@ func (f *frontend) IsRunning(ctx context.Context) bool {
 
 func (f *frontend) Delete(ctx context.Context) error {
 	for _, dir := range f.frontendLogDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}
 
 	for _, dir := range f.frontendPidDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}

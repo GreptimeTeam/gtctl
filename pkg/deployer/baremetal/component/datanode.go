@@ -26,7 +26,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 type datanode struct {
@@ -55,7 +55,7 @@ func newDataNodes(config *config.Datanode, metaSrvAddr string, workDirs WorkDirs
 
 func (d *datanode) Start(ctx context.Context, binary string) error {
 	dataHome := path.Join(d.workDirs.DataDir, "home")
-	if err := utils.CreateDirIfNotExists(dataHome); err != nil {
+	if err := fileutils.CreateDirIfNotExists(dataHome); err != nil {
 		return err
 	}
 	d.dataHome = dataHome
@@ -64,19 +64,19 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 		dirName := fmt.Sprintf("datanode.%d", i)
 
 		datanodeLogDir := path.Join(d.workDirs.LogsDir, dirName)
-		if err := utils.CreateDirIfNotExists(datanodeLogDir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(datanodeLogDir); err != nil {
 			return err
 		}
 		d.dataNodeLogDirs = append(d.dataNodeLogDirs, datanodeLogDir)
 
 		datanodePidDir := path.Join(d.workDirs.PidsDir, dirName)
-		if err := utils.CreateDirIfNotExists(datanodePidDir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(datanodePidDir); err != nil {
 			return err
 		}
 		d.dataNodePidDirs = append(d.dataNodePidDirs, datanodePidDir)
 
 		walDir := path.Join(d.workDirs.DataDir, dirName, "wal")
-		if err := utils.CreateDirIfNotExists(walDir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(walDir); err != nil {
 			return err
 		}
 		d.dataNodeDataDirs = append(d.dataNodeDataDirs, path.Join(d.workDirs.DataDir, dirName))
@@ -155,24 +155,24 @@ func (d *datanode) IsRunning(ctx context.Context) bool {
 }
 
 func (d *datanode) Delete(ctx context.Context) error {
-	if err := utils.DeleteDirIfExists(d.dataHome); err != nil {
+	if err := fileutils.DeleteDirIfExists(d.dataHome); err != nil {
 		return err
 	}
 
 	for _, dir := range d.dataNodeLogDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}
 
 	for _, dir := range d.dataNodePidDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}
 
 	for _, dir := range d.dataNodeDataDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}
