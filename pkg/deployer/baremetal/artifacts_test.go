@@ -16,21 +16,48 @@ package baremetal
 
 import (
 	"context"
+	"os"
+	"testing"
+
+	"sigs.k8s.io/kind/pkg/log"
+
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"os"
-	"sigs.k8s.io/kind/pkg/log"
-	"testing"
+)
+
+const (
+	testDir = "/tmp/gtctl-test-am"
 )
 
 func TestArtifactManager(t *testing.T) {
-	am, err := NewArtifactManager("/tmp/gtctl-test-am", logger.New(os.Stdout, log.Level(4), logger.WithColored()), false)
+	am, err := NewArtifactManager(testDir, logger.New(os.Stdout, log.Level(4), logger.WithColored()), false)
 	if err != nil {
 		t.Errorf("failed to create artifact manager: %v", err)
 	}
 
+	// Cleanup test directory.
+	defer func() {
+		os.RemoveAll(testDir)
+	}()
+
+	testConfigs := []*config.Artifact{
+		{
+			Version: "latest",
+		},
+		{
+			Version: BreakingChangeVersion,
+		},
+	}
+
 	ctx := context.Background()
-	if err := am.PrepareArtifact(ctx, GreptimeArtifactType, &config.Artifact{Version: "latest"}); err != nil {
-		t.Errorf("failed to prepare latest greptime artifact: %v", err)
+	for _, tc := range testConfigs {
+		if err := am.PrepareArtifact(ctx, GreptimeArtifactType, tc); err != nil {
+			t.Errorf("failed to prepare artifact: %v", err)
+		}
+
+		_, err := am.BinaryPath(GreptimeArtifactType, tc)
+		if err != nil {
+			t.Errorf("failed to get binary path: %v", err)
+		}
 	}
 }

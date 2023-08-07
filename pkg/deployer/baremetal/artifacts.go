@@ -97,21 +97,10 @@ func (am *ArtifactManager) PrepareArtifact(ctx context.Context, typ ArtifactType
 		return nil
 	}
 
-	version := artifact.Version
-
-	// Get the latest greptime released version.
-	if typ == GreptimeArtifactType && artifact.Version == "latest" {
-		client := github.NewClient(nil)
-		release, _, err := client.Repositories.GetLatestRelease(ctx, GreptimeGitHubOrg, GreptimeDBGithubRepo)
-		if err != nil {
-			return err
-		}
-		version = *release.TagName
-	}
-
 	var (
-		pkgDir = path.Join(am.dir, typ.String(), version, "pkg")
-		binDir = path.Join(am.dir, typ.String(), version, "bin")
+		version = artifact.Version
+		pkgDir  = path.Join(am.dir, typ.String(), version, "pkg")
+		binDir  = path.Join(am.dir, typ.String(), version, "bin")
 	)
 
 	artifactFile, err := am.download(ctx, typ, version, pkgDir)
@@ -290,6 +279,15 @@ func (am *ArtifactManager) getGreptimeLatestVersion() (string, error) {
 }
 
 func (am *ArtifactManager) greptimeDownloadURL(version string) (string, error) {
+	if version == "latest" {
+		// Get the latest greptime released version.
+		latestVersion, err := am.getGreptimeLatestVersion()
+		if err != nil {
+			return "", err
+		}
+		version = latestVersion
+	}
+
 	newVersion, err := am.isBreakingVersion(version)
 	if err != nil {
 		return "", err
@@ -326,6 +324,15 @@ func (am *ArtifactManager) etcdDownloadURL(version string) (string, error) {
 }
 
 func (am *ArtifactManager) isBreakingVersion(version string) (bool, error) {
+	if version == "latest" {
+		// Get the latest greptime released version.
+		latestVersion, err := am.getGreptimeLatestVersion()
+		if err != nil {
+			return false, err
+		}
+		version = latestVersion
+	}
+
 	newVersion, err := semverutils.Compare(version, BreakingChangeVersion)
 	if err != nil {
 		return false, err
