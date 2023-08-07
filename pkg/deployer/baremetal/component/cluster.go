@@ -82,11 +82,12 @@ func runBinary(ctx context.Context, binary string, args []string, logDir string,
 	cmd.Stdout = outputFileWriter
 	cmd.Stderr = outputFileWriter
 
-	logger.V(3).Infof("run binary '%s' with args: '%v', log: '%s', pid: '%s'", binary, args, logDir, pidDir)
-
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+
+	pid := strconv.Itoa(cmd.Process.Pid)
+	logger.V(3).Infof("run binary '%s' with args: '%v', log: '%s', pid: '%s'", binary, args, logDir, pid)
 
 	pidFile := path.Join(pidDir, "pid")
 	f, err := os.Create(pidFile)
@@ -94,7 +95,7 @@ func runBinary(ctx context.Context, binary string, args []string, logDir string,
 		return err
 	}
 
-	_, err = f.Write([]byte(strconv.Itoa(cmd.Process.Pid)))
+	_, err = f.Write([]byte(pid))
 	if err != nil {
 		return err
 	}
@@ -112,7 +113,9 @@ func runBinary(ctx context.Context, binary string, args []string, logDir string,
 					}
 				}
 			}
-			logger.Errorf("binary '%s' exited with error: %v", binary, err)
+			logger.Errorf("binary '%s' (pid '%s') exited with error: %v. Log at '%s'", binary, pid, err, logDir)
+			logger.Errorf("args: '%v'", args)
+			_ = outputFileWriter.Flush()
 		}
 	}()
 
