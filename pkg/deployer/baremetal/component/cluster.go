@@ -26,7 +26,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 // WorkingDirs include all the dirs used in bare-metal mode.
@@ -96,11 +96,12 @@ func runBinary(ctx context.Context, binary, name, logDir, pidDir string,
 	cmd.Stdout = outputFileWriter
 	cmd.Stderr = outputFileWriter
 
-	logger.V(3).Infof("run binary '%s' with args: '%v', log: '%s', pid: '%s'", binary, args, logDir, pidDir)
-
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+
+	pid := strconv.Itoa(cmd.Process.Pid)
+	logger.V(3).Infof("run binary '%s' with args: '%v', log: '%s', pid: '%s'", binary, args, logDir, pid)
 
 	pidFile := path.Join(pidDir, "pid")
 	f, err := os.Create(pidFile)
@@ -108,7 +109,7 @@ func runBinary(ctx context.Context, binary, name, logDir, pidDir string,
 		return err
 	}
 
-	_, err = f.Write([]byte(strconv.Itoa(cmd.Process.Pid)))
+	_, err = f.Write([]byte(pid))
 	if err != nil {
 		return err
 	}
@@ -126,7 +127,9 @@ func runBinary(ctx context.Context, binary, name, logDir, pidDir string,
 					}
 				}
 			}
-			logger.Errorf("cluster component '%s' with binary '%s' exited: %v", name, binary, err)
+			logger.Errorf("binary '%s' (pid '%s') exited with error: %v. Log at '%s'", binary, pid, err, logDir)
+			logger.Errorf("args: '%v'", args)
+			_ = outputFileWriter.Flush()
 		}
 	}()
 
@@ -136,20 +139,20 @@ func runBinary(ctx context.Context, binary, name, logDir, pidDir string,
 func (ad *allocatedDirs) delete(ctx context.Context, option DeleteOptions) error {
 	if !option.RetainLogs {
 		for _, dir := range ad.logsDirs {
-			if err := utils.DeleteDirIfExists(dir); err != nil {
+			if err := fileutils.DeleteDirIfExists(dir); err != nil {
 				return err
 			}
 		}
 	}
 
 	for _, dir := range ad.dataDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}
 
 	for _, dir := range ad.pidsDirs {
-		if err := utils.DeleteDirIfExists(dir); err != nil {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}

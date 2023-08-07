@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 type etcd struct {
@@ -51,7 +51,7 @@ func (e *etcd) Start(ctx context.Context, binary string) error {
 		etcdDirs    = []string{etcdDataDir, etcdLogDir, etcdPidDir}
 	)
 	for _, dir := range etcdDirs {
-		if err := utils.CreateDirIfNotExists(dir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(dir); err != nil {
 			return err
 		}
 	}

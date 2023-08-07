@@ -22,7 +22,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 type frontend struct {
@@ -56,13 +56,13 @@ func (f *frontend) Start(ctx context.Context, binary string) error {
 		dirName := fmt.Sprintf("%s.%d", f.Name(), i)
 
 		frontendLogDir := path.Join(f.workingDirs.LogsDir, dirName)
-		if err := utils.CreateDirIfNotExists(frontendLogDir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(frontendLogDir); err != nil {
 			return err
 		}
 		f.logsDirs = append(f.logsDirs, frontendLogDir)
 
 		frontendPidDir := path.Join(f.workingDirs.PidsDir, dirName)
-		if err := utils.CreateDirIfNotExists(frontendPidDir); err != nil {
+		if err := fileutils.CreateDirIfNotExists(frontendPidDir); err != nil {
 			return err
 		}
 		f.pidsDirs = append(f.pidsDirs, frontendPidDir)
@@ -98,5 +98,6 @@ func (f *frontend) Delete(ctx context.Context, option DeleteOptions) error {
 	if err := f.delete(ctx, option); err != nil {
 		return err
 	}
+
 	return nil
 }
