@@ -84,8 +84,14 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 		}
 		d.dataDirs = append(d.dataDirs, path.Join(d.workingDirs.DataDir, dirName))
 
-		if err := runBinary(ctx, binary, dirName, datanodeLogDir, datanodePidDir,
-			d.BuildArgs(ctx, i, walDir), d.wg, d.logger); err != nil {
+		option := &RunOptions{
+			Binary: binary,
+			Name:   dirName,
+			logDir: datanodeLogDir,
+			pidDir: datanodePidDir,
+			args:   d.BuildArgs(ctx, i, walDir),
+		}
+		if err := runBinary(ctx, option, d.wg, d.logger); err != nil {
 			return err
 		}
 	}

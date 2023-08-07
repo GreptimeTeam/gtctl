@@ -66,8 +66,14 @@ func (m *metaSrv) Start(ctx context.Context, binary string) error {
 	m.logsDirs = append(m.logsDirs, metaSrvLogDir)
 	m.pidsDirs = append(m.pidsDirs, metaSrvPidDir)
 
-	if err := runBinary(ctx, binary, m.Name(), metaSrvLogDir, metaSrvPidDir,
-		m.BuildArgs(ctx), m.wg, m.logger); err != nil {
+	option := &RunOptions{
+		Binary: binary,
+		Name:   m.Name(),
+		logDir: metaSrvLogDir,
+		pidDir: metaSrvPidDir,
+		args:   m.BuildArgs(ctx),
+	}
+	if err := runBinary(ctx, option, m.wg, m.logger); err != nil {
 		return err
 	}
 

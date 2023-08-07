@@ -67,8 +67,14 @@ func (f *frontend) Start(ctx context.Context, binary string) error {
 		}
 		f.pidsDirs = append(f.pidsDirs, frontendPidDir)
 
-		if err := runBinary(ctx, binary, dirName, frontendLogDir, frontendPidDir,
-			f.BuildArgs(ctx), f.wg, f.logger); err != nil {
+		option := &RunOptions{
+			Binary: binary,
+			Name:   dirName,
+			logDir: frontendLogDir,
+			pidDir: frontendPidDir,
+			args:   f.BuildArgs(ctx),
+		}
+		if err := runBinary(ctx, option, f.wg, f.logger); err != nil {
 			return err
 		}
 	}

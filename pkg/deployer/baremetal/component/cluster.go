@@ -42,6 +42,15 @@ type allocatedDirs struct {
 	pidsDirs []string
 }
 
+type RunOptions struct {
+	Binary string
+	Name   string
+
+	pidDir string
+	logDir string
+	args   []string
+}
+
 type DeleteOptions struct {
 	RetainLogs bool
 }
@@ -72,7 +81,8 @@ type BareMetalClusterComponent interface {
 	Name() string
 }
 
-func NewBareMetalCluster(config *config.Cluster, workingDirs WorkingDirs, wg *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
+func NewBareMetalCluster(config *config.Cluster, workingDirs WorkingDirs,
+	wg *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
 	return &BareMetalCluster{
 		MetaSrv:  newMetaSrv(config.MetaSrv, workingDirs, wg, logger),
 		Datanode: newDataNodes(config.Datanode, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
@@ -81,12 +91,11 @@ func NewBareMetalCluster(config *config.Cluster, workingDirs WorkingDirs, wg *sy
 	}
 }
 
-func runBinary(ctx context.Context, binary, name, logDir, pidDir string,
-	args []string, wg *sync.WaitGroup, logger logger.Logger) error {
-	cmd := exec.CommandContext(ctx, binary, args...)
+func runBinary(ctx context.Context, option *RunOptions, wg *sync.WaitGroup, logger logger.Logger) error {
+	cmd := exec.CommandContext(ctx, option.Binary, option.args...)
 
 	// output to binary.
-	logFile := path.Join(logDir, "log")
+	logFile := path.Join(option.logDir, "log")
 	outputFile, err := os.Create(logFile)
 	if err != nil {
 		return err
@@ -101,9 +110,10 @@ func runBinary(ctx context.Context, binary, name, logDir, pidDir string,
 	}
 
 	pid := strconv.Itoa(cmd.Process.Pid)
-	logger.V(3).Infof("run binary '%s' with args: '%v', log: '%s', pid: '%s'", binary, args, logDir, pid)
+	logger.V(3).Infof("run '%s' binary '%s' with args: '%v', log: '%s', pid: '%s'",
+		option.Name, option.Binary, option.args, option.logDir, pid)
 
-	pidFile := path.Join(pidDir, "pid")
+	pidFile := path.Join(option.pidDir, "pid")
 	f, err := os.Create(pidFile)
 	if err != nil {
 		return err
@@ -127,8 +137,9 @@ func runBinary(ctx context.Context, binary, name, logDir, pidDir string,
 					}
 				}
 			}
-			logger.Errorf("binary '%s' (pid '%s') exited with error: %v. Log at '%s'", binary, pid, err, logDir)
-			logger.Errorf("args: '%v'", args)
+			logger.Errorf("component '%s' binary '%s' (pid '%s') exited with error: %v", option.Name, option.Binary, pid, err)
+			logger.Errorf("args: '%v'", option.args)
+			logger.Errorf("if you have `--retain-logs` enabled, you can browse the logs at %s", option.logDir)
 			_ = outputFileWriter.Flush()
 		}
 	}()

@@ -59,8 +59,14 @@ func (e *etcd) Start(ctx context.Context, binary string) error {
 	e.logsDirs = append(e.logsDirs, etcdLogDir)
 	e.pidsDirs = append(e.pidsDirs, etcdPidDir)
 
-	if err := runBinary(ctx, binary, e.Name(), etcdLogDir, etcdPidDir,
-		e.BuildArgs(ctx, etcdDataDir), e.wg, e.logger); err != nil {
+	option := &RunOptions{
+		Binary: binary,
+		Name:   e.Name(),
+		logDir: etcdLogDir,
+		pidDir: etcdPidDir,
+		args:   e.BuildArgs(ctx, etcdDataDir),
+	}
+	if err := runBinary(ctx, option, e.wg, e.logger); err != nil {
 		return err
 	}
 
