@@ -82,7 +82,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				clusterName = args[0]
 				ctx         = context.Background()
 				cancel      context.CancelFunc
-				delOpt      component.DeleteOptions
+				deleteOpts  component.DeleteOptions
 			)
 
 			if options.Timeout > 0 {
@@ -108,7 +108,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal environment...", logger.Bold(clusterName))
 			}
 
-			delOpt.RetainLogs = options.RetainLogs
+			deleteOpts.RetainLogs = options.RetainLogs
 
 			// Parse config values that set in command line
 			if err = options.Set.parseConfig(); err != nil {
@@ -129,7 +129,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			if err = deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
 				// Wait the cluster closing if deploy fails in bare-metal mode.
 				if options.BareMetal {
-					if err := waitChildProcess(ctx, clusterDeployer, true, delOpt); err != nil {
+					if err := waitChildProcess(ctx, clusterDeployer, true, deleteOpts); err != nil {
 						return err
 					}
 				}
@@ -141,7 +141,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			}
 
 			if options.BareMetal {
-				if err := waitChildProcess(ctx, clusterDeployer, false, delOpt); err != nil {
+				if err := waitChildProcess(ctx, clusterDeployer, false, deleteOpts); err != nil {
 					return err
 				}
 			}
