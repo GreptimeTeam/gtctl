@@ -15,13 +15,9 @@
 package baremetal
 
 import (
-	"archive/tar"
-	"archive/zip"
-	"bytes"
-	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -29,25 +25,25 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/utils"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
+	semverutils "github.com/GreptimeTeam/gtctl/pkg/utils/semver"
+	"github.com/google/go-github/v53/github"
 )
 
 const (
 	GreptimeGitHubOrg    = "GreptimeTeam"
 	GreptimeDBGithubRepo = "greptimedb"
+	GreptimeBinName      = "greptime"
 
 	EtcdGitHubOrg  = "etcd-io"
 	EtcdGithubRepo = "etcd"
 
-	ZipExtension   = ".zip"
-	TarGzExtension = ".tar.gz"
-	TarExtension   = ".tar"
-	TgzExtension   = ".tgz"
-	GzExtension    = ".gz"
-
 	GOOSDarwin = "darwin"
 	GOOSLinux  = "linux"
+
+	BreakingChangeVersion = "v0.4.0-nightly-20230802"
 )
 
 // ArtifactManager is responsible for managing the artifacts of a GreptimeDB cluster.
@@ -74,7 +70,7 @@ func (t ArtifactType) String() string {
 
 func NewArtifactManager(workingDir string, l logger.Logger, alwaysDownload bool) (*ArtifactManager, error) {
 	dir := path.Join(workingDir, "artifacts")
-	if err := utils.CreateDirIfNotExists(dir); err != nil {
+	if err := fileutils.CreateDirIfNotExists(dir); err != nil {
 		return nil, err
 	}
 
@@ -82,7 +78,7 @@ func NewArtifactManager(workingDir string, l logger.Logger, alwaysDownload bool)
 }
 
 // BinaryPath returns the path of the binary of the given type and version.
-func (am *ArtifactManager) BinaryPath(typ ArtifactType, artifact *Artifact) (string, error) {
+func (am *ArtifactManager) BinaryPath(typ ArtifactType, artifact *config.Artifact) (string, error) {
 	if artifact.Local != "" {
 		return artifact.Local, nil
 	}
@@ -95,18 +91,19 @@ func (am *ArtifactManager) BinaryPath(typ ArtifactType, artifact *Artifact) (str
 }
 
 // PrepareArtifact will download the artifact from the given URL and uncompressed it.
-func (am *ArtifactManager) PrepareArtifact(typ ArtifactType, artifact *Artifact) error {
+func (am *ArtifactManager) PrepareArtifact(ctx context.Context, typ ArtifactType, artifact *config.Artifact) error {
 	// If you use the local artifact, we don't need to download it.
 	if artifact.Local != "" {
 		return nil
 	}
 
 	var (
-		pkgDir = path.Join(am.dir, typ.String(), artifact.Version, "pkg")
-		binDir = path.Join(am.dir, typ.String(), artifact.Version, "bin")
+		version = artifact.Version
+		pkgDir  = path.Join(am.dir, typ.String(), version, "pkg")
+		binDir  = path.Join(am.dir, typ.String(), version, "bin")
 	)
 
-	artifactFile, err := am.download(typ, artifact.Version, pkgDir)
+	artifactFile, err := am.download(ctx, typ, version, pkgDir)
 	if err != nil {
 		return err
 	}
@@ -137,7 +134,7 @@ func (am *ArtifactManager) PrepareArtifact(typ ArtifactType, artifact *Artifact)
 	//                └── greptime-darwin-arm64.tgz
 	switch typ {
 	case GreptimeArtifactType:
-		return am.installGreptime(artifactFile, binDir)
+		return am.installGreptime(artifactFile, binDir, version)
 	case EtcdArtifactType:
 		return am.installEtcd(artifactFile, pkgDir, binDir)
 	default:
@@ -146,21 +143,21 @@ func (am *ArtifactManager) PrepareArtifact(typ ArtifactType, artifact *Artifact)
 }
 
 func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) error {
-	if err := am.uncompress(artifactFile, pkgDir); err != nil {
+	if err := fileutils.Uncompress(artifactFile, pkgDir); err != nil {
 		return err
 	}
 
-	if err := utils.CreateDirIfNotExists(binDir); err != nil {
+	if err := fileutils.CreateDirIfNotExists(binDir); err != nil {
 		return err
 	}
 
 	artifactFile = path.Base(artifactFile)
 	// If the artifactFile is '${pkgDir}/etcd-v3.5.7-darwin-arm64.zip', it will get '${pkgDir}/etcd-v3.5.7-darwin-arm64'.
 	uncompressedDir := path.Join(pkgDir, artifactFile[:len(artifactFile)-len(filepath.Ext(artifactFile))])
-	uncompressedDir = strings.TrimSuffix(uncompressedDir, TarExtension)
+	uncompressedDir = strings.TrimSuffix(uncompressedDir, fileutils.TarExtension)
 	binaries := []string{"etcd", "etcdctl", "etcdutl"}
 	for _, binary := range binaries {
-		if err := am.copyFile(path.Join(uncompressedDir, binary), path.Join(binDir, binary)); err != nil {
+		if err := fileutils.CopyFile(path.Join(uncompressedDir, binary), path.Join(binDir, binary)); err != nil {
 			return err
 		}
 		if err := os.Chmod(path.Join(binDir, binary), 0755); err != nil {
@@ -170,38 +167,45 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 	return nil
 }
 
-func (am *ArtifactManager) installGreptime(artifactFile, binDir string) error {
-	if err := utils.CreateDirIfNotExists(binDir); err != nil {
+func (am *ArtifactManager) installGreptime(artifactFile, binDir, version string) error {
+	if err := fileutils.CreateDirIfNotExists(binDir); err != nil {
 		return err
 	}
 
-	if err := am.uncompress(artifactFile, binDir); err != nil {
+	if err := fileutils.Uncompress(artifactFile, binDir); err != nil {
 		return err
 	}
 
-	if err := os.Chmod(path.Join(binDir, "greptime"), 0755); err != nil {
+	newVersion, err := am.isBreakingVersion(version)
+	if err != nil {
+		return err
+	}
+
+	// If it's the breaking version, adapt to the new directory layout.
+	if newVersion {
+		originalBinDir := path.Join(binDir, strings.TrimSuffix(path.Base(artifactFile), fileutils.TarGzExtension))
+		if err := os.Rename(path.Join(originalBinDir, GreptimeBinName), path.Join(binDir, GreptimeBinName)); err != nil {
+			return err
+		}
+		if err := os.Remove(originalBinDir); err != nil {
+			return err
+		}
+	}
+
+	if err := os.Chmod(path.Join(binDir, GreptimeBinName), 0755); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (string, error) {
-	var extension string
-	switch runtime.GOOS {
-	case GOOSDarwin:
-		extension = ZipExtension
-	case GOOSLinux:
-		extension = TarGzExtension
-	default:
-		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-	}
-	downloadURL, err := am.artifactURL(typ, version, extension)
+func (am *ArtifactManager) download(ctx context.Context, typ ArtifactType, version, pkgDir string) (string, error) {
+	downloadURL, err := am.artifactURL(typ, version)
 	if err != nil {
 		return "", err
 	}
 
-	if err := utils.CreateDirIfNotExists(pkgDir); err != nil {
+	if err := fileutils.CreateDirIfNotExists(pkgDir); err != nil {
 		return "", err
 	}
 
@@ -223,7 +227,7 @@ func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (s
 
 	am.logger.V(3).Infof("Downloading artifact from '%s' to '%s'", downloadURL, artifactFile)
 
-	req, err := http.NewRequest(http.MethodGet, downloadURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return "", err
 	}
@@ -254,147 +258,85 @@ func (am *ArtifactManager) download(typ ArtifactType, version, pkgDir string) (s
 	return artifactFile, nil
 }
 
-func (am *ArtifactManager) artifactURL(typ ArtifactType, version, ext string) (string, error) {
+func (am *ArtifactManager) artifactURL(typ ArtifactType, version string) (string, error) {
 	switch typ {
 	case GreptimeArtifactType:
-		var downloadURL string
-		if version == "latest" {
-			downloadURL = fmt.Sprintf("https://github.com/%s/%s/releases/latest/download/%s-%s-%s.tgz",
-				GreptimeGitHubOrg, GreptimeDBGithubRepo, string(typ), runtime.GOOS, runtime.GOARCH)
-		} else {
-			downloadURL = fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s.tgz",
-				GreptimeGitHubOrg, GreptimeDBGithubRepo, version, string(typ), runtime.GOOS, runtime.GOARCH)
-		}
-		return downloadURL, nil
+		return am.greptimeDownloadURL(version)
 	case EtcdArtifactType:
-		// For the function stability, we use the specific version of etcd.
-		downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s%s",
-			EtcdGitHubOrg, EtcdGithubRepo, version, string(typ), version, runtime.GOOS, runtime.GOARCH, ext)
-		return downloadURL, nil
+		return am.etcdDownloadURL(version)
 	default:
 		return "", fmt.Errorf("unsupported artifact type: %v", typ)
 	}
 }
 
-func (am *ArtifactManager) uncompress(file, dst string) error {
-	fileType := path.Ext(file)
-	switch fileType {
-	case ZipExtension:
-		return am.unzip(file, dst)
-	case TgzExtension:
-		return am.untar(file, dst)
-	case GzExtension:
-		return am.untar(file, dst)
+func (am *ArtifactManager) getGreptimeLatestVersion() (string, error) {
+	client := github.NewClient(nil)
+	release, _, err := client.Repositories.GetLatestRelease(context.Background(), GreptimeGitHubOrg, GreptimeDBGithubRepo)
+	if err != nil {
+		return "", err
+	}
+	return *release.TagName, nil
+}
+
+func (am *ArtifactManager) greptimeDownloadURL(version string) (string, error) {
+	if version == "latest" {
+		// Get the latest greptime released version.
+		latestVersion, err := am.getGreptimeLatestVersion()
+		if err != nil {
+			return "", err
+		}
+		version = latestVersion
+	}
+
+	newVersion, err := am.isBreakingVersion(version)
+	if err != nil {
+		return "", err
+	}
+
+	// If version >= BreakingChangeVersion, use the new download URL.
+	if newVersion {
+		return fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s.tar.gz",
+			GreptimeGitHubOrg, GreptimeDBGithubRepo, version, string(GreptimeArtifactType), runtime.GOOS, runtime.GOARCH, version), nil
+	}
+
+	// If version < BreakingChangeVersion, use the old download URL.
+	return fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s.tgz",
+		GreptimeGitHubOrg, GreptimeDBGithubRepo, version, string(GreptimeArtifactType), runtime.GOOS, runtime.GOARCH), nil
+}
+
+func (am *ArtifactManager) etcdDownloadURL(version string) (string, error) {
+	var ext string
+
+	switch runtime.GOOS {
+	case GOOSDarwin:
+		ext = fileutils.ZipExtension
+	case GOOSLinux:
+		ext = fileutils.TarGzExtension
 	default:
-		return fmt.Errorf("unsupported file type: %s", fileType)
+		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
 	}
+
+	// For the function stability, we use the specific version of etcd.
+	downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s-%s-%s-%s%s",
+		EtcdGitHubOrg, EtcdGithubRepo, version, string(EtcdArtifactType), version, runtime.GOOS, runtime.GOARCH, ext)
+
+	return downloadURL, nil
 }
 
-func (am *ArtifactManager) unzip(file, dst string) error {
-	archive, err := zip.OpenReader(file)
-	if err != nil {
-		return err
-	}
-	defer archive.Close()
-
-	for _, f := range archive.File {
-		filePath := filepath.Join(dst, f.Name)
-
-		if f.FileInfo().IsDir() {
-			if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-				return err
-			}
-			continue
-		}
-
-		if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
-			return err
-		}
-
-		dstFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+func (am *ArtifactManager) isBreakingVersion(version string) (bool, error) {
+	if version == "latest" {
+		// Get the latest greptime released version.
+		latestVersion, err := am.getGreptimeLatestVersion()
 		if err != nil {
-			return err
+			return false, err
 		}
-
-		fileInArchive, err := f.Open()
-		if err != nil {
-			return err
-		}
-
-		if _, err := io.Copy(dstFile, fileInArchive); err != nil {
-			return err
-		}
-
-		dstFile.Close()
-		fileInArchive.Close()
+		version = latestVersion
 	}
 
-	return nil
-}
-
-func (am *ArtifactManager) untar(file, dst string) error {
-	data, err := ioutil.ReadFile(file)
+	newVersion, err := semverutils.Compare(version, BreakingChangeVersion)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	stream, err := gzip.NewReader(bytes.NewReader(data))
-	if err != nil {
-		return err
-	}
-
-	tarReader := tar.NewReader(stream)
-
-	for {
-		header, err := tarReader.Next()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return err
-		}
-
-		switch header.Typeflag {
-		case tar.TypeReg:
-			outFile, err := os.Create(dst + "/" + header.Name)
-			if err != nil {
-				return err
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				return err
-			}
-			outFile.Close()
-		case tar.TypeDir:
-			if err := os.Mkdir(dst+"/"+header.Name, 0755); err != nil {
-				return err
-			}
-		default:
-			continue
-		}
-	}
-
-	return nil
-}
-
-func (am *ArtifactManager) copyFile(src, dst string) error {
-	r, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-
-	w, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	_, err = io.Copy(w, r)
-	if err != nil {
-		return err
-	}
-
-	return w.Sync()
+	return newVersion || version == BreakingChangeVersion, nil
 }

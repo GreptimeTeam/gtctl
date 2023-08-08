@@ -12,12 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package baremetal
+package semver
 
-const (
-	// GtctlDir is the root directory that contains states of cluster info.
-	GtctlDir = ".gtctl"
-
-	DefaultEtcdVersion     = "v3.5.7"
-	DefaultGreptimeVersion = "latest"
+import (
+	"github.com/Masterminds/semver/v3"
 )
+
+// SemVerCompare compares two semantic versions.
+// It returns true if v1 is greater than v2, otherwise false.
+func Compare(v1, v2 string) (bool, error) {
+	semV1, err := semver.NewVersion(v1)
+	if err != nil {
+		return false, err
+	}
+
+	semV2, err := semver.NewVersion(v2)
+	if err != nil {
+		return false, err
+	}
+
+	return semV1.GreaterThan(semV2), nil
+}

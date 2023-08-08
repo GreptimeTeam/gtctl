@@ -76,6 +76,7 @@ type CreateGreptimeDBClusterOptions struct {
 	DatanodeStorageSize         string `helm:"datanode.storage.storageSize"`
 	DatanodeStorageRetainPolicy string `helm:"datanode.storage.storageRetainPolicy"`
 	EtcdEndPoint                string `helm:"etcdEndpoints"`
+	ConfigValues                string `helm:"*"`
 }
 
 // UpdateGreptimeDBClusterOptions is the options to update a GreptimeDB cluster.
@@ -94,6 +95,7 @@ type CreateEtcdClusterOptions struct {
 	EtcdStorageClassName string `helm:"storage.storageClassName"`
 	EtcdStorageSize      string `helm:"storage.volumeSize"`
 	EtcdDataDir          string `helm:"storage.dataDir"`
+	ConfigValues         string `helm:"*"`
 }
 
 // DeleteEtcdClusterOption is the options to delete an etcd cluster.
@@ -104,4 +106,5 @@ type CreateGreptimeDBOperatorOptions struct {
 	GreptimeDBOperatorChartVersion string
 
 	ImageRegistry string `helm:"image.registry"`
+	ConfigValues  string `helm:"*"`
 }

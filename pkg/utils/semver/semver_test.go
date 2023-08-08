@@ -12,37 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package semver
 
 import (
-	"fmt"
-	"os"
+	"testing"
 )
 
-func CreateDirIfNotExists(dir string) (err error) {
-	if err := os.MkdirAll(dir, 0755); err != nil && !os.IsExist(err) {
-		return err
-	}
-	return nil
-}
-
-func IsFileExists(filepath string) (bool, error) {
-	info, err := os.Stat(filepath)
-	if os.IsNotExist(err) {
-		// file does not exist
-		return false, nil
+func TestCompare(t *testing.T) {
+	tests := []struct {
+		v1, v2 string
+		want   bool
+	}{
+		{"v0.3.2", "v0.4.0-nightly-20230802", false},
+		{"v0.4.0-nightly-20230807", "0.4.0-nightly-20230802", true},
 	}
 
-	if err != nil {
-		// Other errors happened.
-		return false, err
-	}
+	for _, test := range tests {
+		got, err := Compare(test.v1, test.v2)
+		if err != nil {
+			t.Errorf("compare '%s' and '%s': %v", test.v1, test.v2, err)
+		}
 
-	if info.IsDir() {
-		// It's a directory.
-		return false, fmt.Errorf("'%s' is directory, not file", filepath)
+		if got != test.want {
+			t.Errorf("compare '%s' and '%s': got %v, want %v", test.v1, test.v2, got, test.want)
+		}
 	}
-
-	// The file exists.
-	return true, nil
 }

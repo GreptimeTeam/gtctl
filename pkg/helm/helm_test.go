@@ -107,6 +107,7 @@ func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
 		DatanodeStorageRetainPolicy: "Delete",
 		EtcdEndPoint:                "127.0.0.1:2379",
 		InitializerImageRegistry:    "registry.cn-hangzhou.aliyuncs.com",
+		ConfigValues:                "meta.replicas=4",
 	}
 
 	r := &Render{}
@@ -122,6 +123,7 @@ func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
 		"datanode.storage.storageRetainPolicy=Delete",
 		"etcdEndpoints=127.0.0.1:2379",
 		"initializer.registry=registry.cn-hangzhou.aliyuncs.com",
+		"meta.replicas=4",
 	}
 
 	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
@@ -139,6 +141,7 @@ func TestRender_GenerateGreptimeDBOperatorHelmValues(t *testing.T) {
 	options := deployer.CreateGreptimeDBOperatorOptions{
 		GreptimeDBOperatorChartVersion: "",
 		ImageRegistry:                  "registry.cn-hangzhou.aliyuncs.com",
+		ConfigValues:                   "replicas=3",
 	}
 
 	r := &Render{}
@@ -149,6 +152,7 @@ func TestRender_GenerateGreptimeDBOperatorHelmValues(t *testing.T) {
 
 	ArgsStr := []string{
 		"image.registry=registry.cn-hangzhou.aliyuncs.com",
+		"replicas=3",
 	}
 
 	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
@@ -169,6 +173,7 @@ func TestRender_GenerateEtcdHelmValues(t *testing.T) {
 		EtcdStorageClassName: "ebs-sc",
 		EtcdStorageSize:      "11Gi",
 		EtcdDataDir:          "/var/etcd",
+		ConfigValues:         "image.tag=latest",
 	}
 
 	r := &Render{}
@@ -182,6 +187,7 @@ func TestRender_GenerateEtcdHelmValues(t *testing.T) {
 		"storage.storageClassName=ebs-sc",
 		"storage.volumeSize=11Gi",
 		"storage.dataDir=/var/etcd",
+		"image.tag=latest",
 	}
 
 	valuesWanted, err := strvals.Parse(strings.Join(ArgsStr, ","))
