@@ -37,7 +37,7 @@ type datanode struct {
 	wg          *sync.WaitGroup
 	logger      logger.Logger
 
-	dataHome string
+	dataHomeDirs []string
 	allocatedDirs
 }
 
@@ -57,14 +57,14 @@ func (d *datanode) Name() string {
 }
 
 func (d *datanode) Start(ctx context.Context, binary string) error {
-	dataHome := path.Join(d.workingDirs.DataDir, "home")
-	if err := fileutils.CreateDirIfNotExists(dataHome); err != nil {
-		return err
-	}
-	d.dataHome = dataHome
-
 	for i := 0; i < d.config.Replicas; i++ {
 		dirName := fmt.Sprintf("%s.%d", d.Name(), i)
+
+		dataHomeDir := path.Join(d.workingDirs.DataDir, "home")
+		if err := fileutils.CreateDirIfNotExists(dataHomeDir); err != nil {
+			return err
+		}
+		d.dataHomeDirs = append(d.dataHomeDirs, dataHomeDir)
 
 		datanodeLogDir := path.Join(d.workingDirs.LogsDir, dirName)
 		if err := fileutils.CreateDirIfNotExists(datanodeLogDir); err != nil {
@@ -89,7 +89,7 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 			Name:   dirName,
 			logDir: datanodeLogDir,
 			pidDir: datanodePidDir,
-			args:   d.BuildArgs(ctx, i, walDir),
+			args:   d.BuildArgs(ctx, i, walDir, dataHomeDir),
 		}
 		if err := runBinary(ctx, option, d.wg, d.logger); err != nil {
 			return err
@@ -121,7 +121,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		logLevel = "info"
 	}
 
-	nodeID_, walDir := params[0], params[1]
+	nodeID_, walDir, dataHomeDir := params[0], params[1], params[2]
 	nodeID := nodeID_.(int)
 
 	args := []string{
@@ -131,7 +131,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		fmt.Sprintf("--metasrv-addr=%s", d.metaSrvAddr),
 		fmt.Sprintf("--rpc-addr=%s", generateDatanodeAddr(d.config.RPCAddr, nodeID)),
 		fmt.Sprintf("--http-addr=%s", generateDatanodeAddr(d.config.HTTPAddr, nodeID)),
-		fmt.Sprintf("--data-home=%s", d.dataHome),
+		fmt.Sprintf("--data-home=%s", dataHomeDir),
 		fmt.Sprintf("--wal-dir=%s", walDir),
 	}
 	return args
@@ -165,8 +165,10 @@ func (d *datanode) IsRunning(ctx context.Context) bool {
 }
 
 func (d *datanode) Delete(ctx context.Context, option DeleteOptions) error {
-	if err := fileutils.DeleteDirIfExists(d.dataHome); err != nil {
-		return err
+	for _, dir := range d.dataHomeDirs {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
+			return err
+		}
 	}
 
 	if err := d.delete(ctx, option); err != nil {
