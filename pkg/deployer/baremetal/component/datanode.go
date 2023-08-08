@@ -54,14 +54,15 @@ func newDataNodes(config *config.Datanode, metaSrvAddr string, workDirs WorkDirs
 }
 
 func (d *datanode) Start(ctx context.Context, binary string) error {
-	dataHome := path.Join(d.workDirs.DataDir, "home")
-	if err := fileutils.CreateDirIfNotExists(dataHome); err != nil {
-		return err
-	}
-	d.dataHome = dataHome
 
 	for i := 0; i < d.config.Replicas; i++ {
 		dirName := fmt.Sprintf("datanode.%d", i)
+
+		dataHome := path.Join(d.workDirs.DataDir, dirName, "home")
+		if err := fileutils.CreateDirIfNotExists(dataHome); err != nil {
+			return err
+		}
+		d.dataHome = dataHome
 
 		datanodeLogDir := path.Join(d.workDirs.LogsDir, dirName)
 		if err := fileutils.CreateDirIfNotExists(datanodeLogDir); err != nil {
