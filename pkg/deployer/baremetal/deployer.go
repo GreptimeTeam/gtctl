@@ -38,11 +38,9 @@ type Deployer struct {
 	wg     sync.WaitGroup
 	bm     *component.BareMetalCluster
 
-	workingDir string
-	clusterDir string
-	logsDir    string
-	pidsDir    string
-	dataDir    string
+	workingDirs component.WorkingDirs
+	clusterDir  string
+	baseDir     string
 
 	alwaysDownload bool
 }
@@ -71,12 +69,12 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 	if err != nil {
 		return nil, err
 	}
-	d.workingDir = path.Join(homeDir, config.GtctlDir)
-	if err := fileutils.CreateDirIfNotExists(d.workingDir); err != nil {
+	d.baseDir = path.Join(homeDir, config.GtctlDir)
+	if err := fileutils.CreateDirIfNotExists(d.baseDir); err != nil {
 		return nil, err
 	}
 
-	am, err := NewArtifactManager(d.workingDir, l, d.alwaysDownload)
+	am, err := NewArtifactManager(d.baseDir, l, d.alwaysDownload)
 	if err != nil {
 		return nil, err
 	}
@@ -87,12 +85,7 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 			return nil, err
 		}
 
-		workDirs := component.WorkDirs{
-			DataDir: d.dataDir,
-			LogsDir: d.logsDir,
-			PidsDir: d.pidsDir,
-		}
-		d.bm = component.NewGreptimeDBCluster(d.config.Cluster, workDirs, &d.wg, d.logger)
+		d.bm = component.NewBareMetalCluster(d.config.Cluster, d.workingDirs, &d.wg, d.logger)
 	}
 
 	return d, nil
@@ -101,7 +94,7 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 func (d *Deployer) createClusterDirs(clusterName string) error {
 	var (
 		// ${HOME}/${GtctlDir}/${ClusterName}
-		clusterDir = path.Join(d.workingDir, clusterName)
+		clusterDir = path.Join(d.baseDir, clusterName)
 
 		// ${HOME}/${GtctlDir}/${ClusterName}/logs.
 		logsDir = path.Join(clusterDir, "logs")
@@ -127,9 +120,11 @@ func (d *Deployer) createClusterDirs(clusterName string) error {
 	}
 
 	d.clusterDir = clusterDir
-	d.logsDir = logsDir
-	d.dataDir = dataDir
-	d.pidsDir = pidsDir
+	d.workingDirs = component.WorkingDirs{
+		LogsDir: logsDir,
+		DataDir: dataDir,
+		PidsDir: pidsDir,
+	}
 
 	return nil
 }
@@ -195,11 +190,22 @@ func (d *Deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, opt
 }
 
 // deleteGreptimeDBClusterForeground delete the whole cluster if it runs in foreground.
-func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context) error {
-	// It is unnecessary to delete each component resources in cluster since it runs in the foreground.
-	// So deleting the whole cluster resources here would be fine.
-	if err := fileutils.DeleteDirIfExists(d.clusterDir); err != nil {
-		return err
+func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context, option component.DeleteOptions) error {
+	if option.RetainLogs {
+		// It is unnecessary to delete each component resources in cluster since it only retains the logs.
+		// So deleting the whole cluster resources excluding logs here would be fine.
+		if err := fileutils.DeleteDirIfExists(d.workingDirs.DataDir); err != nil {
+			return err
+		}
+		if err := fileutils.DeleteDirIfExists(d.workingDirs.PidsDir); err != nil {
+			return err
+		}
+	} else {
+		// It is unnecessary to delete each component resources in cluster since it has nothing to retain.
+		// So deleting the whole cluster resources here would be fine.
+		if err := fileutils.DeleteDirIfExists(d.clusterDir); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -272,7 +278,7 @@ func (d *Deployer) checkEtcdHealth(etcdBin string) error {
 
 		time.Sleep(1 * time.Second)
 	}
-	return fmt.Errorf("etcd is not ready in 10 second! You can find its logs in %s", path.Join(d.logsDir, "etcd"))
+	return fmt.Errorf("etcd is not ready in 10 second! You can find its logs in %s", path.Join(d.workingDirs.LogsDir, "etcd"))
 }
 
 func (d *Deployer) DeleteEtcdCluster(ctx context.Context, name string, options *DeleteEtcdClusterOption) error {
@@ -284,14 +290,14 @@ func (d *Deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 	return fmt.Errorf("only support for k8s Deployer")
 }
 
-func (d *Deployer) Wait(ctx context.Context) error {
+func (d *Deployer) Wait(ctx context.Context, option component.DeleteOptions) error {
 	d.wg.Wait()
 
 	d.logger.V(3).Info("Cluster shutting down. Cleaning allocated resources.")
 
 	<-ctx.Done()
 	// Delete cluster after closing, which can only happens in the foreground.
-	if err := d.deleteGreptimeDBClusterForeground(ctx); err != nil {
+	if err := d.deleteGreptimeDBClusterForeground(ctx, option); err != nil {
 		return err
 	}
 

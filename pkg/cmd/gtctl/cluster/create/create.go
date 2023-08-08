@@ -29,6 +29,7 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/common"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	bmconfig "github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -57,6 +58,7 @@ type createClusterCliOptions struct {
 	Config             string
 	GreptimeBinVersion string
 	AlwaysDownload     bool
+	RetainLogs         bool
 
 	// Common options.
 	Timeout int
@@ -80,13 +82,13 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 				clusterName = args[0]
 				ctx         = context.Background()
 				cancel      context.CancelFunc
+				deleteOpts  component.DeleteOptions
 			)
 
 			if options.Timeout > 0 {
 				ctx, cancel = context.WithTimeout(ctx, time.Duration(options.Timeout)*time.Second)
 				defer cancel()
 			}
-
 			ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
 
@@ -105,6 +107,8 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			} else {
 				l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal environment...", logger.Bold(clusterName))
 			}
+
+			deleteOpts.RetainLogs = options.RetainLogs
 
 			// Parse config values that set in command line
 			if err = options.Set.parseConfig(); err != nil {
@@ -125,7 +129,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			if err = deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
 				// Wait the cluster closing if deploy fails in bare-metal mode.
 				if options.BareMetal {
-					if err := waitChildProcess(ctx, clusterDeployer, true); err != nil {
+					if err := waitChildProcess(ctx, clusterDeployer, true, deleteOpts); err != nil {
 						return err
 					}
 				}
@@ -137,7 +141,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 			}
 
 			if options.BareMetal {
-				if err := waitChildProcess(ctx, clusterDeployer, false); err != nil {
+				if err := waitChildProcess(ctx, clusterDeployer, false, deleteOpts); err != nil {
 					return err
 				}
 			}
@@ -166,6 +170,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.GreptimeBinVersion, "greptime-bin-version", "", "The version of greptime binary(can be override by config file).")
 	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal environment.")
 	cmd.Flags().BoolVar(&options.AlwaysDownload, "always-download", false, "If true, always download the binary.")
+	cmd.Flags().BoolVar(&options.RetainLogs, "retain-logs", true, "If true, always retain the logs of binary.")
 
 	return cmd
 }
@@ -324,7 +329,7 @@ func printTips(l logger.Logger, clusterName string, options *createClusterCliOpt
 	l.V(0).Infof("\n%s 🔑", logger.Bold("Invest in Data, Harvest over Time."))
 }
 
-func waitChildProcess(ctx context.Context, deployer deployer.Interface, close bool) error {
+func waitChildProcess(ctx context.Context, deployer deployer.Interface, close bool, option component.DeleteOptions) error {
 	d, ok := deployer.(*baremetal.Deployer)
 	if ok {
 		v := d.Config().Cluster.Artifact.Version
@@ -340,7 +345,7 @@ func waitChildProcess(ctx context.Context, deployer deployer.Interface, close bo
 		}
 
 		// Wait for all the child processes to exit.
-		if err := d.Wait(ctx); err != nil {
+		if err := d.Wait(ctx, option); err != nil {
 			return err
 		}
 	}
