@@ -37,7 +37,7 @@ type datanode struct {
 	wg       *sync.WaitGroup
 	logger   logger.Logger
 
-	dataHome         string
+	dataHome         []string
 	dataNodeLogDirs  []string
 	dataNodePidDirs  []string
 	dataNodeDataDirs []string
@@ -54,14 +54,15 @@ func newDataNodes(config *config.Datanode, metaSrvAddr string, workDirs WorkDirs
 }
 
 func (d *datanode) Start(ctx context.Context, binary string) error {
-	dataHome := path.Join(d.workDirs.DataDir, "home")
-	if err := fileutils.CreateDirIfNotExists(dataHome); err != nil {
-		return err
-	}
-	d.dataHome = dataHome
 
 	for i := 0; i < d.config.Replicas; i++ {
 		dirName := fmt.Sprintf("datanode.%d", i)
+
+		dataHome := path.Join(d.workDirs.DataDir, dirName, "home")
+		if err := fileutils.CreateDirIfNotExists(dataHome); err != nil {
+			return err
+		}
+		d.dataHome = append(d.dataHome, dataHome)
 
 		datanodeLogDir := path.Join(d.workDirs.LogsDir, dirName)
 		if err := fileutils.CreateDirIfNotExists(datanodeLogDir); err != nil {
@@ -81,7 +82,7 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 		}
 		d.dataNodeDataDirs = append(d.dataNodeDataDirs, path.Join(d.workDirs.DataDir, dirName))
 
-		if err := runBinary(ctx, binary, d.BuildArgs(ctx, i, walDir), datanodeLogDir, datanodePidDir, d.wg, d.logger); err != nil {
+		if err := runBinary(ctx, binary, d.BuildArgs(ctx, i, walDir, dataHome), datanodeLogDir, datanodePidDir, d.wg, d.logger); err != nil {
 			return err
 		}
 	}
@@ -111,7 +112,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		logLevel = "info"
 	}
 
-	nodeID_, walDir := params[0], params[1]
+	nodeID_, walDir, dataHome := params[0], params[1], params[2]
 	nodeID := nodeID_.(int)
 
 	args := []string{
@@ -121,7 +122,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		fmt.Sprintf("--metasrv-addr=%s", d.metaSrvAddr),
 		fmt.Sprintf("--rpc-addr=%s", generateDatanodeAddr(d.config.RPCAddr, nodeID)),
 		fmt.Sprintf("--http-addr=%s", generateDatanodeAddr(d.config.HTTPAddr, nodeID)),
-		fmt.Sprintf("--data-home=%s", d.dataHome),
+		fmt.Sprintf("--data-home=%s", dataHome),
 		fmt.Sprintf("--wal-dir=%s", walDir),
 	}
 	return args
@@ -155,8 +156,10 @@ func (d *datanode) IsRunning(ctx context.Context) bool {
 }
 
 func (d *datanode) Delete(ctx context.Context) error {
-	if err := fileutils.DeleteDirIfExists(d.dataHome); err != nil {
-		return err
+	for _, dir := range d.dataHome {
+		if err := fileutils.DeleteDirIfExists(dir); err != nil {
+			return err
+		}
 	}
 
 	for _, dir := range d.dataNodeLogDirs {
