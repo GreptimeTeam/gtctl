@@ -23,6 +23,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/constants"
+	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/playground"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/version"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	internalversion "github.com/GreptimeTeam/gtctl/pkg/version"
@@ -62,6 +63,7 @@ func NewRootCommand() *cobra.Command {
 	// Add all top level subcommands.
 	cmd.AddCommand(version.NewVersionCommand(l))
 	cmd.AddCommand(cluster.NewClusterCommand(l))
+	cmd.AddCommand(playground.NewPlaygroundCommand(l))
 
 	return cmd
 }
