@@ -42,11 +42,11 @@ const (
 
 // ConnectCommand connects to a GreptimeDB cluster
 func ConnectCommand(rawCluster *greptimedbclusterv1alpha1.GreptimeDBCluster, l logger.Logger) error {
-	return connect("127.0.0.1", strconv.Itoa(int(rawCluster.Spec.MySQLServicePort)), rawCluster.Name, l)
+	return connect(strconv.Itoa(int(rawCluster.Spec.MySQLServicePort)), rawCluster.Name, l)
 }
 
 // connect connects to a GreptimeDB cluster
-func connect(host, port, clusterName string, l logger.Logger) error {
+func connect(port, clusterName string, l logger.Logger) error {
 	waitGroup := sync.WaitGroup{}
 	cmd := exec.CommandContext(context.Background(), Kubectl, PortForward, "-n", "default", "svc/"+clusterName+"-frontend", port+PrePort+port)
 	err := cmd.Start()
