@@ -36,7 +36,7 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/status"
 )
 
-type createClusterCliOptions struct {
+type ClusterCliOptions struct {
 	// The options for deploying GreptimeDBCluster in K8s.
 	Namespace                      string
 	OperatorNamespace              string
@@ -67,85 +67,16 @@ type createClusterCliOptions struct {
 }
 
 func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
-	var options createClusterCliOptions
+	var options ClusterCliOptions
 
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a GreptimeDB cluster",
 		Long:  `Create a GreptimeDB cluster`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("cluster name should be set")
-			}
-
-			var (
-				clusterName = args[0]
-				ctx         = context.Background()
-				cancel      context.CancelFunc
-				deleteOpts  component.DeleteOptions
-			)
-
-			if options.Timeout > 0 {
-				ctx, cancel = context.WithTimeout(ctx, time.Duration(options.Timeout)*time.Second)
-				defer cancel()
-			}
-			ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-			defer stop()
-
-			clusterDeployer, err := newDeployer(l, clusterName, &options)
-			if err != nil {
+			if err := NewCluster(args, options, l); err != nil {
 				return err
 			}
-
-			spinner, err := status.NewSpinner()
-			if err != nil {
-				return err
-			}
-
-			if !options.BareMetal {
-				l.V(0).Infof("Creating GreptimeDB cluster '%s' in namespace '%s' ...", logger.Bold(clusterName), logger.Bold(options.Namespace))
-			} else {
-				l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal environment...", logger.Bold(clusterName))
-			}
-
-			deleteOpts.RetainLogs = options.RetainLogs
-
-			// Parse config values that set in command line
-			if err = options.Set.parseConfig(); err != nil {
-				return err
-			}
-
-			if !options.BareMetal {
-				if err = deployGreptimeDBOperator(ctx, l, &options, spinner, clusterDeployer); err != nil {
-					return err
-				}
-			}
-
-			if err = deployEtcdCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
-				spinner.Stop(false, "Installing etcd cluster failed")
-				return err
-			}
-
-			if err = deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
-				// Wait the cluster closing if deploy fails in bare-metal mode.
-				if options.BareMetal {
-					if err := waitChildProcess(ctx, clusterDeployer, true, deleteOpts); err != nil {
-						return err
-					}
-				}
-				return err
-			}
-
-			if !options.DryRun {
-				printTips(l, clusterName, &options)
-			}
-
-			if options.BareMetal {
-				if err := waitChildProcess(ctx, clusterDeployer, false, deleteOpts); err != nil {
-					return err
-				}
-			}
-
 			return nil
 		},
 	}
@@ -175,7 +106,84 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	return cmd
 }
 
-func newDeployer(l logger.Logger, clusterName string, options *createClusterCliOptions) (deployer.Interface, error) {
+// NewCluster creates a new cluster.
+func NewCluster(args []string, options ClusterCliOptions, l logger.Logger) error {
+	if len(args) == 0 {
+		return fmt.Errorf("cluster name should be set")
+	}
+
+	var (
+		clusterName = args[0]
+		ctx         = context.Background()
+		cancel      context.CancelFunc
+		deleteOpts  component.DeleteOptions
+	)
+
+	if options.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(options.Timeout)*time.Second)
+		defer cancel()
+	}
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	clusterDeployer, err := newDeployer(l, clusterName, &options)
+	if err != nil {
+		return err
+	}
+
+	spinner, err := status.NewSpinner()
+	if err != nil {
+		return err
+	}
+
+	if !options.BareMetal {
+		l.V(0).Infof("Creating GreptimeDB cluster '%s' in namespace '%s' ...", logger.Bold(clusterName), logger.Bold(options.Namespace))
+	} else {
+		l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal environment...", logger.Bold(clusterName))
+	}
+
+	deleteOpts.RetainLogs = options.RetainLogs
+
+	// Parse config values that set in command line
+	if err = options.Set.parseConfig(); err != nil {
+		return err
+	}
+
+	if !options.BareMetal {
+		if err = deployGreptimeDBOperator(ctx, l, &options, spinner, clusterDeployer); err != nil {
+			return err
+		}
+	}
+
+	if err = deployEtcdCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
+		spinner.Stop(false, "Installing etcd cluster failed")
+		return err
+	}
+
+	if err = deployGreptimeDBCluster(ctx, l, &options, spinner, clusterDeployer, clusterName); err != nil {
+		// Wait the cluster closing if deploy fails in bare-metal mode.
+		if options.BareMetal {
+			if err := waitChildProcess(ctx, clusterDeployer, true, deleteOpts); err != nil {
+				return err
+			}
+		}
+		return err
+	}
+
+	if !options.DryRun {
+		printTips(l, clusterName, &options)
+	}
+
+	if options.BareMetal {
+		if err := waitChildProcess(ctx, clusterDeployer, false, deleteOpts); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func newDeployer(l logger.Logger, clusterName string, options *ClusterCliOptions) (deployer.Interface, error) {
 	if !options.BareMetal {
 		k8sDeployer, err := k8s.NewDeployer(l, k8s.WithDryRun(options.DryRun),
 			k8s.WithTimeout(time.Duration(options.Timeout)*time.Second))
@@ -215,7 +223,7 @@ func newDeployer(l logger.Logger, clusterName string, options *createClusterCliO
 	return baremetalDeployer, nil
 }
 
-func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
+func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *ClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface) error {
 
 	if !options.DryRun {
@@ -241,7 +249,7 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *cre
 	return nil
 }
 
-func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
+func deployEtcdCluster(ctx context.Context, l logger.Logger, options *ClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface, clusterName string) error {
 
 	if !options.DryRun {
@@ -276,7 +284,7 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *createClus
 	return nil
 }
 
-func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *createClusterCliOptions,
+func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *ClusterCliOptions,
 	spinner *status.Spinner, clusterDeployer deployer.Interface, clusterName string) error {
 
 	if !options.DryRun {
@@ -313,7 +321,7 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *crea
 	return nil
 }
 
-func printTips(l logger.Logger, clusterName string, options *createClusterCliOptions) {
+func printTips(l logger.Logger, clusterName string, options *ClusterCliOptions) {
 	l.V(0).Infof("\nNow you can use the following commands to access the GreptimeDB cluster:")
 	l.V(0).Infof("\n%s", logger.Bold("MySQL >"))
 	if !options.BareMetal {
