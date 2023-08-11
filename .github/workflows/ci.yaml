@@ -12,6 +12,7 @@ jobs:
       - name: Check spelling with custom config file
         uses: crate-ci/typos@v1.14.8
   linter:
+    name: Linter
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -28,16 +29,34 @@ jobs:
           version: v1.50.0
           args: --timeout 10m0s
   unit-test:
+    name: Unit Test
     runs-on: ubuntu-latest
     needs: [ linter ]
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18.4"
+
       - name: unit test
         run: |
           make test
   e2e-test:
+    name: e2e Test
     runs-on: ubuntu-latest
     needs: [ linter ]
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18.4"
+
       - name: e2e test of basic cluster
         run: |
           make e2e
