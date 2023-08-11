@@ -62,8 +62,6 @@ func TestValidateConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			var actual config.Config
 			if err := loadConfig(fmt.Sprintf("test_data/%s.yaml", tc.name), &actual); err != nil {
 				t.Errorf("error while loading %s file: %v", tc.name, err)

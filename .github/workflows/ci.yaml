@@ -29,9 +29,8 @@ jobs:
           version: v1.50.0
           args: --timeout 10m0s
   unit-test:
-    name: unit-test
+    name: unit-test-coverage
     runs-on: ubuntu-latest
-    needs: [ linter ]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -41,13 +40,19 @@ jobs:
         with:
           go-version: "1.18.4"
 
-      - name: unit test
+      - name: Unit test
         run: |
-          make test
+          make coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: true
+          files: ./coverage.xml
+          name: codecov-gtctl
+          verbose: true
   e2e-test:
-    name: e2e-test-kubernetes
+    name: e2e-test
     runs-on: ubuntu-latest
-    needs: [ linter ]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
