@@ -1,4 +1,4 @@
-name: Title
+name: PR Title Checker
 
 on: [pull_request]
 
