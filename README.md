@@ -18,6 +18,16 @@ After downloading, the `gtctl` will be in the current directory.
 
 ## Getting Started
 
+### Playground
+
+The **fatest** way to experience the GreptimeDB cluster is to use the playground:
+
+```console
+gtctl playground
+```
+
+The `playground` will deploy the minimal GreptimeDB cluster on your environment in bare-metal mode.
+
 ### Deploy in Bare-Metal Environment
 
 You can deploy the GreptimeDB cluster on a bare-metal environment by the following simple command:
