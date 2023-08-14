@@ -4,6 +4,7 @@ on: [pull_request]
 
 jobs:
   check:
+    name: pr-title-check
     runs-on: ubuntu-latest
     steps:
       - uses: thehanimo/pr-title-checker@v1.3.4

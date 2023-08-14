@@ -31,6 +31,10 @@ e2e: gtctl setup-e2e ## Run e2e.
 test: ## Run unit test.
 	go test -timeout 1m -v ./pkg/...
 
+.PHONY: coverage
+coverage: ## Run unit test with coverage.
+	go test ./pkg/... -race -coverprofile=coverage.xml -covermode=atomic
+
 .PHONY: fix-license-header
 fix-license-header: license-eye ## Fix license header.
 	license-eye -c .licenserc.yaml header fix

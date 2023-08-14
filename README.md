@@ -1,5 +1,7 @@
 # gtctl
 
+[![codecov](https://codecov.io/github/GreptimeTeam/gtctl/branch/main/graph/badge.svg?token=287NUSEH5D)](https://codecov.io/github/GreptimeTeam/gtctl)
+
 ## Overview
 
 `gtctl`(`g-t-control`) is a command-line tool for managing the [GreptimeDB](https://github.com/GrepTimeTeam/greptimedb) cluster. `gtctl` is the **All-in-One** binary that integrates multiple operations of the GreptimeDB cluster.

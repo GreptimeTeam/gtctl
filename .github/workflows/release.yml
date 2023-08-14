@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: Build binary
+    name: build-binary
     strategy:
       matrix:
         # The file format is gtctl-<os>-<arch>
@@ -65,7 +65,7 @@ jobs:
           path: bin/${{ matrix.file }}.sha256sum
 
   release:
-    name: Release artifacts
+    name: release-artifacts
     needs: [ build ]
     runs-on: ubuntu-latest
     steps:

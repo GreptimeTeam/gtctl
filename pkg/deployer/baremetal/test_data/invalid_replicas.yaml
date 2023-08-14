@@ -1,0 +1,19 @@
+cluster:
+  name: mycluster # name of the cluster
+  artifact:
+    version: v0.2.0-nightly-20230403
+  frontend:
+    replicas: 0  # invalid replicas
+  datanode:
+    replicas: -3  # invalid replicas
+    rpcAddr: 0.0.0.0:14100
+    mysqlAddr: 0.0.0.0:14200
+    httpAddr: 0.0.0.0:14300
+  meta:
+    storeAddr: 127.0.0.1:2379
+    serverAddr: 0.0.0.0:3002
+    httpAddr: 0.0.0.0:14001
+
+etcd:
+  artifact:
+    version: v3.5.7

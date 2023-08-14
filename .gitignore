@@ -26,3 +26,4 @@ testbin/*
 .vscode
 
 .gtctl
+coverage.xml
