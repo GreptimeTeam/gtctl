@@ -15,6 +15,7 @@
 package baremetal
 
 import (
+	"context"
 	"os"
 	"path"
 	"testing"
@@ -65,4 +66,34 @@ func TestNewDeployer(t *testing.T) {
 	assert.True(t, ok)
 	assert.NotNil(t, d3)
 	assert.Equal(t, newConfig, d3.config)
+
+	// New Deployer with specific version
+	version := "foobar"
+	deployer, err = NewDeployer(L, clusterName, WithGreptimeVersion(version))
+	assert.NoError(t, err)
+	d4, ok := deployer.(*Deployer)
+	assert.True(t, ok)
+	assert.NotNil(t, d4)
+	assert.Equal(t, version, d4.config.Cluster.Artifact.Version)
+}
+
+func TestDeleteGreptimeClusterForeground(t *testing.T) {
+	clusterName := "test"
+
+	d, err := NewDeployer(L, clusterName)
+	assert.NoError(t, err)
+	deployer, ok := d.(*Deployer)
+	assert.True(t, ok)
+	assert.NotNil(t, deployer)
+
+	err = deployer.deleteGreptimeDBClusterForeground(context.Background(), component.DeleteOptions{})
+	assert.NoError(t, err)
+
+	info, err := os.Stat(deployer.clusterDir)
+	if os.IsExist(err) {
+		t.Errorf("cluster dir %s should not exist: %v", deployer.clusterDir, err)
+	}
+	if info != nil && !info.IsDir() {
+		t.Errorf("cluster dir %s is not a dir", deployer.clusterDir)
+	}
 }
