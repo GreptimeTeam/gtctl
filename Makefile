@@ -15,9 +15,13 @@
 CLUSTER=e2e-cluster
 LDFLAGS = $(shell ./hack/version.sh)
 
+##@ Build
+
 .PHONY: gtctl
 gtctl: ## Build gtctl.
 	@go build -ldflags '${LDFLAGS}' -o bin/gtctl ./cmd/gtctl
+
+##@ Development
 
 .PHONY: setup-e2e
 setup-e2e: ## Setup e2e test environment.
@@ -26,6 +30,10 @@ setup-e2e: ## Setup e2e test environment.
 .PHONY: e2e
 e2e: gtctl setup-e2e ## Run e2e.
 	go test -timeout 8m -v ./tests/e2e/... && kind delete clusters ${CLUSTER}
+
+.PHONY: lint
+lint: golangci-lint gtctl ## Run lint.
+	golangci-lint run -v ./...
 
 .PHONY: test
 test: ## Run unit test.
@@ -39,9 +47,15 @@ coverage: ## Run unit test with coverage.
 fix-license-header: license-eye ## Fix license header.
 	license-eye -c .licenserc.yaml header fix
 
+##@ Tools Installation
+
 .PHONY: license-eye
 license-eye: ## Install license-eye.
 	@which license-eye || go install github.com/apache/skywalking-eyes/cmd/license-eye@latest
+
+.PHONY: golangci-lint
+golangci-lint: ## Install golangci-lint.
+	@which golangci-lint || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.1
 
 ##@ General
 
