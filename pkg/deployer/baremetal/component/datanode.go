@@ -118,7 +118,7 @@ CHECKER:
 func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []string {
 	logLevel := d.config.LogLevel
 	if logLevel == "" {
-		logLevel = "info"
+		logLevel = config.DefaultLogLevel
 	}
 
 	nodeID_, walDir, dataHomeDir := params[0], params[1], params[2]

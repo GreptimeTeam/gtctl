@@ -20,6 +20,8 @@ const (
 
 	DefaultEtcdVersion     = "v3.5.7"
 	DefaultGreptimeVersion = "latest"
+
+	DefaultLogLevel = "info"
 )
 
 // Config is the desired state of a GreptimeDB cluster on bare metal.

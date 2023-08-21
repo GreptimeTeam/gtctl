@@ -25,11 +25,12 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/google/go-github/v53/github"
+
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 	semverutils "github.com/GreptimeTeam/gtctl/pkg/utils/semver"
-	"github.com/google/go-github/v53/github"
 )
 
 const (

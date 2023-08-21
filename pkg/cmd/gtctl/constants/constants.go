@@ -14,11 +14,11 @@
 
 package constants
 
-// GtctlTextBanner is the following text banner for gtctl.
-//           __       __  __
-//    ____ _/ /______/ /_/ /
-//   / __ `/ __/ ___/ __/ /
-//  / /_/ / /_/ /__/ /_/ /
-//  \__, /\__/\___/\__/_/
-// /____/
-const GtctlTextBanner = "          __       __  __\n   ____ _/ /______/ /_/ /\n  / __ `/ __/ ___/ __/ / \n / /_/ / /_/ /__/ /_/ /  \n \\__, /\\__/\\___/\\__/_/   \n/____/   \n"
+// GtctlTextBanner represents the ASCII art banner for the gtctl command-line tool.
+const GtctlTextBanner = `
+          __       __  __
+   ____ _/ /______/ /_/ /
+  / __ '/ __/ ___/ __/ / 
+ / /_/ / /_/ /__/ /_/ /  
+ \__, /\__/\___/\__/_/   
+/____/`

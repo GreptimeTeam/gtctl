@@ -99,7 +99,7 @@ CHECKER:
 func (m *metaSrv) BuildArgs(ctx context.Context, params ...interface{}) []string {
 	logLevel := m.config.LogLevel
 	if logLevel == "" {
-		logLevel = "info"
+		logLevel = config.DefaultLogLevel
 	}
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
