@@ -123,7 +123,7 @@ func NewCluster(args []string, options ClusterCliOptions, l logger.Logger) error
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(options.Timeout)*time.Second)
 		defer cancel()
 	}
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer stop()
 
 	clusterDeployer, err := newDeployer(l, clusterName, &options)

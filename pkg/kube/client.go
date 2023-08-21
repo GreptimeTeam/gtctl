@@ -110,7 +110,7 @@ func NewClient(kubeconfig string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) Apply(manifests []byte) error {
+func (c *Client) Apply(ctx context.Context, manifests []byte) error {
 	builder := resource.NewLocalBuilder().
 		// Configure with a scheme to get typed objects in the versions registered with the scheme.
 		// As an alternative, could call Unstructured() to get unstructured objects.
@@ -153,8 +153,6 @@ func (c *Client) Apply(manifests []byte) error {
 			// FIXME(zyy17): Maybe some resources don't have plural.
 			Resource: strings.ToLower(gvk.Kind) + "s",
 		}
-
-		ctx := context.TODO()
 
 		if isNamespaced[gvr.Resource] {
 			ns := "default"
@@ -214,9 +212,9 @@ func (c *Client) DeleteEtcdCluster(ctx context.Context, name, namespace string) 
 	return nil
 }
 
-func (c *Client) WaitForDeploymentReady(name, namespace string, timeout time.Duration) error {
+func (c *Client) WaitForDeploymentReady(ctx context.Context, name, namespace string, timeout time.Duration) error {
 	conditionFunc := func() (bool, error) {
-		return c.isDeploymentReady(context.TODO(), name, namespace)
+		return c.isDeploymentReady(ctx, name, namespace)
 	}
 
 	if int(timeout) < 0 {
@@ -225,9 +223,9 @@ func (c *Client) WaitForDeploymentReady(name, namespace string, timeout time.Dur
 	return wait.PollImmediate(time.Second, timeout, conditionFunc)
 }
 
-func (c *Client) WaitForClusterReady(name, namespace string, timeout time.Duration) error {
+func (c *Client) WaitForClusterReady(ctx context.Context, name, namespace string, timeout time.Duration) error {
 	conditionFunc := func() (bool, error) {
-		return c.isClusterReady(context.TODO(), name, namespace)
+		return c.isClusterReady(ctx, name, namespace)
 	}
 
 	if int(timeout) < 0 {
@@ -236,9 +234,9 @@ func (c *Client) WaitForClusterReady(name, namespace string, timeout time.Durati
 	return wait.PollImmediate(time.Second, timeout, conditionFunc)
 }
 
-func (c *Client) WaitForEtcdReady(name, namespace string, timeout time.Duration) error {
+func (c *Client) WaitForEtcdReady(ctx context.Context, name, namespace string, timeout time.Duration) error {
 	conditionFunc := func() (bool, error) {
-		return c.IsStatefulSetReady(context.TODO(), name, namespace)
+		return c.IsStatefulSetReady(ctx, name, namespace)
 	}
 
 	if int(timeout) < 0 {

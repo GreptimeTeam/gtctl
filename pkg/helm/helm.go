@@ -37,7 +37,7 @@ const (
 )
 
 type TemplateRender interface {
-	GenerateManifests(releaseName, namespace string, chart *chart.Chart, values map[string]interface{}) ([]byte, error)
+	GenerateManifests(ctx context.Context, releaseName, namespace string, chart *chart.Chart, values map[string]interface{}) ([]byte, error)
 }
 
 type Render struct {
@@ -47,8 +47,13 @@ type Render struct {
 
 var _ TemplateRender = &Render{}
 
-func (r *Render) LoadChartFromRemoteCharts(downloadURL string) (*chart.Chart, error) {
-	rsp, err := http.Get(downloadURL)
+func (r *Render) LoadChartFromRemoteCharts(ctx context.Context, downloadURL string) (*chart.Chart, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -66,13 +71,14 @@ func (r *Render) LoadChartFromLocalDirectory(directory string) (*chart.Chart, er
 	return loader.LoadDir(directory)
 }
 
-func (r *Render) GenerateManifests(releaseName, namespace string, chart *chart.Chart, values map[string]interface{}) ([]byte, error) {
+func (r *Render) GenerateManifests(ctx context.Context, releaseName, namespace string,
+	chart *chart.Chart, values map[string]interface{}) ([]byte, error) {
 	client, err := r.newHelmClient(releaseName, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	rel, err := client.RunWithContext(context.TODO(), chart, values)
+	rel, err := client.RunWithContext(ctx, chart, values)
 	if err != nil {
 		return nil, err
 	}
@@ -134,12 +140,17 @@ func (r *Render) GetLatestChart(indexFile *IndexFile, chartName string) (*ChartV
 	return nil, fmt.Errorf("chart %s not found", chartName)
 }
 
-func (r *Render) GetIndexFile(indexURL string) (*IndexFile, error) {
+func (r *Render) GetIndexFile(ctx context.Context, indexURL string) (*IndexFile, error) {
 	if r.indexFile != nil {
 		return r.indexFile, nil
 	}
 
-	rsp, err := http.Get(indexURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, indexURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
