@@ -68,6 +68,29 @@ jobs:
           name: ${{ matrix.file }}.sha256sum
           path: bin/${{ matrix.file }}.sha256sum
 
+      - name: Upload artifacts to S3
+        uses: nick-invision/retry@v2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_CN_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_CN_SECRET_ACCESS_KEY}}
+          AWS_DEFAULT_REGION: ${{ vars.AWS_CN_RELEASE_BUCKET_REGION }}
+        with:
+          max_attempts: 20
+          timeout_minutes: 5
+          command: |
+            aws s3 cp \
+              bin/${{ matrix.file }}.tgz \
+              s3://${{ vars.AWS_CN_RELEASE_BUCKET }}/releases/gtctl/${{ github.ref_name }}/${{ matrix.file }}.tgz && \
+            aws s3 cp \
+              bin/${{ matrix.file }}.sha256sum \
+              s3://${{ vars.AWS_CN_RELEASE_BUCKET }}/releases/gtctl/${{ github.ref_name }}/${{ matrix.file }}.sha256sum && \
+            aws s3 cp \
+              bin/${{ matrix.file }}.tgz \
+              s3://${{ vars.AWS_CN_RELEASE_BUCKET }}/releases/gtctl/latest/${{ matrix.file }}.tgz && \
+            aws s3 cp \
+              bin/${{ matrix.file }}.sha256sum \
+              s3://${{ vars.AWS_CN_RELEASE_BUCKET }}/releases/gtctl/latest/${{ matrix.file }}.sha256sum
+
   release:
     name: release-artifacts
     needs: [ build ]
