@@ -15,6 +15,7 @@
 package helm
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"testing"
@@ -45,7 +46,7 @@ func TestRender_GetIndexFile(t *testing.T) {
 	r := &Render{}
 	for _, tt := range tests {
 		t.Run(tt.url, func(t *testing.T) {
-			_, err := r.GetIndexFile(tt.url)
+			_, err := r.GetIndexFile(context.Background(), tt.url)
 			if err != nil {
 				t.Errorf("fetch index '%s' failed, err: %v", tt.url, err)
 			}
@@ -64,7 +65,7 @@ func TestRender_GetLatestChartLatestChart(t *testing.T) {
 	r := &Render{}
 	for _, tt := range tests {
 		t.Run(tt.url, func(t *testing.T) {
-			indexFile, err := r.GetIndexFile(tt.url)
+			indexFile, err := r.GetIndexFile(context.Background(), tt.url)
 			if err != nil {
 				t.Errorf("fetch index '%s' failed, err: %v", tt.url, err)
 			}

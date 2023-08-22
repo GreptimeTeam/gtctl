@@ -23,9 +23,9 @@ import (
 	"sync"
 	"syscall"
 
+	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/go-sql-driver/mysql"
 
-	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
@@ -58,7 +58,7 @@ func connect(port, clusterName string, l logger.Logger) error {
 	go func() {
 		defer waitGroup.Done()
 		if err = cmd.Wait(); err != nil {
-			//exit status 1
+			// exit status 1
 			exitError, ok := err.(*exec.ExitError)
 			if !ok {
 				l.Errorf("Error waiting for port-forwarding to finish: %v", err)

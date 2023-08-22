@@ -21,6 +21,7 @@ import (
 	"time"
 
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+
 	. "github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
@@ -121,17 +122,17 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 	}
 	d.logger.V(3).Infof("create greptimedb cluster with values: %v", values)
 
-	downloadURL, err := d.getChartDownloadURL(GreptimeDBChartName, options.GreptimeDBChartVersion)
+	downloadURL, err := d.getChartDownloadURL(ctx, GreptimeDBChartName, options.GreptimeDBChartVersion)
 	if err != nil {
 		return err
 	}
 
-	chart, err := d.render.LoadChartFromRemoteCharts(downloadURL)
+	chart, err := d.render.LoadChartFromRemoteCharts(ctx, downloadURL)
 	if err != nil {
 		return err
 	}
 
-	manifests, err := d.render.GenerateManifests(resourceName, resourceNamespace, chart, values)
+	manifests, err := d.render.GenerateManifests(ctx, resourceName, resourceNamespace, chart, values)
 	if err != nil {
 		return err
 	}
@@ -142,11 +143,11 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 		return nil
 	}
 
-	if err := d.client.Apply(manifests); err != nil {
+	if err := d.client.Apply(ctx, manifests); err != nil {
 		return err
 	}
 
-	return d.client.WaitForClusterReady(resourceName, resourceNamespace, d.timeout)
+	return d.client.WaitForClusterReady(ctx, resourceName, resourceNamespace, d.timeout)
 }
 
 func (d *deployer) UpdateGreptimeDBCluster(ctx context.Context, name string, options *UpdateGreptimeDBClusterOptions) error {
@@ -164,7 +165,7 @@ func (d *deployer) UpdateGreptimeDBCluster(ctx context.Context, name string, opt
 		return err
 	}
 
-	return d.client.WaitForClusterReady(resourceName, resourceNamespace, d.timeout)
+	return d.client.WaitForClusterReady(ctx, resourceName, resourceNamespace, d.timeout)
 }
 
 func (d *deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, options *DeleteGreptimeDBClusterOption) error {
@@ -187,17 +188,17 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 	}
 	d.logger.V(3).Infof("create etcd cluster with values: %v", values)
 
-	downloadURL, err := d.getChartDownloadURL(GreptimeDBEtcdChartName, options.EtcdChartVersion)
+	downloadURL, err := d.getChartDownloadURL(ctx, GreptimeDBEtcdChartName, options.EtcdChartVersion)
 	if err != nil {
 		return err
 	}
 
-	chart, err := d.render.LoadChartFromRemoteCharts(downloadURL)
+	chart, err := d.render.LoadChartFromRemoteCharts(ctx, downloadURL)
 	if err != nil {
 		return err
 	}
 
-	manifests, err := d.render.GenerateManifests(resourceName, resourceNamespace, chart, values)
+	manifests, err := d.render.GenerateManifests(ctx, resourceName, resourceNamespace, chart, values)
 	if err != nil {
 		return err
 	}
@@ -208,11 +209,11 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 		return nil
 	}
 
-	if err := d.client.Apply(manifests); err != nil {
+	if err := d.client.Apply(ctx, manifests); err != nil {
 		return err
 	}
 
-	return d.client.WaitForEtcdReady(resourceName, resourceNamespace, d.timeout)
+	return d.client.WaitForEtcdReady(ctx, resourceName, resourceNamespace, d.timeout)
 }
 
 func (d *deployer) DeleteEtcdCluster(ctx context.Context, name string, options *DeleteEtcdClusterOption) error {
@@ -236,17 +237,17 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 	}
 	d.logger.V(3).Infof("create greptimedb-operator with values: %v", values)
 
-	downloadURL, err := d.getChartDownloadURL(GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion)
+	downloadURL, err := d.getChartDownloadURL(ctx, GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion)
 	if err != nil {
 		return err
 	}
 
-	chart, err := d.render.LoadChartFromRemoteCharts(downloadURL)
+	chart, err := d.render.LoadChartFromRemoteCharts(ctx, downloadURL)
 	if err != nil {
 		return err
 	}
 
-	manifests, err := d.render.GenerateManifests(GreptimeDBOperatorChartName, resourceNamespace, chart, values)
+	manifests, err := d.render.GenerateManifests(ctx, GreptimeDBOperatorChartName, resourceNamespace, chart, values)
 	if err != nil {
 		return err
 	}
@@ -257,11 +258,11 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 		return nil
 	}
 
-	if err := d.client.Apply(manifests); err != nil {
+	if err := d.client.Apply(ctx, manifests); err != nil {
 		return err
 	}
 
-	return d.client.WaitForDeploymentReady(resourceName, resourceNamespace, d.timeout)
+	return d.client.WaitForDeploymentReady(ctx, resourceName, resourceNamespace, d.timeout)
 }
 
 func (d *deployer) splitNamescapedName(name string) (string, string, error) {
@@ -277,8 +278,8 @@ func (d *deployer) splitNamescapedName(name string) (string, string, error) {
 	return split[0], split[1], nil
 }
 
-func (d *deployer) getChartDownloadURL(chartName, version string) (string, error) {
-	indexFile, err := d.render.GetIndexFile(GreptimeChartIndexURL)
+func (d *deployer) getChartDownloadURL(ctx context.Context, chartName, version string) (string, error) {
+	indexFile, err := d.render.GetIndexFile(ctx, GreptimeChartIndexURL)
 	if err != nil {
 		return "", err
 	}

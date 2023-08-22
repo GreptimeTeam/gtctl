@@ -85,7 +85,7 @@ func (f *frontend) Start(ctx context.Context, binary string) error {
 func (f *frontend) BuildArgs(ctx context.Context, params ...interface{}) []string {
 	logLevel := f.config.LogLevel
 	if logLevel == "" {
-		logLevel = "info"
+		logLevel = config.DefaultLogLevel
 	}
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
