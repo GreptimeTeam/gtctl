@@ -65,11 +65,14 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		return nil, err
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
+	if len(d.baseDir) == 0 {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+		d.baseDir = path.Join(homeDir, config.GtctlDir)
 	}
-	d.baseDir = path.Join(homeDir, config.GtctlDir)
+
 	if err := fileutils.CreateDirIfNotExists(d.baseDir); err != nil {
 		return nil, err
 	}
@@ -145,6 +148,12 @@ func WithGreptimeVersion(version string) Option {
 func WithAlawaysDownload(alwaysDownload bool) Option {
 	return func(d *Deployer) {
 		d.alwaysDownload = alwaysDownload
+	}
+}
+
+func WithBaseDir(baseDir string) Option {
+	return func(d *Deployer) {
+		d.baseDir = baseDir
 	}
 }
 

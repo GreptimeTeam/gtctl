@@ -25,27 +25,28 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 var L = logger.New(os.Stdout, 1, logger.WithColored())
 
 func TestNewDeployer(t *testing.T) {
-	homedir, err := os.UserHomeDir()
-	assert.NoError(t, err)
+	homedir := "gtctl-test-new-deployer"
 	clusterName := "test"
+	defer fileutils.DeleteDirIfExists(homedir)
 
 	// New Deployer with no options
-	deployer, err := NewDeployer(L, clusterName)
+	deployer, err := NewDeployer(L, clusterName, WithBaseDir(homedir))
 	assert.NoError(t, err)
 	d1, ok := deployer.(*Deployer)
 	assert.True(t, ok)
 	assert.NotNil(t, d1)
-	assert.Equal(t, d1.baseDir, path.Join(homedir, config.GtctlDir))
-	assert.Equal(t, d1.clusterDir, path.Join(homedir, config.GtctlDir, clusterName))
+	assert.Equal(t, d1.baseDir, homedir)
+	assert.Equal(t, d1.clusterDir, path.Join(homedir, clusterName))
 	assert.Equal(t, d1.workingDirs, component.WorkingDirs{
-		DataDir: path.Join(homedir, config.GtctlDir, clusterName, "data"),
-		LogsDir: path.Join(homedir, config.GtctlDir, clusterName, "logs"),
-		PidsDir: path.Join(homedir, config.GtctlDir, clusterName, "pids"),
+		DataDir: path.Join(homedir, clusterName, "data"),
+		LogsDir: path.Join(homedir, clusterName, "logs"),
+		PidsDir: path.Join(homedir, clusterName, "pids"),
 	})
 	assert.False(t, d1.alwaysDownload)
 
@@ -78,9 +79,11 @@ func TestNewDeployer(t *testing.T) {
 }
 
 func TestDeleteGreptimeClusterForeground(t *testing.T) {
+	homedir := "gtctl-test-foreground-delete"
 	clusterName := "test"
+	defer fileutils.DeleteDirIfExists(homedir)
 
-	d, err := NewDeployer(L, clusterName)
+	d, err := NewDeployer(L, clusterName, WithBaseDir(homedir))
 	assert.NoError(t, err)
 	deployer, ok := d.(*Deployer)
 	assert.True(t, ok)
