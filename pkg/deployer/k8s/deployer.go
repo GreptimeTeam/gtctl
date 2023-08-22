@@ -41,8 +41,13 @@ var _ Interface = &deployer{}
 type Option func(*deployer)
 
 func NewDeployer(l logger.Logger, opts ...Option) (Interface, error) {
+	r, err := helm.NewRender()
+	if err != nil {
+		return nil, err
+	}
+
 	d := &deployer{
-		render: &helm.Render{},
+		render: r,
 		logger: l,
 	}
 
@@ -50,10 +55,7 @@ func NewDeployer(l logger.Logger, opts ...Option) (Interface, error) {
 		opt(d)
 	}
 
-	var (
-		client *kube.Client
-		err    error
-	)
+	var client *kube.Client
 	if !d.dryRun {
 		client, err = kube.NewClient("")
 		if err != nil {
@@ -182,18 +184,19 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 		return err
 	}
 
+	// TODO(zyy17): Maybe we can set this in the top level configures.
+	const (
+		disableRBACConfig = "auth.rbac.create=false,auth.rbac.token.enabled=false"
+	)
+	options.ConfigValues += disableRBACConfig
+
 	values, err := d.render.GenerateHelmValues(*options)
 	if err != nil {
 		return err
 	}
 	d.logger.V(3).Infof("create etcd cluster with values: %v", values)
 
-	downloadURL, err := d.getChartDownloadURL(ctx, GreptimeDBEtcdChartName, options.EtcdChartVersion)
-	if err != nil {
-		return err
-	}
-
-	chart, err := d.render.LoadChartFromRemoteCharts(ctx, downloadURL)
+	chart, err := d.render.Pull(ctx, EtcdBitnamiOCIRegistry, DefaultEtcdChartVersion)
 	if err != nil {
 		return err
 	}

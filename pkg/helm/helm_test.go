@@ -173,7 +173,7 @@ func TestRender_GenerateEtcdHelmValues(t *testing.T) {
 		ImageRegistry:        "registry.cn-hangzhou.aliyuncs.com",
 		EtcdStorageClassName: "ebs-sc",
 		EtcdStorageSize:      "11Gi",
-		EtcdDataDir:          "/var/etcd",
+		EtcdClusterSize:      "3",
 		ConfigValues:         "image.tag=latest",
 	}
 
@@ -185,9 +185,9 @@ func TestRender_GenerateEtcdHelmValues(t *testing.T) {
 
 	ArgsStr := []string{
 		"image.registry=registry.cn-hangzhou.aliyuncs.com",
-		"storage.storageClassName=ebs-sc",
-		"storage.volumeSize=11Gi",
-		"storage.dataDir=/var/etcd",
+		"persistence.storageClass=ebs-sc",
+		"persistence.size=11Gi",
+		"replicaCount=3",
 		"image.tag=latest",
 	}
 

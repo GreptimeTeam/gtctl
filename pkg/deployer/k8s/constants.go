@@ -16,9 +16,11 @@ package k8s
 
 const (
 	GreptimeDBChartName         = "greptimedb"
-	GreptimeDBEtcdChartName     = "greptimedb-etcd"
 	GreptimeDBOperatorChartName = "greptimedb-operator"
 
 	GreptimeChartIndexURL           = "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml"
 	GreptimeChartReleaseDownloadURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
+
+	EtcdBitnamiOCIRegistry  = "oci://registry-1.docker.io/bitnamicharts/etcd"
+	DefaultEtcdChartVersion = "9.2.0"
 )

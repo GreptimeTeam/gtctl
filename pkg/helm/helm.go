@@ -21,19 +21,31 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"reflect"
 	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/registry"
 	. "helm.sh/helm/v3/pkg/repo"
 	"helm.sh/helm/v3/pkg/strvals"
 	"sigs.k8s.io/yaml"
+
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 const (
 	helmFieldTag = "helm"
+)
+
+const (
+	defaultChartsCache = ".gtctl/charts-cache"
 )
 
 type TemplateRender interface {
@@ -43,11 +55,49 @@ type TemplateRender interface {
 type Render struct {
 	// indexFile is the index file of the remote charts.
 	indexFile *IndexFile
+
+	// chartCache is the cache directory for the charts.
+	chartsCacheDir string
 }
 
 var _ TemplateRender = &Render{}
 
+func NewRender() (*Render, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	chartsCacheDir := filepath.Join(homeDir, defaultChartsCache)
+
+	if err := fileutils.CreateDirIfNotExists(chartsCacheDir); err != nil {
+		return nil, err
+	}
+
+	return &Render{
+		chartsCacheDir: chartsCacheDir,
+	}, nil
+}
+
 func (r *Render) LoadChartFromRemoteCharts(ctx context.Context, downloadURL string) (*chart.Chart, error) {
+	parsedURL, err := url.Parse(downloadURL)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		packageName = path.Base(parsedURL.Path)
+		cachePath   = filepath.Join(r.chartsCacheDir, packageName)
+	)
+
+	if r.isInChartsCache(packageName) {
+		data, err := os.ReadFile(cachePath)
+		if err != nil {
+			return nil, err
+		}
+		return loader.LoadArchive(bytes.NewReader(data))
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return nil, err
@@ -61,6 +111,10 @@ func (r *Render) LoadChartFromRemoteCharts(ctx context.Context, downloadURL stri
 
 	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := os.WriteFile(cachePath, body, 0644); err != nil {
 		return nil, err
 	}
 
@@ -172,6 +226,47 @@ func (r *Render) GetIndexFile(ctx context.Context, indexURL string) (*IndexFile,
 	return indexFile, nil
 }
 
+// Pull pulls the chart from the remote OCI registry, for example, oci://registry-1.docker.io/bitnamicharts/etcd.
+func (r *Render) Pull(_ context.Context, OCIRegistry, version string) (*chart.Chart, error) {
+	packageName := r.packageName(path.Base(OCIRegistry), version)
+	if !r.isInChartsCache(packageName) {
+		registryClient, err := registry.NewClient(
+			registry.ClientOptDebug(false),
+			registry.ClientOptEnableCache(false),
+			registry.ClientOptCredentialsFile(""),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		cfg := new(action.Configuration)
+		cfg.RegistryClient = registryClient
+
+		// Create a pull action
+		client := action.NewPullWithOpts(action.WithConfig(cfg))
+		client.Settings = cli.New()
+		client.Version = version
+		client.DestDir = r.chartsCacheDir
+
+		// Execute the pull action
+		if _, err := client.Run(OCIRegistry); err != nil {
+			return nil, err
+		}
+	}
+
+	data, err := os.ReadFile(filepath.Join(r.chartsCacheDir, packageName))
+	if err != nil {
+		return nil, err
+	}
+
+	return loader.LoadArchive(bytes.NewReader(data))
+}
+
+func (r *Render) isInChartsCache(packageName string) bool {
+	res, _ := fileutils.IsFileExists(filepath.Join(r.chartsCacheDir, packageName))
+	return res
+}
+
 func (r *Render) newHelmClient(releaseName, namespace string) (*action.Install, error) {
 	helmClient := action.NewInstall(new(action.Configuration))
 	helmClient.DryRun = true
@@ -182,6 +277,10 @@ func (r *Render) newHelmClient(releaseName, namespace string) (*action.Install, 
 	helmClient.Namespace = namespace
 
 	return helmClient, nil
+}
+
+func (r *Render) packageName(chartName, version string) string {
+	return fmt.Sprintf("%s-%s.tgz", chartName, version)
 }
 
 // loadIndex is from 'helm/pkg/index.go'.
