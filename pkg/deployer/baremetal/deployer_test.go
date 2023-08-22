@@ -33,7 +33,10 @@ var L = logger.New(os.Stdout, 1, logger.WithColored())
 func TestNewDeployer(t *testing.T) {
 	homedir := "gtctl-test-new-deployer"
 	clusterName := "test"
-	defer fileutils.DeleteDirIfExists(homedir)
+	defer func() {
+		err := fileutils.DeleteDirIfExists(homedir)
+		assert.NoError(t, err)
+	}()
 
 	// New Deployer with no options
 	deployer, err := NewDeployer(L, clusterName, WithBaseDir(homedir))
@@ -81,7 +84,10 @@ func TestNewDeployer(t *testing.T) {
 func TestDeleteGreptimeClusterForeground(t *testing.T) {
 	homedir := "gtctl-test-foreground-delete"
 	clusterName := "test"
-	defer fileutils.DeleteDirIfExists(homedir)
+	defer func() {
+		err := fileutils.DeleteDirIfExists(homedir)
+		assert.NoError(t, err)
+	}()
 
 	d, err := NewDeployer(L, clusterName, WithBaseDir(homedir))
 	assert.NoError(t, err)
