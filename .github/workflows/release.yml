@@ -4,13 +4,23 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      release-install-script:
+        type: boolean
+        description: "Release install script to AWS-CN S3 bucket"
+        required: false
+        default: true
 
 env:
   GO_VERSION: "1.21"
+  MAX_UPLOAD_RETRY_TIMES: 20
+  UPLOAD_RETRY_TIMEOUT: 10 # minutes
 
 jobs:
   build:
     name: build-binary
+    if: ${{ github.event_name == 'push' }}
     strategy:
       matrix:
         # The file format is gtctl-<os>-<arch>
@@ -75,8 +85,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_CN_SECRET_ACCESS_KEY}}
           AWS_DEFAULT_REGION: ${{ vars.AWS_CN_RELEASE_BUCKET_REGION }}
         with:
-          max_attempts: 20
-          timeout_minutes: 5
+          max_attempts: ${{ env.MAX_UPLOAD_RETRY_TIMES }}
+          timeout_minutes: ${{ env.UPLOAD_RETRY_TIMEOUT }}
           command: |
             aws s3 cp \
               bin/${{ matrix.file }}.tgz \
@@ -113,3 +123,23 @@ jobs:
           tag: ${{ github.ref_name }}
           artifacts: |
             **/gtctl-*
+
+  release-install-script:
+    name: release-install-script
+    if: ${{ inputs.release-install-script }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Upload install.sh to S3
+        uses: nick-invision/retry@v2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_CN_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_CN_SECRET_ACCESS_KEY}}
+          AWS_DEFAULT_REGION: ${{ vars.AWS_CN_RELEASE_BUCKET_REGION }}
+        with:
+          max_attempts: ${{ env.MAX_UPLOAD_RETRY_TIMES }}
+          timeout_minutes: ${{ env.UPLOAD_RETRY_TIMEOUT }}
+          command: |
+            aws s3 cp hack/install.sh s3://${{ vars.AWS_CN_RELEASE_BUCKET }}/releases/scripts/gtctl/install.sh
