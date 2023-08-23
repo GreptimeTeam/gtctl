@@ -41,7 +41,7 @@ type datanode struct {
 	allocatedDirs
 }
 
-func newDataNodes(config *config.Datanode, metaSrvAddr string, workingDirs WorkingDirs,
+func newDataNode(config *config.Datanode, metaSrvAddr string, workingDirs WorkingDirs,
 	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
 	return &datanode{
 		config:      config,
@@ -53,14 +53,14 @@ func newDataNodes(config *config.Datanode, metaSrvAddr string, workingDirs Worki
 }
 
 func (d *datanode) Name() string {
-	return "datanode"
+	return DataNode
 }
 
 func (d *datanode) Start(ctx context.Context, binary string) error {
 	for i := 0; i < d.config.Replicas; i++ {
 		dirName := fmt.Sprintf("%s.%d", d.Name(), i)
 
-		dataHomeDir := path.Join(d.workingDirs.DataDir, "home")
+		dataHomeDir := path.Join(d.workingDirs.DataDir, config.DataHomeDir)
 		if err := fileutils.CreateDirIfNotExists(dataHomeDir); err != nil {
 			return err
 		}
@@ -78,7 +78,7 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 		}
 		d.pidsDirs = append(d.pidsDirs, datanodePidDir)
 
-		walDir := path.Join(d.workingDirs.DataDir, dirName, "wal")
+		walDir := path.Join(d.workingDirs.DataDir, dirName, config.DataWalDir)
 		if err := fileutils.CreateDirIfNotExists(walDir); err != nil {
 			return err
 		}

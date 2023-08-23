@@ -14,15 +14,33 @@
 
 package config
 
+import (
+	"time"
+)
+
 const (
 	// GtctlDir is the root directory that contains states of cluster info.
 	GtctlDir = ".gtctl"
+	LogsDir  = "logs"
+	DataDir  = "data"
+	PidsDir  = "pids"
+
+	DataHomeDir = "home"
+	DataWalDir  = "wal"
 
 	DefaultEtcdVersion     = "v3.5.7"
 	DefaultGreptimeVersion = "latest"
 
 	DefaultLogLevel = "info"
 )
+
+// MetaConfig stores metadata of a GreptimeDB cluster with Config nested.
+type MetaConfig struct {
+	*Config
+
+	CreationDate time.Time `yaml:"creationDate"`
+	ClusterDir   string    `yaml:"clusterDir"`
+}
 
 // Config is the desired state of a GreptimeDB cluster on bare metal.
 //

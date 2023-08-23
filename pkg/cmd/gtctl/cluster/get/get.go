@@ -17,13 +17,20 @@ package get
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"os"
+	"path"
+	"path/filepath"
 
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	bmconfig "github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -38,6 +45,11 @@ type getClusterCliOptions struct {
 
 func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 	var options getClusterCliOptions
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetAutoMergeCells(true)
+	table.SetRowLine(true)
+
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get GreptimeDB cluster",
@@ -58,9 +70,9 @@ func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 			}
 
 			if options.BareMetal {
-				return getClusterFromBareMetal(ctx, l, nn)
+				return getClusterFromBareMetal(ctx, l, nn, table)
 			} else {
-				return getClusterFromKubernetes(ctx, l, nn)
+				return getClusterFromKubernetes(ctx, l, nn, table)
 			}
 		},
 	}
@@ -71,7 +83,7 @@ func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 	return cmd
 }
 
-func getClusterFromKubernetes(ctx context.Context, l logger.Logger, nn types.NamespacedName) error {
+func getClusterFromKubernetes(ctx context.Context, l logger.Logger, nn types.NamespacedName, table *tablewriter.Table) error {
 	deployer, err := k8s.NewDeployer(l)
 	if err != nil {
 		return err
@@ -96,7 +108,7 @@ func getClusterFromKubernetes(ctx context.Context, l logger.Logger, nn types.Nam
 	return nil
 }
 
-func getClusterFromBareMetal(ctx context.Context, l logger.Logger, nn types.NamespacedName) error {
+func getClusterFromBareMetal(ctx context.Context, l logger.Logger, nn types.NamespacedName, table *tablewriter.Table) error {
 	deployer, err := baremetal.NewDeployer(l, nn.Name, baremetal.WithCreateNoDirs())
 	if err != nil {
 		return nil
@@ -107,12 +119,89 @@ func getClusterFromBareMetal(ctx context.Context, l logger.Logger, nn types.Name
 		return err
 	}
 
-	rawCluster, ok := cluster.Raw.(*bmconfig.Config)
+	rawCluster, ok := cluster.Raw.(*bmconfig.MetaConfig)
 	if !ok {
 		return fmt.Errorf("invalid cluster type")
 	}
 
-	l.V(0).Infof("Cluster '%s' in bare-metal is running, create at %s\n",
-		nn.Name, rawCluster.Cluster.Artifact.Version)
+	headers, footers, bulk := collectClusterInfoFromBareMetal(rawCluster)
+	table.SetHeader(headers)
+	table.AppendBulk(bulk)
+	table.Render()
+
+	for _, footer := range footers {
+		l.V(0).Info(footer)
+	}
+
 	return nil
+}
+
+func collectClusterInfoFromBareMetal(data *bmconfig.MetaConfig) (
+	headers, footers []string, bulk [][]string) {
+	headers = []string{"COMPONENT", "PID"}
+
+	pidsDir := path.Join(data.ClusterDir, bmconfig.PidsDir)
+	pidsMap := collectPidsForBareMetal(pidsDir)
+
+	var (
+		date = data.CreationDate.String()
+		rows = func(name string, replicas int) {
+			for i := 0; i < replicas; i++ {
+				key := fmt.Sprintf("%s.%d", name, i)
+				pid := "N/A"
+				if val, ok := pidsMap[key]; ok {
+					pid = fmt.Sprintf(".%d: %s", i, val)
+				}
+				bulk = append(bulk, []string{name, pid})
+			}
+		}
+	)
+
+	rows(component.Frontend, data.Cluster.Frontend.Replicas)
+	rows(component.DataNode, data.Cluster.Datanode.Replicas)
+
+	// TODO(shawnh2) add metatsrv and etcd replicas support
+	bulk = append(bulk, []string{component.MetaSrv, pidsMap[component.MetaSrv]})
+	bulk = append(bulk, []string{component.Etcd, pidsMap[component.Etcd]})
+
+	config, err := yaml.Marshal(data.Config)
+	footers = []string{
+		fmt.Sprintf("CREATION-DATE: %s", date),
+		fmt.Sprintf("GREPTIMEDB-VERSION: %s", data.Cluster.Artifact.Version),
+		fmt.Sprintf("ETCD-VERSION: %s", data.Etcd.Artifact.Version),
+		fmt.Sprintf("CLUSTER-DIR: %s", data.ClusterDir),
+	}
+	if err != nil {
+		footers = append(footers, fmt.Sprintf("CLUSTER-CONFIG: error retreiving cluster config: %v", err))
+	} else {
+		footers = append(footers, fmt.Sprintf("CLUSTER-CONFIG:\n%s", string(config)))
+	}
+
+	return
+}
+
+// collectPidsForBareMetal returns the pid of each component.
+func collectPidsForBareMetal(pidsDir string) map[string]string {
+	ret := make(map[string]string)
+
+	if err := filepath.WalkDir(pidsDir, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			if d.Name() == bmconfig.PidsDir {
+				return nil
+			}
+
+			pidPath := filepath.Join(path, "pid")
+			pid, err := os.ReadFile(pidPath)
+			if err != nil {
+				return err
+			}
+
+			ret[d.Name()] = string(pid)
+		}
+		return nil
+	}); err != nil {
+		return ret
+	}
+
+	return ret
 }

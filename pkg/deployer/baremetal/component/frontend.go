@@ -48,7 +48,7 @@ func newFrontend(config *config.Frontend, metaSrvAddr string, workingDirs Workin
 }
 
 func (f *frontend) Name() string {
-	return "frontend"
+	return Frontend
 }
 
 func (f *frontend) Start(ctx context.Context, binary string) error {

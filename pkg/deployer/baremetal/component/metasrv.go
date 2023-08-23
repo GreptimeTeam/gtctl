@@ -49,7 +49,7 @@ func newMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
 }
 
 func (m *metaSrv) Name() string {
-	return "metasrv"
+	return MetaSrv
 }
 
 func (m *metaSrv) Start(ctx context.Context, binary string) error {

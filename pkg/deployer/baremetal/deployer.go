@@ -109,13 +109,13 @@ func (d *Deployer) initClusterDirsAndPath(clusterName string) {
 		clusterDir = path.Join(d.baseDir, clusterName)
 
 		// ${HOME}/${GtctlDir}/${ClusterName}/logs
-		logsDir = path.Join(clusterDir, "logs")
+		logsDir = path.Join(clusterDir, config.LogsDir)
 
 		// ${HOME}/${GtctlDir}/${ClusterName}/data
-		dataDir = path.Join(clusterDir, "data")
+		dataDir = path.Join(clusterDir, config.DataDir)
 
 		// ${HOME}/${GtctlDir}/${ClusterName}/pids
-		pidsDir = path.Join(clusterDir, "pids")
+		pidsDir = path.Join(clusterDir, config.PidsDir)
 	)
 
 	// Path
@@ -156,7 +156,13 @@ func (d *Deployer) createClusterConfigFile() error {
 		return err
 	}
 
-	out, err := yaml.Marshal(d.config)
+	metaConfig := config.MetaConfig{
+		Config:       d.config,
+		CreationDate: time.Now(),
+		ClusterDir:   d.clusterDir,
+	}
+
+	out, err := yaml.Marshal(metaConfig)
 	if err != nil {
 		return err
 	}
@@ -214,7 +220,7 @@ func (d *Deployer) GetGreptimeDBCluster(ctx context.Context, name string, option
 		return nil, fmt.Errorf("cluster %s is not exist", name)
 	}
 
-	var cluster config.Config
+	var cluster config.MetaConfig
 	in, err := os.ReadFile(d.clusterConfigPath)
 	if err != nil {
 		return nil, err

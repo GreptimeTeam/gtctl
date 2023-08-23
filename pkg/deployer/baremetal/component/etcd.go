@@ -40,7 +40,7 @@ func newEtcd(workingDirs WorkingDirs, wg *sync.WaitGroup, logger logger.Logger) 
 }
 
 func (e *etcd) Name() string {
-	return "etcd"
+	return Etcd
 }
 
 func (e *etcd) Start(ctx context.Context, binary string) error {
