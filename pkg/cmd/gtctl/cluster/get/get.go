@@ -23,12 +23,17 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal"
+	bmconfig "github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
 type getClusterCliOptions struct {
 	Namespace string
+
+	// The options for getting GreptimeDBCluster in bare-metal.
+	BareMetal bool
 }
 
 func NewGetClusterCommand(l logger.Logger) *cobra.Command {
@@ -42,42 +47,72 @@ func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 				return fmt.Errorf("cluster name should be set")
 			}
 
-			k8sDeployer, err := k8s.NewDeployer(l)
-			if err != nil {
-				return err
-			}
-
 			var (
 				ctx         = context.TODO()
 				clusterName = args[0]
-				namespace   = options.Namespace
 			)
 
-			name := types.NamespacedName{
+			nn := types.NamespacedName{
 				Namespace: options.Namespace,
 				Name:      clusterName,
-			}.String()
-			cluster, err := k8sDeployer.GetGreptimeDBCluster(ctx, name, nil)
-			if err != nil && errors.IsNotFound(err) {
-				l.Errorf("cluster %s in %s not found\n", clusterName, namespace)
-				return nil
-			}
-			if err != nil {
-				return err
 			}
 
-			rawCluster, ok := cluster.Raw.(*greptimedbclusterv1alpha1.GreptimeDBCluster)
-			if !ok {
-				return fmt.Errorf("invalid cluster type")
+			if options.BareMetal {
+				return getClusterFromBareMetal(ctx, l, nn)
+			} else {
+				return getClusterFromKubernetes(ctx, l, nn)
 			}
-
-			l.V(0).Infof("Cluster '%s' in '%s' namespace is running, create at %s\n",
-				rawCluster.Name, rawCluster.Namespace, rawCluster.CreationTimestamp)
-			return nil
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
+	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Get the greptimedb cluster on bare-metal environment.")
 
 	return cmd
+}
+
+func getClusterFromKubernetes(ctx context.Context, l logger.Logger, nn types.NamespacedName) error {
+	deployer, err := k8s.NewDeployer(l)
+	if err != nil {
+		return err
+	}
+
+	cluster, err := deployer.GetGreptimeDBCluster(ctx, nn.String(), nil)
+	if err != nil && errors.IsNotFound(err) {
+		l.Errorf("cluster %s in %s not found\n", nn.Name, nn.Namespace)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	rawCluster, ok := cluster.Raw.(*greptimedbclusterv1alpha1.GreptimeDBCluster)
+	if !ok {
+		return fmt.Errorf("invalid cluster type")
+	}
+
+	l.V(0).Infof("Cluster '%s' in '%s' namespace is running, create at %s\n",
+		rawCluster.Name, rawCluster.Namespace, rawCluster.CreationTimestamp)
+	return nil
+}
+
+func getClusterFromBareMetal(ctx context.Context, l logger.Logger, nn types.NamespacedName) error {
+	deployer, err := baremetal.NewDeployer(l, nn.Name, baremetal.WithCreateNoDirs())
+	if err != nil {
+		return nil
+	}
+
+	cluster, err := deployer.GetGreptimeDBCluster(ctx, nn.Name, nil)
+	if err != nil {
+		return err
+	}
+
+	rawCluster, ok := cluster.Raw.(*bmconfig.Config)
+	if !ok {
+		return fmt.Errorf("invalid cluster type")
+	}
+
+	l.V(0).Infof("Cluster '%s' in bare-metal is running, create at %s\n",
+		nn.Name, rawCluster.Cluster.Artifact.Version)
+	return nil
 }
