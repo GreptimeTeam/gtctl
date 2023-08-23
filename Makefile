@@ -12,14 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CLUSTER=e2e-cluster
-LDFLAGS = $(shell ./hack/version.sh)
+REPO_ROOT:=$(CURDIR)
+OUT_DIR=$(REPO_ROOT)/bin
+BIN_NAME?=gtctl
+CLUSTER:=e2e-cluster
+LDFLAGS:=$(shell ./hack/version.sh)
+BUILD_FLAGS?=-trimpath -ldflags="-buildid= -w $(LDFLAGS)"
+MAIN_PKG:=$(REPO_ROOT)/cmd/gtctl
+INSTALL_DIR?=/usr/local/bin
 
 ##@ Build
 
-.PHONY: gtctl
-gtctl: ## Build gtctl.
-	@go build -ldflags '${LDFLAGS}' -o bin/gtctl ./cmd/gtctl
+.PHONY: update-modules gtctl
+gtctl: ## Build gtctl binary(default).
+	GO111MODULE=on CGO_ENABLED=0 go build -o "$(OUT_DIR)/$(BIN_NAME)" $(BUILD_FLAGS) $(MAIN_PKG)
+
+.PHONY: update-modules
+update-modules: ## Update Go modules.
+	GO111MODULE=on go get -u ./...
+	GO111MODULE=on go mod tidy
+
+.PHONY: install
+install: gtctl ## Install gtctl binary.
+	sudo cp $(OUT_DIR)/$(BIN_NAME) $(INSTALL_DIR)/$(BIN_NAME)
+
+.PHONY: clean
+clean: ## Clean build files.
+	rm -r $(OUT_DIR)
 
 ##@ Development
 
@@ -29,7 +48,7 @@ setup-e2e: ## Setup e2e test environment.
 
 .PHONY: e2e
 e2e: gtctl setup-e2e ## Run e2e.
-	go test -timeout 8m -v ./tests/e2e/... && kind delete clusters ${CLUSTER}
+	go test -timeout 8m -v ./tests/e2e/... && kind delete clusters $(CLUSTER)
 
 .PHONY: lint
 lint: golangci-lint gtctl ## Run lint.
