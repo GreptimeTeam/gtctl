@@ -16,6 +16,7 @@ package helm
 
 import (
 	"context"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -23,15 +24,77 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/google/go-cmp/cmp"
 	"helm.sh/helm/v3/pkg/strvals"
+	"sigs.k8s.io/kind/pkg/log"
 
 	"github.com/GreptimeTeam/gtctl/pkg/deployer"
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
 const (
-	testChartName = "greptimedb"
+	testChartName      = "greptimedb"
+	testChartsCacheDir = "/tmp/gtctl-test"
 )
 
+func TestLoadAndRenderChart(t *testing.T) {
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()),
+		WithChartsCacheDir(testChartsCacheDir))
+	if err != nil {
+		t.Errorf("failed to create render: %v", err)
+	}
+	defer cleanChartsCache()
+
+	tests := []struct {
+		name         string
+		namespace    string
+		chartName    string
+		chartVersion string
+		values       interface{}
+	}{
+		{
+			name:         "greptimedb",
+			namespace:    "default",
+			chartName:    GreptimeDBChartName,
+			chartVersion: "", // latest
+			values:       deployer.CreateGreptimeDBClusterOptions{},
+		},
+		{
+			name:         "greptimedb-operator",
+			namespace:    "default",
+			chartName:    GreptimeDBOperatorChartName,
+			chartVersion: "", // latest
+			values:       deployer.CreateGreptimeDBOperatorOptions{},
+		},
+		{
+			name:         "etcd",
+			namespace:    "default",
+			chartName:    EtcdBitnamiOCIRegistry,
+			chartVersion: DefaultEtcdChartVersion,
+			values:       deployer.CreateGreptimeDBOperatorOptions{},
+		},
+	}
+
+	ctx := context.Background()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			manifests, err := r.LoadAndRenderChart(ctx, tt.name, tt.namespace, tt.chartName, tt.chartVersion, tt.values)
+			if err != nil {
+				t.Errorf("failed to load and render chart: %v", err)
+			}
+			if len(manifests) == 0 {
+				t.Errorf("expected manifests to be non-empty")
+			}
+		})
+	}
+}
+
 func TestRender_GetIndexFile(t *testing.T) {
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()),
+		WithChartsCacheDir(testChartsCacheDir))
+	if err != nil {
+		t.Errorf("failed to create render: %v", err)
+	}
+	defer cleanChartsCache()
+
 	tests := []struct {
 		url string
 	}{
@@ -42,11 +105,9 @@ func TestRender_GetIndexFile(t *testing.T) {
 			url: "https://github.com/kubernetes/kube-state-metrics/raw/gh-pages/index.yaml",
 		},
 	}
-
-	r := &Render{}
 	for _, tt := range tests {
 		t.Run(tt.url, func(t *testing.T) {
-			_, err := r.GetIndexFile(context.Background(), tt.url)
+			_, err := r.getIndexFile(context.Background(), tt.url)
 			if err != nil {
 				t.Errorf("fetch index '%s' failed, err: %v", tt.url, err)
 			}
@@ -55,6 +116,13 @@ func TestRender_GetIndexFile(t *testing.T) {
 }
 
 func TestRender_GetLatestChartLatestChart(t *testing.T) {
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()),
+		WithChartsCacheDir(testChartsCacheDir))
+	if err != nil {
+		t.Errorf("failed to create render: %v", err)
+	}
+	defer cleanChartsCache()
+
 	tests := []struct {
 		url string
 	}{
@@ -62,15 +130,14 @@ func TestRender_GetLatestChartLatestChart(t *testing.T) {
 			url: "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml",
 		},
 	}
-	r := &Render{}
 	for _, tt := range tests {
 		t.Run(tt.url, func(t *testing.T) {
-			indexFile, err := r.GetIndexFile(context.Background(), tt.url)
+			indexFile, err := r.getIndexFile(context.Background(), tt.url)
 			if err != nil {
 				t.Errorf("fetch index '%s' failed, err: %v", tt.url, err)
 			}
 
-			chart, err := r.GetLatestChart(indexFile, testChartName)
+			chart, err := r.getLatestChart(indexFile, testChartName)
 			if err != nil {
 				t.Errorf("get latest chart failed, err: %v", err)
 			}
@@ -100,6 +167,13 @@ func TestRender_GetLatestChartLatestChart(t *testing.T) {
 }
 
 func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()),
+		WithChartsCacheDir(testChartsCacheDir))
+	if err != nil {
+		t.Errorf("failed to create render: %v", err)
+	}
+	defer cleanChartsCache()
+
 	options := deployer.CreateGreptimeDBClusterOptions{
 		GreptimeDBChartVersion:      "",
 		ImageRegistry:               "registry.cn-hangzhou.aliyuncs.com",
@@ -111,8 +185,7 @@ func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
 		ConfigValues:                "meta.replicas=4",
 	}
 
-	r := &Render{}
-	values, err := r.GenerateHelmValues(options)
+	values, err := r.generateHelmValues(options)
 	if err != nil {
 		t.Errorf("generate greptimedb helm values failed, err: %v", err)
 	}
@@ -139,14 +212,20 @@ func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
 }
 
 func TestRender_GenerateGreptimeDBOperatorHelmValues(t *testing.T) {
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()),
+		WithChartsCacheDir(testChartsCacheDir))
+	if err != nil {
+		t.Errorf("failed to create render: %v", err)
+	}
+	defer cleanChartsCache()
+
 	options := deployer.CreateGreptimeDBOperatorOptions{
 		GreptimeDBOperatorChartVersion: "",
 		ImageRegistry:                  "registry.cn-hangzhou.aliyuncs.com",
 		ConfigValues:                   "replicas=3",
 	}
 
-	r := &Render{}
-	values, err := r.GenerateHelmValues(options)
+	values, err := r.generateHelmValues(options)
 	if err != nil {
 		t.Errorf("generate greptimedb operator helm values failed, err: %v", err)
 	}
@@ -168,6 +247,13 @@ func TestRender_GenerateGreptimeDBOperatorHelmValues(t *testing.T) {
 }
 
 func TestRender_GenerateEtcdHelmValues(t *testing.T) {
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()),
+		WithChartsCacheDir(testChartsCacheDir))
+	if err != nil {
+		t.Errorf("failed to create render: %v", err)
+	}
+	defer cleanChartsCache()
+
 	options := deployer.CreateEtcdClusterOptions{
 		EtcdChartVersion:     "",
 		ImageRegistry:        "registry.cn-hangzhou.aliyuncs.com",
@@ -177,8 +263,7 @@ func TestRender_GenerateEtcdHelmValues(t *testing.T) {
 		ConfigValues:         "image.tag=latest",
 	}
 
-	r := &Render{}
-	values, err := r.GenerateHelmValues(options)
+	values, err := r.generateHelmValues(options)
 	if err != nil {
 		t.Errorf("generate etcd helm values failed, err: %v", err)
 	}
@@ -200,4 +285,8 @@ func TestRender_GenerateEtcdHelmValues(t *testing.T) {
 		t.Errorf("generate etcd helm values not match, expect: %v, got: %v", valuesWanted, values)
 		t.Errorf("diff: %v", cmp.Diff(valuesWanted, values))
 	}
+}
+
+func cleanChartsCache() {
+	os.RemoveAll(testChartsCacheDir)
 }

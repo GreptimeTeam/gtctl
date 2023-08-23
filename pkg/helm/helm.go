@@ -37,6 +37,7 @@ import (
 	"helm.sh/helm/v3/pkg/strvals"
 	"sigs.k8s.io/yaml"
 
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
@@ -44,42 +45,85 @@ const (
 	helmFieldTag = "helm"
 )
 
-const (
-	defaultChartsCache = ".gtctl/charts-cache"
-)
-
-type TemplateRender interface {
-	GenerateManifests(ctx context.Context, releaseName, namespace string, chart *chart.Chart, values map[string]interface{}) ([]byte, error)
-}
-
-type Render struct {
+// Manager is the Helm charts manager. The implementation is based on Helm SDK.
+// The main purpose of Manager is:
+// 1. Load the chart from remote charts and save them in cache directory.
+// 2. Generate the manifests from the chart with the values.
+type Manager struct {
 	// indexFile is the index file of the remote charts.
 	indexFile *IndexFile
 
 	// chartCache is the cache directory for the charts.
 	chartsCacheDir string
+
+	// logger is the logger for the Manager.
+	logger logger.Logger
 }
 
-var _ TemplateRender = &Render{}
+type Option func(*Manager)
 
-func NewRender() (*Render, error) {
-	homeDir, err := os.UserHomeDir()
+func NewManager(l logger.Logger, opts ...Option) (*Manager, error) {
+	r := &Manager{logger: l}
+	for _, opt := range opts {
+		opt(r)
+	}
+
+	if r.chartsCacheDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+		r.chartsCacheDir = filepath.Join(homeDir, DefaultChartsCache)
+	}
+
+	if err := fileutils.CreateDirIfNotExists(r.chartsCacheDir); err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func WithChartsCacheDir(chartsCacheDir string) func(*Manager) {
+	return func(r *Manager) {
+		r.chartsCacheDir = chartsCacheDir
+	}
+}
+
+// LoadAndRenderChart loads the chart from the remote charts and render the manifests with the values.
+func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chartName, chartVersion string, options interface{}) ([]byte, error) {
+	values, err := r.generateHelmValues(options)
 	if err != nil {
 		return nil, err
 	}
+	r.logger.V(3).Infof("create '%s' with values: %v", name, values)
 
-	chartsCacheDir := filepath.Join(homeDir, defaultChartsCache)
-
-	if err := fileutils.CreateDirIfNotExists(chartsCacheDir); err != nil {
-		return nil, err
+	var helmChart *chart.Chart
+	if isOCIChar(chartName) {
+		helmChart, err = r.pullFromOCIRegistry(chartName, chartVersion)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		downloadURL, err := r.getChartDownloadURL(ctx, chartName, chartVersion)
+		if err != nil {
+			return nil, err
+		}
+		helmChart, err = r.loadChartFromRemoteCharts(ctx, downloadURL)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return &Render{
-		chartsCacheDir: chartsCacheDir,
-	}, nil
+	manifests, err := r.generateManifests(ctx, name, namespace, helmChart, values)
+	if err != nil {
+		return nil, err
+	}
+	r.logger.V(3).Infof("create '%s' with manifests: %s", name, string(manifests))
+
+	return manifests, nil
 }
 
-func (r *Render) LoadChartFromRemoteCharts(ctx context.Context, downloadURL string) (*chart.Chart, error) {
+func (r *Manager) loadChartFromRemoteCharts(ctx context.Context, downloadURL string) (*chart.Chart, error) {
 	parsedURL, err := url.Parse(downloadURL)
 	if err != nil {
 		return nil, err
@@ -121,11 +165,7 @@ func (r *Render) LoadChartFromRemoteCharts(ctx context.Context, downloadURL stri
 	return loader.LoadArchive(bytes.NewReader(body))
 }
 
-func (r *Render) LoadChartFromLocalDirectory(directory string) (*chart.Chart, error) {
-	return loader.LoadDir(directory)
-}
-
-func (r *Render) GenerateManifests(ctx context.Context, releaseName, namespace string,
+func (r *Manager) generateManifests(ctx context.Context, releaseName, namespace string,
 	chart *chart.Chart, values map[string]interface{}) ([]byte, error) {
 	client, err := r.newHelmClient(releaseName, namespace)
 	if err != nil {
@@ -146,7 +186,7 @@ func (r *Render) GenerateManifests(ctx context.Context, releaseName, namespace s
 	return manifests.Bytes(), nil
 }
 
-func (r *Render) GenerateHelmValues(input interface{}) (map[string]interface{}, error) {
+func (r *Manager) generateHelmValues(input interface{}) (map[string]interface{}, error) {
 	var rawArgs []string
 	valueOf := reflect.ValueOf(input)
 
@@ -178,7 +218,7 @@ func (r *Render) GenerateHelmValues(input interface{}) (map[string]interface{}, 
 	return nil, nil
 }
 
-func (r *Render) GetLatestChart(indexFile *IndexFile, chartName string) (*ChartVersion, error) {
+func (r *Manager) getLatestChart(indexFile *IndexFile, chartName string) (*ChartVersion, error) {
 	if versions, ok := indexFile.Entries[chartName]; ok {
 		if versions.Len() > 0 {
 			// The Entries are already sorted by version so the position 0 always point to the latest version.
@@ -194,7 +234,7 @@ func (r *Render) GetLatestChart(indexFile *IndexFile, chartName string) (*ChartV
 	return nil, fmt.Errorf("chart %s not found", chartName)
 }
 
-func (r *Render) GetIndexFile(ctx context.Context, indexURL string) (*IndexFile, error) {
+func (r *Manager) getIndexFile(ctx context.Context, indexURL string) (*IndexFile, error) {
 	if r.indexFile != nil {
 		return r.indexFile, nil
 	}
@@ -226,9 +266,9 @@ func (r *Render) GetIndexFile(ctx context.Context, indexURL string) (*IndexFile,
 	return indexFile, nil
 }
 
-// Pull pulls the chart from the remote OCI registry, for example, oci://registry-1.docker.io/bitnamicharts/etcd.
-func (r *Render) Pull(_ context.Context, OCIRegistry, version string) (*chart.Chart, error) {
-	packageName := r.packageName(path.Base(OCIRegistry), version)
+// pullFromOCIRegistry pulls the chart from the remote OCI registry, for example, oci://registry-1.docker.io/bitnamicharts/etcd.
+func (r *Manager) pullFromOCIRegistry(chartsRegistry, version string) (*chart.Chart, error) {
+	packageName := r.packageName(path.Base(chartsRegistry), version)
 	if !r.isInChartsCache(packageName) {
 		registryClient, err := registry.NewClient(
 			registry.ClientOptDebug(false),
@@ -248,8 +288,9 @@ func (r *Render) Pull(_ context.Context, OCIRegistry, version string) (*chart.Ch
 		client.Version = version
 		client.DestDir = r.chartsCacheDir
 
+		r.logger.V(3).Infof("pulling chart '%s', version: '%s' from OCI registry", chartsRegistry, version)
 		// Execute the pull action
-		if _, err := client.Run(OCIRegistry); err != nil {
+		if _, err := client.Run(chartsRegistry); err != nil {
 			return nil, err
 		}
 	}
@@ -262,12 +303,15 @@ func (r *Render) Pull(_ context.Context, OCIRegistry, version string) (*chart.Ch
 	return loader.LoadArchive(bytes.NewReader(data))
 }
 
-func (r *Render) isInChartsCache(packageName string) bool {
+func (r *Manager) isInChartsCache(packageName string) bool {
 	res, _ := fileutils.IsFileExists(filepath.Join(r.chartsCacheDir, packageName))
+	if res {
+		r.logger.V(3).Infof("chart '%s' is already in cache", packageName)
+	}
 	return res
 }
 
-func (r *Render) newHelmClient(releaseName, namespace string) (*action.Install, error) {
+func (r *Manager) newHelmClient(releaseName, namespace string) (*action.Install, error) {
 	helmClient := action.NewInstall(new(action.Configuration))
 	helmClient.DryRun = true
 	helmClient.ReleaseName = releaseName
@@ -279,8 +323,38 @@ func (r *Render) newHelmClient(releaseName, namespace string) (*action.Install, 
 	return helmClient, nil
 }
 
-func (r *Render) packageName(chartName, version string) string {
+func (r *Manager) getChartDownloadURL(ctx context.Context, chartName, version string) (string, error) {
+	indexFile, err := r.getIndexFile(ctx, GreptimeChartIndexURL)
+	if err != nil {
+		return "", err
+	}
+
+	var downloadURL string
+	if version == "" {
+		chartVersion, err := r.getLatestChart(indexFile, chartName)
+		if err != nil {
+			return "", err
+		}
+		downloadURL = chartVersion.URLs[0]
+		r.logger.V(3).Infof("get latest chart '%s', version '%s', url: '%s'",
+			chartName, chartVersion.Version, downloadURL)
+	} else {
+		// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
+		chartName := chartName + "-" + version
+		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", GreptimeChartReleaseDownloadURL, chartName, chartName)
+		r.logger.V(3).Infof("get given version chart '%s', version '%s', url: '%s'",
+			chartName, version, downloadURL)
+	}
+
+	return downloadURL, nil
+}
+
+func (r *Manager) packageName(chartName, version string) string {
 	return fmt.Sprintf("%s-%s.tgz", chartName, version)
+}
+
+func isOCIChar(url string) bool {
+	return strings.HasPrefix(url, "oci://")
 }
 
 // loadIndex is from 'helm/pkg/index.go'.
