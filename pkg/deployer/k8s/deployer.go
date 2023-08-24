@@ -118,7 +118,7 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 		return err
 	}
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBChartName, options.GreptimeDBChartVersion, options)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBChartName, options.GreptimeDBChartVersion, *options)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 	)
 	options.ConfigValues += disableRBACConfig
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.EtcdBitnamiOCIRegistry, helm.DefaultEtcdChartVersion, options)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.EtcdBitnamiOCIRegistry, helm.DefaultEtcdChartVersion, *options)
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 		return err
 	}
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion, options)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion, *options)
 	if err != nil {
 		return err
 	}
