@@ -1,6 +1,6 @@
 # gtctl
 
-[![codecov](https://codecov.io/github/GreptimeTeam/gtctl/branch/main/graph/badge.svg?token=287NUSEH5D)](https://codecov.io/github/GreptimeTeam/gtctl)
+[![codecov](https://codecov.io/github/GreptimeTeam/gtctl/branch/develop/graph/badge.svg?token=287NUSEH5D)](https://app.codecov.io/github/GreptimeTeam/gtctl/tree/develop)
 
 ## Overview
 
