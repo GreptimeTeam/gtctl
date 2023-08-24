@@ -21,6 +21,7 @@ set -o pipefail
 CLUSTER=e2e-cluster
 REGISTRY_NAME=kind-registry
 REGISTRY_PORT=5001
+KIND_NODE_IMAGE=kindest/node:v1.24.15
 
 function check_prerequisites() {
     if ! hash docker 2>/dev/null; then
@@ -59,7 +60,7 @@ function create_kind_cluster() {
     done
 
     # create a cluster with the local registry enabled in containerd
-    cat <<EOF | kind create cluster --name "${CLUSTER}" --config=-
+    cat <<EOF | kind create cluster --image ${KIND_NODE_IMAGE} --name "${CLUSTER}" --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 containerdConfigPatches:
