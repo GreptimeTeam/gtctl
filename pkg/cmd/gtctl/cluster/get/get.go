@@ -172,12 +172,12 @@ func collectClusterInfoFromBareMetal(data *bmconfig.MetaConfig) (
 		fmt.Sprintf("CLUSTER-DIR: %s", data.ClusterDir),
 	}
 	if err != nil {
-		footers = append(footers, fmt.Sprintf("CLUSTER-CONFIG: error retreiving cluster config: %v", err))
+		footers = append(footers, fmt.Sprintf("CLUSTER-CONFIG: error retrieving cluster config: %v", err))
 	} else {
 		footers = append(footers, fmt.Sprintf("CLUSTER-CONFIG:\n%s", string(config)))
 	}
 
-	return
+	return headers, footers, bulk
 }
 
 // collectPidsForBareMetal returns the pid of each component.
