@@ -29,11 +29,18 @@ import (
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
+const (
+	DataNode = "datanode"
+	Frontend = "frontend"
+	MetaSrv  = "metasrv"
+	Etcd     = "etcd"
+)
+
 // WorkingDirs include all the dirs used in bare-metal mode.
 type WorkingDirs struct {
-	DataDir string
-	LogsDir string
-	PidsDir string
+	DataDir string `yaml:"dataDir"`
+	LogsDir string `yaml:"logsDir"`
+	PidsDir string `yaml:"pidsDir"`
 }
 
 type allocatedDirs struct {
@@ -85,7 +92,7 @@ func NewBareMetalCluster(config *config.Cluster, workingDirs WorkingDirs,
 	wg *sync.WaitGroup, logger logger.Logger) *BareMetalCluster {
 	return &BareMetalCluster{
 		MetaSrv:  newMetaSrv(config.MetaSrv, workingDirs, wg, logger),
-		Datanode: newDataNodes(config.Datanode, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
+		Datanode: newDataNode(config.Datanode, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
 		Frontend: newFrontend(config.Frontend, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
 		Etcd:     newEtcd(workingDirs, wg, logger),
 	}
@@ -139,7 +146,7 @@ func runBinary(ctx context.Context, option *RunOptions, wg *sync.WaitGroup, logg
 			}
 			logger.Errorf("component '%s' binary '%s' (pid '%s') exited with error: %v", option.Name, option.Binary, pid, err)
 			logger.Errorf("args: '%v'", option.args)
-			logger.Errorf("if you have `--retain-logs` enabled, you can browse the logs at %s", option.logDir)
+			logger.Warnf("NOTE: if you have `--retain-logs` enabled, you can browse the logs at %s", option.logDir)
 			_ = outputFileWriter.Flush()
 		}
 	}()

@@ -24,6 +24,8 @@ import (
 	"sync"
 	"time"
 
+	"gopkg.in/yaml.v3"
+
 	. "github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
@@ -38,9 +40,11 @@ type Deployer struct {
 	wg     sync.WaitGroup
 	bm     *component.BareMetalCluster
 
-	workingDirs component.WorkingDirs
-	clusterDir  string
-	baseDir     string
+	createNoDirs      bool
+	workingDirs       component.WorkingDirs
+	clusterDir        string
+	baseDir           string
+	clusterConfigPath string
 
 	alwaysDownload bool
 }
@@ -83,37 +87,61 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 	}
 	d.am = am
 
-	if len(clusterName) > 0 {
-		if err := d.createClusterDirs(clusterName); err != nil {
+	d.initClusterDirsAndPath(clusterName)
+
+	if !d.createNoDirs {
+		if err := d.createClusterDirs(); err != nil {
 			return nil, err
 		}
 
 		d.bm = component.NewBareMetalCluster(d.config.Cluster, d.workingDirs, &d.wg, d.logger)
+
+		// Save a copy of cluster config in yaml format.
+		if err := d.createClusterConfigFile(); err != nil {
+			return nil, err
+		}
 	}
 
 	return d, nil
 }
 
-func (d *Deployer) createClusterDirs(clusterName string) error {
+func (d *Deployer) initClusterDirsAndPath(clusterName string) {
+	// Dirs
 	var (
 		// ${HOME}/${GtctlDir}/${ClusterName}
 		clusterDir = path.Join(d.baseDir, clusterName)
 
-		// ${HOME}/${GtctlDir}/${ClusterName}/logs.
-		logsDir = path.Join(clusterDir, "logs")
+		// ${HOME}/${GtctlDir}/${ClusterName}/logs
+		logsDir = path.Join(clusterDir, config.LogsDir)
 
-		// ${HOME}/${GtctlDir}/${ClusterName}/data.
-		dataDir = path.Join(clusterDir, "data")
+		// ${HOME}/${GtctlDir}/${ClusterName}/data
+		dataDir = path.Join(clusterDir, config.DataDir)
 
-		// ${HOME}/${GtctlDir}/${ClusterName}/pids.
-		pidsDir = path.Join(clusterDir, "pids")
+		// ${HOME}/${GtctlDir}/${ClusterName}/pids
+		pidsDir = path.Join(clusterDir, config.PidsDir)
 	)
 
+	// Path
+	var (
+		// ${HOME}/${GtctlDir}/${ClusterName}/${ClusterName}.yaml
+		clusterConfigPath = path.Join(clusterDir, fmt.Sprintf("%s.yaml", clusterName))
+	)
+
+	d.clusterDir = clusterDir
+	d.workingDirs = component.WorkingDirs{
+		LogsDir: logsDir,
+		DataDir: dataDir,
+		PidsDir: pidsDir,
+	}
+	d.clusterConfigPath = clusterConfigPath
+}
+
+func (d *Deployer) createClusterDirs() error {
 	dirs := []string{
-		clusterDir,
-		logsDir,
-		dataDir,
-		pidsDir,
+		d.clusterDir,
+		d.workingDirs.LogsDir,
+		d.workingDirs.DataDir,
+		d.workingDirs.PidsDir,
 	}
 
 	for _, dir := range dirs {
@@ -122,11 +150,32 @@ func (d *Deployer) createClusterDirs(clusterName string) error {
 		}
 	}
 
-	d.clusterDir = clusterDir
-	d.workingDirs = component.WorkingDirs{
-		LogsDir: logsDir,
-		DataDir: dataDir,
-		PidsDir: pidsDir,
+	return nil
+}
+
+func (d *Deployer) createClusterConfigFile() error {
+	f, err := os.Create(d.clusterConfigPath)
+	if err != nil {
+		return err
+	}
+
+	metaConfig := config.MetaConfig{
+		Config:       d.config,
+		CreationDate: time.Now(),
+		ClusterDir:   d.clusterDir,
+	}
+
+	out, err := yaml.Marshal(metaConfig)
+	if err != nil {
+		return err
+	}
+
+	if _, err = f.Write(out); err != nil {
+		return err
+	}
+
+	if err = f.Close(); err != nil {
+		return err
 	}
 
 	return nil
@@ -151,6 +200,12 @@ func WithAlawaysDownload(alwaysDownload bool) Option {
 	}
 }
 
+func WithCreateNoDirs() Option {
+	return func(d *Deployer) {
+		d.createNoDirs = true
+	}
+}
+
 func WithBaseDir(baseDir string) Option {
 	return func(d *Deployer) {
 		d.baseDir = baseDir
@@ -158,7 +213,34 @@ func WithBaseDir(baseDir string) Option {
 }
 
 func (d *Deployer) GetGreptimeDBCluster(ctx context.Context, name string, options *GetGreptimeDBClusterOptions) (*GreptimeDBCluster, error) {
-	return nil, fmt.Errorf("unsupported operation")
+	_, err := os.Stat(d.clusterDir)
+	if os.IsNotExist(err) {
+		return nil, fmt.Errorf("cluster %s is not exist", name)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	ok, err := fileutils.IsFileExists(d.clusterConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("cluster %s is not exist", name)
+	}
+
+	var cluster config.MetaConfig
+	in, err := os.ReadFile(d.clusterConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	if err = yaml.Unmarshal(in, &cluster); err != nil {
+		return nil, err
+	}
+
+	return &GreptimeDBCluster{
+		Raw: &cluster,
+	}, nil
 }
 
 func (d *Deployer) ListGreptimeDBClusters(ctx context.Context, options *ListGreptimeDBClustersOptions) ([]*GreptimeDBCluster, error) {
@@ -200,6 +282,11 @@ func (d *Deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, opt
 
 // deleteGreptimeDBClusterForeground delete the whole cluster if it runs in foreground.
 func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context, option component.DeleteOptions) error {
+	// No matter what options are, the config file of one cluster must be deleted.
+	if err := os.Remove(d.clusterConfigPath); err != nil {
+		return err
+	}
+
 	if option.RetainLogs {
 		// It is unnecessary to delete each component resources in cluster since it only retains the logs.
 		// So deleting the whole cluster resources excluding logs here would be fine.
