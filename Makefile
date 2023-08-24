@@ -48,7 +48,7 @@ setup-e2e: ## Setup e2e test environment.
 
 .PHONY: e2e
 e2e: gtctl setup-e2e ## Run e2e.
-	go test -timeout 8m -v ./tests/e2e/... && kind delete clusters $(CLUSTER)
+	go test -timeout 10m -v ./tests/e2e/... && kind delete clusters $(CLUSTER)
 
 .PHONY: lint
 lint: golangci-lint gtctl ## Run lint.

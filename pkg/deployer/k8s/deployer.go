@@ -29,11 +29,11 @@ import (
 )
 
 type deployer struct {
-	render  *helm.Render
-	client  *kube.Client
-	timeout time.Duration
-	logger  logger.Logger
-	dryRun  bool
+	helmManager *helm.Manager
+	client      *kube.Client
+	timeout     time.Duration
+	logger      logger.Logger
+	dryRun      bool
 }
 
 var _ Interface = &deployer{}
@@ -41,19 +41,21 @@ var _ Interface = &deployer{}
 type Option func(*deployer)
 
 func NewDeployer(l logger.Logger, opts ...Option) (Interface, error) {
+	hm, err := helm.NewManager(l)
+	if err != nil {
+		return nil, err
+	}
+
 	d := &deployer{
-		render: &helm.Render{},
-		logger: l,
+		helmManager: hm,
+		logger:      l,
 	}
 
 	for _, opt := range opts {
 		opt(d)
 	}
 
-	var (
-		client *kube.Client
-		err    error
-	)
+	var client *kube.Client
 	if !d.dryRun {
 		client, err = kube.NewClient("")
 		if err != nil {
@@ -116,27 +118,10 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 		return err
 	}
 
-	values, err := d.render.GenerateHelmValues(*options)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBChartName, options.GreptimeDBChartVersion, *options)
 	if err != nil {
 		return err
 	}
-	d.logger.V(3).Infof("create greptimedb cluster with values: %v", values)
-
-	downloadURL, err := d.getChartDownloadURL(ctx, GreptimeDBChartName, options.GreptimeDBChartVersion)
-	if err != nil {
-		return err
-	}
-
-	chart, err := d.render.LoadChartFromRemoteCharts(ctx, downloadURL)
-	if err != nil {
-		return err
-	}
-
-	manifests, err := d.render.GenerateManifests(ctx, resourceName, resourceNamespace, chart, values)
-	if err != nil {
-		return err
-	}
-	d.logger.V(3).Infof("create greptimedb cluster with manifests: %s", string(manifests))
 
 	if d.dryRun {
 		d.logger.V(0).Info(string(manifests))
@@ -182,27 +167,16 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 		return err
 	}
 
-	values, err := d.render.GenerateHelmValues(*options)
-	if err != nil {
-		return err
-	}
-	d.logger.V(3).Infof("create etcd cluster with values: %v", values)
+	// TODO(zyy17): Maybe we can set this in the top level configures.
+	const (
+		disableRBACConfig = "auth.rbac.create=false,auth.rbac.token.enabled=false"
+	)
+	options.ConfigValues += disableRBACConfig
 
-	downloadURL, err := d.getChartDownloadURL(ctx, GreptimeDBEtcdChartName, options.EtcdChartVersion)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.EtcdBitnamiOCIRegistry, helm.DefaultEtcdChartVersion, *options)
 	if err != nil {
 		return err
 	}
-
-	chart, err := d.render.LoadChartFromRemoteCharts(ctx, downloadURL)
-	if err != nil {
-		return err
-	}
-
-	manifests, err := d.render.GenerateManifests(ctx, resourceName, resourceNamespace, chart, values)
-	if err != nil {
-		return err
-	}
-	d.logger.V(3).Infof("create etcd cluster with manifests: %s", string(manifests))
 
 	if d.dryRun {
 		d.logger.V(0).Info(string(manifests))
@@ -231,27 +205,10 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 		return err
 	}
 
-	values, err := d.render.GenerateHelmValues(*options)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion, *options)
 	if err != nil {
 		return err
 	}
-	d.logger.V(3).Infof("create greptimedb-operator with values: %v", values)
-
-	downloadURL, err := d.getChartDownloadURL(ctx, GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion)
-	if err != nil {
-		return err
-	}
-
-	chart, err := d.render.LoadChartFromRemoteCharts(ctx, downloadURL)
-	if err != nil {
-		return err
-	}
-
-	manifests, err := d.render.GenerateManifests(ctx, GreptimeDBOperatorChartName, resourceNamespace, chart, values)
-	if err != nil {
-		return err
-	}
-	d.logger.V(3).Infof("create greptimedb-operator with manifests: %s", string(manifests))
 
 	if d.dryRun {
 		d.logger.V(0).Info(string(manifests))
@@ -276,30 +233,4 @@ func (d *deployer) splitNamescapedName(name string) (string, string, error) {
 	}
 
 	return split[0], split[1], nil
-}
-
-func (d *deployer) getChartDownloadURL(ctx context.Context, chartName, version string) (string, error) {
-	indexFile, err := d.render.GetIndexFile(ctx, GreptimeChartIndexURL)
-	if err != nil {
-		return "", err
-	}
-
-	var downloadURL string
-	if version == "" {
-		chartVersion, err := d.render.GetLatestChart(indexFile, chartName)
-		if err != nil {
-			return "", err
-		}
-		downloadURL = chartVersion.URLs[0]
-		d.logger.V(3).Infof("get latest chart '%s', version '%s', url: '%s'",
-			chartName, chartVersion.Version, downloadURL)
-	} else {
-		// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
-		chartName := chartName + "-" + version
-		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", GreptimeChartReleaseDownloadURL, chartName, chartName)
-		d.logger.V(3).Infof("get given version chart '%s', version '%s', url: '%s'",
-			chartName, version, downloadURL)
-	}
-
-	return downloadURL, nil
 }

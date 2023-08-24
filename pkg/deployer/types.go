@@ -91,10 +91,11 @@ type DeleteGreptimeDBClusterOption struct{}
 type CreateEtcdClusterOptions struct {
 	EtcdChartVersion string
 
+	// The parameters reference: https://artifacthub.io/packages/helm/bitnami/etcd.
+	EtcdClusterSize      string `helm:"replicaCount"`
 	ImageRegistry        string `helm:"image.registry"`
-	EtcdStorageClassName string `helm:"storage.storageClassName"`
-	EtcdStorageSize      string `helm:"storage.volumeSize"`
-	EtcdDataDir          string `helm:"storage.dataDir"`
+	EtcdStorageClassName string `helm:"persistence.storageClass"`
+	EtcdStorageSize      string `helm:"persistence.size"`
 	ConfigValues         string `helm:"*"`
 }
 

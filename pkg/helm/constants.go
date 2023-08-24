@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package k8s
+package helm
 
 const (
-	GreptimeDBChartName         = "greptimedb"
-	GreptimeDBEtcdChartName     = "greptimedb-etcd"
-	GreptimeDBOperatorChartName = "greptimedb-operator"
+	DefaultChartsCache = ".gtctl/charts-cache"
 
 	GreptimeChartIndexURL           = "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml"
 	GreptimeChartReleaseDownloadURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
+
+	GreptimeDBChartName         = "greptimedb"
+	GreptimeDBOperatorChartName = "greptimedb-operator"
+	EtcdBitnamiOCIRegistry      = "oci://registry-1.docker.io/bitnamicharts/etcd"
+	DefaultEtcdChartVersion     = "9.2.0"
 )
