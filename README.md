@@ -1,6 +1,8 @@
 # gtctl
 
 [![codecov](https://codecov.io/github/GreptimeTeam/gtctl/branch/develop/graph/badge.svg?token=287NUSEH5D)](https://app.codecov.io/github/GreptimeTeam/gtctl/tree/develop)
+[![license](https://img.shields.io/github/license/GreptimeTeam/gtctl)](https://github.com/GreptimeTeam/gtctl/blob/develop/LICENSE)
+[![report](https://goreportcard.com/badge/github.com/GreptimeTeam/gtctl)](https://goreportcard.com/report/github.com/GreptimeTeam/gtctl)
 
 ## Overview
 
@@ -10,13 +12,36 @@
 <img alt="screenshot" src="./docs/images/screenshot.png" width="800px">
 </p>
 
-## One-line Installation
+## Installation
+
+### Binary
+
+Download the binary using onel-line command:
 
 ```console
 curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
 ```
 
 After downloading, the `gtctl` will be in the current directory.
+
+### Homebrew (macOS)
+
+On macOS, `gtctl` is available via Homebrew:
+
+```console
+brew tap greptimeteam/greptime
+brew install gtctl
+```
+
+### From Source
+
+If you already have the [Go](https://go.dev/doc/install) installed, you can run `make` command under this project to install `gtctl`:
+
+```console
+make gtctl
+```
+
+After building, the `gtctl` will be generated in `./bin/`.
 
 ## Getting Started
 
@@ -132,15 +157,29 @@ gtctl cluster create mycluster --image-registry=greptime-registry.cn-hangzhou.cr
 
 ## Development
 
+There are many useful tools provided through Makefile, you can simply run `make help` to get more information:
+
 - Compile the project
 
   ```console
   make
   ```
 
-  Then the `gtctl` will be generated in `bin/`.
+  Then the `gtctl` will be generated in `./bin/`.
+
+
+- Run the unit test
+
+  ```console
+  make test
+  ```
+
+- Run the e2e test
+
+  ```console
+  make e2e
+  ```
 
 ## License
 
 `gtctl` uses the [Apache 2.0 license](./LICENSE) to strike a balance between open contributions and allowing you to use the software however you want.
-
