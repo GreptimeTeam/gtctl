@@ -14,9 +14,9 @@
 
 ## Installation
 
-### Binary
+### One-line Installation
 
-Download the binary using onel-line command:
+Download the binary using the following command:
 
 ```console
 curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
@@ -24,7 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/ins
 
 After downloading, the `gtctl` will be in the current directory.
 
-### Homebrew (macOS)
+### Homebrew
 
 On macOS, `gtctl` is available via Homebrew:
 
@@ -35,13 +35,21 @@ brew install gtctl
 
 ### From Source
 
-If you already have the [Go](https://go.dev/doc/install) installed, you can run `make` command under this project to install `gtctl`:
+If you already have the [Go](https://go.dev/doc/install) installed, you can run `make` command under this project to build `gtctl`:
 
 ```console
 make gtctl
 ```
 
-After building, the `gtctl` will be generated in `./bin/`.
+After building, the `gtctl` will be generated in `./bin/`. If you want to install `gtctl`, you can run the `install` command:
+
+```bash
+# The built gtctl will be installed in /usr/local/bin.
+make install
+
+# The built gtctl will be installed in your customed path.
+make install INSTALL_DIR=<your-path>
+```
 
 ## Getting Started
 
