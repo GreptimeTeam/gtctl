@@ -24,6 +24,12 @@ curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/ins
 
 After downloading, the `gtctl` will be in the current directory.
 
+You also can install `gtctl` from the AWS-CN S3 bucket:
+
+```console
+curl -fsSL https://downloads.greptime.cn/releases/scripts/gtctl/install.sh | sh -s -- -s aws
+```
+
 ### Homebrew
 
 On macOS, `gtctl` is available via Homebrew:
@@ -35,7 +41,7 @@ brew install gtctl
 
 ### From Source
 
-If you already have the [Go](https://go.dev/doc/install) installed, you can run `make` command under this project to build `gtctl`:
+If you already have the [Go](https://go.dev/doc/install) installed, you can run the `make` command under this project to build `gtctl`:
 
 ```console
 make gtctl
@@ -51,11 +57,37 @@ make install
 make install INSTALL_DIR=<your-path>
 ```
 
+### Enable gtctl autocompletion
+
+#### Bash
+
+The `gtctl` completion script for Bash can be generated with the command `gtctl completion bash`. Sourcing the completion script in your shell enables `gtctl` autocompletion.
+
+```console
+echo 'source <(gtctl completion bash)' >> ~/.bashrc
+```
+
+#### Zsh
+
+The `gtctl` completion script for Zsh can be generated with the command `gtctl completion zsh`. Sourcing the completion script in your shell enables `gtctl` autocompletion.
+
+```console
+mkdir -p $ZSH/completions && gtctl completion zsh > $ZSH/completions/_gtctl
+```
+
+#### Fish
+
+The `gtctl` completion script for Fish can be generated with the command `gtctl completion fish`. Sourcing the completion script in your shell enables `gtctl` autocompletion.
+
+```console
+gtctl completion fish | source
+```
+
 ## Getting Started
 
 ### Playground
 
-The **fatest** way to experience the GreptimeDB cluster is to use the playground:
+The **fastest** way to experience the GreptimeDB cluster is to use the playground:
 
 ```console
 gtctl playground
@@ -101,6 +133,12 @@ Create your own GreptimeDB cluster and etcd cluster:
 gtctl cluster create mycluster -n default
 ```
 
+If you want to use artifacts(charts and images) that are stored in the CN region, you can enable `--use-greptime-cn-artifacts`:
+
+```console
+gtctl cluster create mycluster -n default --use-greptime-cn-artifacts
+```
+
 After creating, the whole GreptimeDB cluster will start in the `default` namespace:
 
 ```console
@@ -111,7 +149,7 @@ gtctl cluster get mycluster -n default
 gtctl cluster list
 ```
 
-You can use `kubectl port-forward` command to forward frontend requests:
+You can use the `kubectl port-forward` command to forward frontend requests:
 
 ```console
 kubectl port-forward svc/mycluster-frontend 4002:4002 > connections.out &
@@ -151,16 +189,6 @@ gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c datanode --rep
 
 # Scale frontend to 5 replicas.
 gtctl cluster scale <your-cluster> -n <your-cluster-namespace> -c frontend --replicas 5
-```
-
-#### Specify the image registry
-
-`gtctl` uses DockerHub as the default image registry and also supports specifying image registry when creating a cluster with the `--image-registry` option (the AliCloud image registry mirror `greptime-registry.cn-hangzhou.cr.aliyuncs.com` is now available).
-
-中国用户可使用如下命令创建集群：
-
-```console
-gtctl cluster create mycluster --image-registry=greptime-registry.cn-hangzhou.cr.aliyuncs.com
 ```
 
 ## Development
