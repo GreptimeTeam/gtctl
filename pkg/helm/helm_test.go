@@ -76,7 +76,7 @@ func TestLoadAndRenderChart(t *testing.T) {
 	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			manifests, err := r.LoadAndRenderChart(ctx, tt.name, tt.namespace, tt.chartName, tt.chartVersion, tt.values)
+			manifests, err := r.LoadAndRenderChart(ctx, tt.name, tt.namespace, tt.chartName, tt.chartVersion, false, tt.values)
 			if err != nil {
 				t.Errorf("failed to load and render chart: %v", err)
 			}

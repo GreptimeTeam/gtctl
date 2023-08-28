@@ -69,6 +69,7 @@ type ListGreptimeDBClustersOptions struct{}
 // CreateGreptimeDBClusterOptions is the options to create a GreptimeDB cluster.
 type CreateGreptimeDBClusterOptions struct {
 	GreptimeDBChartVersion string
+	UseGreptimeCNArtifacts bool
 
 	ImageRegistry               string `helm:"image.registry"`
 	InitializerImageRegistry    string `helm:"initializer.registry"`
@@ -89,7 +90,8 @@ type DeleteGreptimeDBClusterOption struct{}
 
 // CreateEtcdClusterOptions is the options to create an etcd cluster.
 type CreateEtcdClusterOptions struct {
-	EtcdChartVersion string
+	EtcdChartVersion       string
+	UseGreptimeCNArtifacts bool
 
 	// The parameters reference: https://artifacthub.io/packages/helm/bitnami/etcd.
 	EtcdClusterSize      string `helm:"replicaCount"`
@@ -105,6 +107,7 @@ type DeleteEtcdClusterOption struct{}
 // CreateGreptimeDBOperatorOptions is the options to create a GreptimeDB operator.
 type CreateGreptimeDBOperatorOptions struct {
 	GreptimeDBOperatorChartVersion string
+	UseGreptimeCNArtifacts         bool
 
 	ImageRegistry string `helm:"image.registry"`
 	ConfigValues  string `helm:"*"`

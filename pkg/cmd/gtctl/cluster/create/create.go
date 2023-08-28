@@ -64,6 +64,10 @@ type ClusterCliOptions struct {
 	Timeout int
 	DryRun  bool
 	Set     configValues
+
+	// If UseGreptimeCNArtifacts is true, the creation will download the artifacts(charts and binaries) from 'downloads.greptime.cn'.
+	// Also, it will use ACR registry for charts images.
+	UseGreptimeCNArtifacts bool
 }
 
 func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
@@ -102,6 +106,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal environment.")
 	cmd.Flags().BoolVar(&options.AlwaysDownload, "always-download", false, "If true, always download the binary.")
 	cmd.Flags().BoolVar(&options.RetainLogs, "retain-logs", true, "If true, always retain the logs of binary.")
+	cmd.Flags().BoolVar(&options.UseGreptimeCNArtifacts, "use-greptime-cn-artifacts", false, "If true, use greptime-cn artifacts(charts and binaries).")
 
 	return cmd
 }
@@ -234,6 +239,7 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *Clu
 		GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
 		ImageRegistry:                  options.ImageRegistry,
 		ConfigValues:                   options.Set.operatorConfig,
+		UseGreptimeCNArtifacts:         options.UseGreptimeCNArtifacts,
 	}
 
 	name := types.NamespacedName{Namespace: options.OperatorNamespace, Name: "greptimedb-operator"}.String()
@@ -257,12 +263,13 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *ClusterCli
 	}
 
 	createEtcdClusterOptions := &deployer.CreateEtcdClusterOptions{
-		ImageRegistry:        options.ImageRegistry,
-		EtcdChartVersion:     options.EtcdChartVersion,
-		EtcdStorageClassName: options.EtcdStorageClassName,
-		EtcdStorageSize:      options.EtcdStorageSize,
-		EtcdClusterSize:      options.EtcdClusterSize,
-		ConfigValues:         options.Set.etcdConfig,
+		ImageRegistry:          options.ImageRegistry,
+		EtcdChartVersion:       options.EtcdChartVersion,
+		EtcdStorageClassName:   options.EtcdStorageClassName,
+		EtcdStorageSize:        options.EtcdStorageSize,
+		EtcdClusterSize:        options.EtcdClusterSize,
+		ConfigValues:           options.Set.etcdConfig,
+		UseGreptimeCNArtifacts: options.UseGreptimeCNArtifacts,
 	}
 
 	var name string
@@ -300,6 +307,7 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *Clus
 		DatanodeStorageRetainPolicy: options.StorageRetainPolicy,
 		EtcdEndPoint:                fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
 		ConfigValues:                options.Set.clusterConfig,
+		UseGreptimeCNArtifacts:      options.UseGreptimeCNArtifacts,
 	}
 
 	var name string
