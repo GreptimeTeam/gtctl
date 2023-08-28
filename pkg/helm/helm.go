@@ -90,7 +90,7 @@ func WithChartsCacheDir(chartsCacheDir string) func(*Manager) {
 }
 
 // LoadAndRenderChart loads the chart from the remote charts and render the manifests with the values.
-func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chartName, chartVersion string, options interface{}) ([]byte, error) {
+func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chartName, chartVersion string, useGreptimeCNArtifacts bool, options interface{}) ([]byte, error) {
 	values, err := r.generateHelmValues(options)
 	if err != nil {
 		return nil, err
@@ -104,11 +104,17 @@ func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chart
 			return nil, err
 		}
 	} else {
-		downloadURL, err := r.getChartDownloadURL(ctx, chartName, chartVersion)
+		downloadURL, err := r.getChartDownloadURL(ctx, chartName, chartVersion, useGreptimeCNArtifacts)
 		if err != nil {
 			return nil, err
 		}
-		helmChart, err = r.loadChartFromRemoteCharts(ctx, downloadURL)
+
+		alwaysDownload := false
+		if chartVersion == "" { // always download the latest version.
+			alwaysDownload = true
+		}
+
+		helmChart, err = r.loadChartFromRemoteCharts(ctx, downloadURL, alwaysDownload)
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +129,7 @@ func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chart
 	return manifests, nil
 }
 
-func (r *Manager) loadChartFromRemoteCharts(ctx context.Context, downloadURL string) (*chart.Chart, error) {
+func (r *Manager) loadChartFromRemoteCharts(ctx context.Context, downloadURL string, alwaysDownload bool) (*chart.Chart, error) {
 	parsedURL, err := url.Parse(downloadURL)
 	if err != nil {
 		return nil, err
@@ -134,7 +140,7 @@ func (r *Manager) loadChartFromRemoteCharts(ctx context.Context, downloadURL str
 		cachePath   = filepath.Join(r.chartsCacheDir, packageName)
 	)
 
-	if r.isInChartsCache(packageName) {
+	if !alwaysDownload && r.isInChartsCache(packageName) {
 		data, err := os.ReadFile(cachePath)
 		if err != nil {
 			return nil, err
@@ -323,28 +329,41 @@ func (r *Manager) newHelmClient(releaseName, namespace string) (*action.Install,
 	return helmClient, nil
 }
 
-func (r *Manager) getChartDownloadURL(ctx context.Context, chartName, version string) (string, error) {
-	indexFile, err := r.getIndexFile(ctx, GreptimeChartIndexURL)
-	if err != nil {
-		return "", err
-	}
+func (r *Manager) getChartDownloadURL(ctx context.Context, chartName, version string, useGreptimeCNArtifacts bool) (string, error) {
+	// Get the latest version from index file of GitHub repo.
+	if !useGreptimeCNArtifacts && version == "" {
+		indexFile, err := r.getIndexFile(ctx, GreptimeChartIndexURL)
+		if err != nil {
+			return "", err
+		}
 
-	var downloadURL string
-	if version == "" {
 		chartVersion, err := r.getLatestChart(indexFile, chartName)
 		if err != nil {
 			return "", err
 		}
-		downloadURL = chartVersion.URLs[0]
+
+		downloadURL := chartVersion.URLs[0]
 		r.logger.V(3).Infof("get latest chart '%s', version '%s', url: '%s'",
 			chartName, chartVersion.Version, downloadURL)
-	} else {
-		// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
-		chartName := chartName + "-" + version
-		downloadURL = fmt.Sprintf("%s/%s/%s.tgz", GreptimeChartReleaseDownloadURL, chartName, chartName)
+		return downloadURL, nil
+	}
+
+	if useGreptimeCNArtifacts {
+		if version == "" {
+			version = "latest"
+		}
+
+		// The download URL example: 'https://downloads.greptime.cn/releases/charts/etcd/9.2.0/etcd-9.2.0.tgz'.
+		downloadURL := fmt.Sprintf("%s/%s/%s/%s.tgz", GreptimeCNCharts, chartName, version, chartName+"-"+version)
 		r.logger.V(3).Infof("get given version chart '%s', version '%s', url: '%s'",
 			chartName, version, downloadURL)
+		return downloadURL, nil
 	}
+
+	// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
+	downloadURL := fmt.Sprintf("%s/%s/%s.tgz", GreptimeChartReleaseDownloadURL, chartName, chartName+"-"+version)
+	r.logger.V(3).Infof("get given version chart '%s', version '%s', url: '%s'",
+		chartName, version, downloadURL)
 
 	return downloadURL, nil
 }

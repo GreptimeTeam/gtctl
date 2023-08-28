@@ -36,6 +36,10 @@ type deployer struct {
 	dryRun      bool
 }
 
+const (
+	AliCloudRegistry = "greptime-registry.cn-hangzhou.cr.aliyuncs.com"
+)
+
 var _ Interface = &deployer{}
 
 type Option func(*deployer)
@@ -118,7 +122,11 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 		return err
 	}
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBChartName, options.GreptimeDBChartVersion, *options)
+	if options.UseGreptimeCNArtifacts && options.ImageRegistry == "" {
+		options.ConfigValues += fmt.Sprintf("image.registry=%s,initializer.registry=%s,", AliCloudRegistry, AliCloudRegistry)
+	}
+
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBChartName, options.GreptimeDBChartVersion, options.UseGreptimeCNArtifacts, *options)
 	if err != nil {
 		return err
 	}
@@ -169,11 +177,15 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 
 	// TODO(zyy17): Maybe we can set this in the top level configures.
 	const (
-		disableRBACConfig = "auth.rbac.create=false,auth.rbac.token.enabled=false"
+		disableRBACConfig = "auth.rbac.create=false,auth.rbac.token.enabled=false,"
 	)
 	options.ConfigValues += disableRBACConfig
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.EtcdBitnamiOCIRegistry, helm.DefaultEtcdChartVersion, *options)
+	if options.UseGreptimeCNArtifacts && options.ImageRegistry == "" {
+		options.ConfigValues += fmt.Sprintf("image.registry=%s,", AliCloudRegistry)
+	}
+
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.EtcdBitnamiOCIRegistry, helm.DefaultEtcdChartVersion, options.UseGreptimeCNArtifacts, *options)
 	if err != nil {
 		return fmt.Errorf("error while loading helm chart: %v", err)
 	}
@@ -205,7 +217,11 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 		return err
 	}
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion, *options)
+	if options.UseGreptimeCNArtifacts && options.ImageRegistry == "" {
+		options.ConfigValues += fmt.Sprintf("image.registry=%s,", AliCloudRegistry)
+	}
+
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion, options.UseGreptimeCNArtifacts, *options)
 	if err != nil {
 		return err
 	}

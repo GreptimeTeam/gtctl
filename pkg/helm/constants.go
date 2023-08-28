@@ -19,6 +19,7 @@ const (
 
 	GreptimeChartIndexURL           = "https://raw.githubusercontent.com/GreptimeTeam/helm-charts/gh-pages/index.yaml"
 	GreptimeChartReleaseDownloadURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
+	GreptimeCNCharts                = "https://downloads.greptime.cn/releases/charts"
 
 	GreptimeDBChartName         = "greptimedb"
 	GreptimeDBOperatorChartName = "greptimedb-operator"
