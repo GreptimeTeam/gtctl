@@ -175,7 +175,7 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 
 	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.EtcdBitnamiOCIRegistry, helm.DefaultEtcdChartVersion, *options)
 	if err != nil {
-		return err
+		return fmt.Errorf("error while loading helm chart: %v", err)
 	}
 
 	if d.dryRun {
@@ -183,8 +183,8 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 		return nil
 	}
 
-	if err := d.client.Apply(ctx, manifests); err != nil {
-		return err
+	if err = d.client.Apply(ctx, manifests); err != nil {
+		return fmt.Errorf("error while applying helm chart: %v", err)
 	}
 
 	return d.client.WaitForEtcdReady(ctx, resourceName, resourceNamespace, d.timeout)
