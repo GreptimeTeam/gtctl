@@ -20,6 +20,7 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -53,28 +54,37 @@ func (m *metaSrv) Name() string {
 }
 
 func (m *metaSrv) Start(ctx context.Context, binary string) error {
-	var (
-		metaSrvLogDir = path.Join(m.workingDirs.LogsDir, m.Name())
-		metaSrvPidDir = path.Join(m.workingDirs.PidsDir, m.Name())
-		metaSrvDirs   = []string{metaSrvLogDir, metaSrvPidDir}
-	)
-	for _, dir := range metaSrvDirs {
-		if err := fileutils.CreateDirIfNotExists(dir); err != nil {
+	// Default bind address for meta srv.
+	bindAddr := net.JoinHostPort("127.0.0.1", "3002")
+	if len(m.config.BindAddr) > 0 {
+		bindAddr = m.config.BindAddr
+	}
+
+	for i := 0; i < m.config.Replicas; i++ {
+		dirName := fmt.Sprintf("%s.%d", m.Name(), i)
+
+		metaSrvLogDir := path.Join(m.workingDirs.LogsDir, dirName)
+		if err := fileutils.CreateDirIfNotExists(metaSrvLogDir); err != nil {
 			return err
 		}
-	}
-	m.logsDirs = append(m.logsDirs, metaSrvLogDir)
-	m.pidsDirs = append(m.pidsDirs, metaSrvPidDir)
+		m.logsDirs = append(m.logsDirs, metaSrvLogDir)
 
-	option := &RunOptions{
-		Binary: binary,
-		Name:   m.Name(),
-		logDir: metaSrvLogDir,
-		pidDir: metaSrvPidDir,
-		args:   m.BuildArgs(ctx),
-	}
-	if err := runBinary(ctx, option, m.wg, m.logger); err != nil {
-		return err
+		metaSrvPidDir := path.Join(m.workingDirs.PidsDir, dirName)
+		if err := fileutils.CreateDirIfNotExists(metaSrvPidDir); err != nil {
+			return err
+		}
+		m.pidsDirs = append(m.pidsDirs, metaSrvPidDir)
+
+		option := &RunOptions{
+			Binary: binary,
+			Name:   dirName,
+			logDir: metaSrvLogDir,
+			pidDir: metaSrvPidDir,
+			args:   m.BuildArgs(ctx, i, bindAddr),
+		}
+		if err := runBinary(ctx, option, m.wg, m.logger); err != nil {
+			return err
+		}
 	}
 
 	// Checking component running status with intervals.
@@ -101,33 +111,47 @@ func (m *metaSrv) BuildArgs(ctx context.Context, params ...interface{}) []string
 	if logLevel == "" {
 		logLevel = config.DefaultLogLevel
 	}
+
+	nodeID_, bindAddr_ := params[0], params[1]
+	nodeID := nodeID_.(int)
+	bindAddr := bindAddr_.(string)
+
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
 		m.Name(), "start",
 		"--store-addr", m.config.StoreAddr,
 		"--server-addr", m.config.ServerAddr,
-		"--http-addr", m.config.HTTPAddr,
+		"--http-addr", generateMetaSrvAddr(m.config.HTTPAddr, nodeID),
+		"--bind-addr", generateMetaSrvAddr(bindAddr, nodeID),
 	}
 	return args
 }
 
 func (m *metaSrv) IsRunning(ctx context.Context) bool {
-	_, httpPort, err := net.SplitHostPort(m.config.HTTPAddr)
-	if err != nil {
-		m.logger.V(5).Infof("failed to split host port in %s: %s", m.Name(), err)
-		return false
+	for i := 0; i < m.config.Replicas; i++ {
+		addr := generateMetaSrvAddr(m.config.HTTPAddr, i)
+		_, httpPort, err := net.SplitHostPort(addr)
+		if err != nil {
+			m.logger.V(5).Infof("failed to split host port in %s: %s", m.Name(), err)
+			return false
+		}
+
+		rsp, err := http.Get(fmt.Sprintf("http://localhost:%s/health", httpPort))
+		if err != nil {
+			m.logger.V(5).Infof("failed to get %s health: %s", m.Name(), err)
+			return false
+		}
+
+		if rsp.StatusCode != http.StatusOK {
+			return false
+		}
+
+		if err = rsp.Body.Close(); err != nil {
+			return false
+		}
 	}
 
-	rsp, err := http.Get(fmt.Sprintf("http://localhost:%s/health", httpPort))
-	if err != nil {
-		m.logger.V(5).Infof("failed to get %s health: %s", m.Name(), err)
-		return false
-	}
-	if err = rsp.Body.Close(); err != nil {
-		return false
-	}
-
-	return rsp.StatusCode == http.StatusOK
+	return true
 }
 
 func (m *metaSrv) Delete(ctx context.Context, option DeleteOptions) error {
@@ -135,4 +159,10 @@ func (m *metaSrv) Delete(ctx context.Context, option DeleteOptions) error {
 		return err
 	}
 	return nil
+}
+
+func generateMetaSrvAddr(addr string, nodeID int) string {
+	host, port, _ := net.SplitHostPort(addr)
+	portInt, _ := strconv.Atoi(port)
+	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeID))
 }

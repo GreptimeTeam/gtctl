@@ -159,9 +159,8 @@ func collectClusterInfoFromBareMetal(data *bmconfig.MetaConfig) (
 
 	rows(component.Frontend, data.Cluster.Frontend.Replicas)
 	rows(component.DataNode, data.Cluster.Datanode.Replicas)
+	rows(component.MetaSrv, data.Cluster.MetaSrv.Replicas)
 
-	// TODO(shawnh2) add metatsrv and etcd replicas support
-	bulk = append(bulk, []string{component.MetaSrv, pidsMap[component.MetaSrv]})
 	bulk = append(bulk, []string{component.Etcd, pidsMap[component.Etcd]})
 
 	config, err := yaml.Marshal(data.Config)
