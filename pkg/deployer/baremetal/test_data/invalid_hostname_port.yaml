@@ -10,6 +10,7 @@ cluster:
     mysqlAddr: 0.0.0.0:14200
     httpAddr: 0.0.0.0:1438000  # invalid port
   meta:
+    replicas: 1
     storeAddr: 127.0.0.1:2379
     serverAddr: 6870.0.0.0:3243002  # invalid hostname and port
     httpAddr: 0.0.0.0:14001
