@@ -79,6 +79,7 @@ func DefaultConfig() *Config {
 				Replicas: 1,
 			},
 			MetaSrv: &MetaSrv{
+				Replicas:   1,
 				StoreAddr:  "127.0.0.1:2379",
 				ServerAddr: "0.0.0.0:3002",
 				HTTPAddr:   "0.0.0.0:14001",

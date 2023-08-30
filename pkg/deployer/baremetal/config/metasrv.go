@@ -15,6 +15,8 @@
 package config
 
 type MetaSrv struct {
+	Replicas int `yaml:"replicas" validate:"gt=0"`
+
 	StoreAddr  string `yaml:"storeAddr" validate:"hostname_port"`
 	ServerAddr string `yaml:"serverAddr" validate:"hostname_port"`
 	BindAddr   string `yaml:"bindAddr" validate:"omitempty,hostname_port"`
