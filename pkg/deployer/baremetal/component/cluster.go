@@ -137,9 +137,8 @@ func runBinary(ctx context.Context, option *RunOptions, wg *sync.WaitGroup, logg
 		if err := cmd.Wait(); err != nil {
 			// Caught signal kill and interrupt error then ignore.
 			if exit, ok := err.(*exec.ExitError); ok {
-				if status, ok := exit.Sys().(syscall.WaitStatus); ok {
-					if status.Signaled() &&
-						(status.Signal() == syscall.SIGKILL || status.Signal() == syscall.SIGINT) {
+				if status, ok := exit.Sys().(syscall.WaitStatus); ok && status.Signaled() {
+					if status.Signal() == syscall.SIGKILL || status.Signal() == syscall.SIGINT {
 						return
 					}
 				}

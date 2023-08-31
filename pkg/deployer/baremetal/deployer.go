@@ -160,9 +160,10 @@ func (d *Deployer) createClusterConfigFile() error {
 	}
 
 	metaConfig := config.MetaConfig{
-		Config:       d.config,
-		CreationDate: time.Now(),
-		ClusterDir:   d.clusterDir,
+		Config:        d.config,
+		CreationDate:  time.Now(),
+		ClusterDir:    d.clusterDir,
+		ForegroundPid: os.Getpid(),
 	}
 
 	out, err := yaml.Marshal(metaConfig)

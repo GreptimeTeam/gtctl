@@ -38,8 +38,9 @@ const (
 type MetaConfig struct {
 	*Config
 
-	CreationDate time.Time `yaml:"creationDate"`
-	ClusterDir   string    `yaml:"clusterDir"`
+	CreationDate  time.Time `yaml:"creationDate"`
+	ClusterDir    string    `yaml:"clusterDir"`
+	ForegroundPid int       `yaml:"foregroundPid"`
 }
 
 // Config is the desired state of a GreptimeDB cluster on bare metal.
