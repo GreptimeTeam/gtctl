@@ -111,7 +111,7 @@ func getClusterFromKubernetes(ctx context.Context, l logger.Logger, nn types.Nam
 func getClusterFromBareMetal(ctx context.Context, l logger.Logger, nn types.NamespacedName, table *tablewriter.Table) error {
 	deployer, err := baremetal.NewDeployer(l, nn.Name, baremetal.WithCreateNoDirs())
 	if err != nil {
-		return nil
+		return err
 	}
 
 	cluster, err := deployer.GetGreptimeDBCluster(ctx, nn.Name, nil)
