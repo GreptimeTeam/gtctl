@@ -91,7 +91,7 @@ func NewConnectCommand(l logger.Logger) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().String("p", "mysql", "Specify a database")
+
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().StringVarP(&options.Protocol, "protocol", "p", "mysql", "Specify a database")
 	return cmd
