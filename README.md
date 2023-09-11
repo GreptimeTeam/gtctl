@@ -12,9 +12,25 @@
 <img alt="screenshot" src="./docs/images/screenshot.png" width="800px">
 </p>
 
+## Quickstart
+
+Install the `gtctl` binary using the following **one-line installatio**n command:
+
+```console
+curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
+```
+
+The **fastest** way to experience the GreptimeDB cluster is to use the playground:
+
+```console
+gtctl playground
+```
+
+The `playground` will deploy the minimal GreptimeDB cluster on your environment in bare-metal mode.
+
 ## Documentation
 
-* [Quickstart](https://docs.greptime.com/user-guide/operations/gtctl) to install and use gtctl
+* [More](https://docs.greptime.com/user-guide/operations/gtctl) features and usage about `gtctl`
 
 ## License
 
