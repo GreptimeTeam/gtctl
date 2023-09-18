@@ -19,9 +19,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -39,6 +41,8 @@ type Deployer struct {
 	am     *ArtifactManager
 	wg     sync.WaitGroup
 	bm     *component.BareMetalCluster
+	ctx    context.Context
+	stop   context.CancelFunc
 
 	createNoDirs      bool
 	workingDirs       component.WorkingDirs
@@ -54,9 +58,13 @@ var _ Interface = &Deployer{}
 type Option func(*Deployer)
 
 func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface, error) {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
 	d := &Deployer{
 		logger: l,
 		config: config.DefaultConfig(),
+		ctx:    ctx,
+		stop:   stop,
 	}
 
 	for _, opt := range opts {
@@ -258,15 +266,15 @@ func (d *Deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName stri
 		return err
 	}
 
-	if err := d.bm.MetaSrv.Start(ctx, binary); err != nil {
+	if err := d.bm.MetaSrv.Start(d.ctx, binary); err != nil {
 		return err
 	}
 
-	if err := d.bm.Datanode.Start(ctx, binary); err != nil {
+	if err := d.bm.Datanode.Start(d.ctx, binary); err != nil {
 		return err
 	}
 
-	if err := d.bm.Frontend.Start(ctx, binary); err != nil {
+	if err := d.bm.Frontend.Start(d.ctx, binary); err != nil {
 		return err
 	}
 
@@ -318,7 +326,7 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 		return err
 	}
 
-	if err = d.bm.Etcd.Start(ctx, bin); err != nil {
+	if err = d.bm.Etcd.Start(d.ctx, bin); err != nil {
 		return err
 	}
 
@@ -392,7 +400,7 @@ func (d *Deployer) Wait(ctx context.Context, option component.DeleteOptions) err
 
 	d.logger.V(3).Info("Cluster shutting down. Cleaning allocated resources.")
 
-	<-ctx.Done()
+	<-d.ctx.Done()
 	// Delete cluster after closing, which can only happens in the foreground.
 	if err := d.deleteGreptimeDBClusterForeground(ctx, option); err != nil {
 		return err
