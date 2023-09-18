@@ -42,7 +42,6 @@ type Deployer struct {
 	wg     sync.WaitGroup
 	bm     *component.BareMetalCluster
 	ctx    context.Context
-	stop   context.CancelFunc
 
 	createNoDirs      bool
 	workingDirs       component.WorkingDirs
@@ -58,13 +57,12 @@ var _ Interface = &Deployer{}
 type Option func(*Deployer)
 
 func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface, error) {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
 	d := &Deployer{
 		logger: l,
 		config: config.DefaultConfig(),
 		ctx:    ctx,
-		stop:   stop,
 	}
 
 	for _, opt := range opts {
