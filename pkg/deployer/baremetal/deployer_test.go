@@ -61,10 +61,10 @@ func TestNewDeployer(t *testing.T) {
 	assert.NotNil(t, d2)
 	assert.True(t, d2.alwaysDownload)
 
-	// New Deployer with config option
+	// New Deployer with replace config option
 	newConfig := config.DefaultConfig()
 	newConfig.Cluster.Frontend.Replicas = 3
-	deployer, err = NewDeployer(L, clusterName, WithConfig(newConfig))
+	deployer, err = NewDeployer(L, clusterName, WithReplaceConfig(newConfig))
 	assert.NoError(t, err)
 	d3, ok := deployer.(*Deployer)
 	assert.True(t, ok)
