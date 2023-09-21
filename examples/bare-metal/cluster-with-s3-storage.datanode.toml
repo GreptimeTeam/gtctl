@@ -1,0 +1,8 @@
+# More options for storage: https://docs.greptime.com/user-guide/operations/configuration#storage-options
+
+[storage]
+type = "S3"
+bucket = "test_greptimedb"
+root = "/greptimedb"
+access_key_id = "<access key id>"
+secret_access_key = "<secret access key>"

@@ -134,6 +134,11 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		fmt.Sprintf("--data-home=%s", dataHomeDir),
 		fmt.Sprintf("--wal-dir=%s", walDir),
 	}
+
+	if len(d.config.Config) > 0 {
+		args = append(args, fmt.Sprintf("-c %s", d.config.Config))
+	}
+
 	return args
 }
 

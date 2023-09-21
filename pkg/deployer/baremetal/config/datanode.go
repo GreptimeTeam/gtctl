@@ -24,6 +24,7 @@ type Datanode struct {
 	DataDir      string `yaml:"dataDir" validate:"omitempty,dirpath"`
 	WalDir       string `yaml:"walDir" validate:"omitempty,dirpath"`
 	ProcedureDir string `yaml:"procedureDir" validate:"omitempty,dirpath"`
+	Config       string `yaml:"config" validate:"omitempty,filepath"`
 
 	LogLevel string `yaml:"logLevel"`
 }
