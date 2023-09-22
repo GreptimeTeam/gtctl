@@ -119,11 +119,16 @@ func (m *metaSrv) BuildArgs(ctx context.Context, params ...interface{}) []string
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
 		m.Name(), "start",
-		"--store-addr", m.config.StoreAddr,
-		"--server-addr", m.config.ServerAddr,
-		"--http-addr", generateMetaSrvAddr(m.config.HTTPAddr, nodeID),
-		"--bind-addr", generateMetaSrvAddr(bindAddr, nodeID),
+		fmt.Sprintf("--store-addr=%s", m.config.StoreAddr),
+		fmt.Sprintf("--server-addr=%s", m.config.ServerAddr),
+		fmt.Sprintf("--http-addr=%s", generateMetaSrvAddr(m.config.HTTPAddr, nodeID)),
+		fmt.Sprintf("--bind-addr=%s", generateMetaSrvAddr(bindAddr, nodeID)),
 	}
+
+	if len(m.config.Config) > 0 {
+		args = append(args, fmt.Sprintf("-c %s", m.config.Config))
+	}
+
 	return args
 }
 

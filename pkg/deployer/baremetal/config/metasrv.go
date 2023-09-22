@@ -22,5 +22,7 @@ type MetaSrv struct {
 	BindAddr   string `yaml:"bindAddr" validate:"omitempty,hostname_port"`
 	HTTPAddr   string `yaml:"httpAddr" validate:"required,hostname_port"`
 
+	Config string `yaml:"config" validate:"omitempty,filepath"`
+
 	LogLevel string `yaml:"logLevel"`
 }

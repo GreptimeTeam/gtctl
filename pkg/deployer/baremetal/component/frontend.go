@@ -87,11 +87,17 @@ func (f *frontend) BuildArgs(ctx context.Context, params ...interface{}) []strin
 	if logLevel == "" {
 		logLevel = config.DefaultLogLevel
 	}
+
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
 		f.Name(), "start",
 		fmt.Sprintf("--metasrv-addr=%s", f.metaSrvAddr),
 	}
+
+	if len(f.config.Config) > 0 {
+		args = append(args, fmt.Sprintf("-c %s", f.config.Config))
+	}
+
 	return args
 }
 

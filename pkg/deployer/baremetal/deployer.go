@@ -96,14 +96,14 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 	d.initClusterDirsAndPath(clusterName)
 
 	if !d.createNoDirs {
-		if err := d.createClusterDirs(); err != nil {
+		if err = d.createClusterDirs(); err != nil {
 			return nil, err
 		}
 
 		d.bm = component.NewBareMetalCluster(d.config.Cluster, d.workingDirs, &d.wg, d.logger)
 
 		// Save a copy of cluster config in yaml format.
-		if err := d.createClusterConfigFile(); err != nil {
+		if err = d.createClusterConfigFile(); err != nil {
 			return nil, err
 		}
 	}
@@ -188,10 +188,40 @@ func (d *Deployer) createClusterConfigFile() error {
 	return nil
 }
 
-func WithConfig(config *config.Config) Option {
-	// TODO(zyy17): Should merge the default configuration.
+// WithMergeConfig merges config with current deployer config.
+// It will perform WithReplaceConfig if any error occurs during merging or receive nil raw config.
+func WithMergeConfig(cfg *config.Config, rawConfig []byte) Option {
+	if len(rawConfig) == 0 {
+		return WithReplaceConfig(cfg)
+	}
+
 	return func(d *Deployer) {
-		d.config = config
+		defaultConfig, err := yaml.Marshal(d.config)
+		if err != nil {
+			d.config = cfg
+			return
+		}
+
+		out, err := fileutils.MergeYAML(defaultConfig, rawConfig)
+		if err != nil {
+			d.config = cfg
+			return
+		}
+
+		var newConfig config.Config
+		if err = yaml.Unmarshal(out, &newConfig); err != nil {
+			d.config = cfg
+			return
+		}
+
+		d.config = &newConfig
+	}
+}
+
+// WithReplaceConfig replaces config with current deployer config.
+func WithReplaceConfig(cfg *config.Config) Option {
+	return func(d *Deployer) {
+		d.config = cfg
 	}
 }
 

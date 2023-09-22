@@ -22,5 +22,7 @@ type Frontend struct {
 	PostgresAddr string `yaml:"postgresAddr" validate:"omitempty,hostname_port"`
 	MetaAddr     string `yaml:"metaAddr" validate:"omitempty,hostname_port"`
 
+	Config string `yaml:"config" validate:"omitempty,filepath"`
+
 	LogLevel string `yaml:"logLevel"`
 }

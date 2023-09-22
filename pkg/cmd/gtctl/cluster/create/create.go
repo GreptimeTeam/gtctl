@@ -180,7 +180,7 @@ func NewCluster(args []string, options ClusterCliOptions, l logger.Logger) error
 	}
 
 	if options.BareMetal {
-		if err := waitChildProcess(ctx, clusterDeployer, false, deleteOpts); err != nil {
+		if err = waitChildProcess(ctx, clusterDeployer, false, deleteOpts); err != nil {
 			return err
 		}
 	}
@@ -205,17 +205,17 @@ func newDeployer(l logger.Logger, clusterName string, options *ClusterCliOptions
 	}
 
 	if options.Config != "" {
-		var config bmconfig.Config
-		data, err := os.ReadFile(options.Config)
+		var cfg bmconfig.Config
+		raw, err := os.ReadFile(options.Config)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := yaml.Unmarshal(data, &config); err != nil {
+		if err = yaml.Unmarshal(raw, &cfg); err != nil {
 			return nil, err
 		}
 
-		opts = append(opts, baremetal.WithConfig(&config))
+		opts = append(opts, baremetal.WithMergeConfig(&cfg, raw))
 	}
 
 	opts = append(opts, baremetal.WithAlawaysDownload(options.AlwaysDownload))
@@ -358,6 +358,7 @@ func waitChildProcess(ctx context.Context, deployer deployer.Interface, close bo
 			fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("To view dashboard by accessing: %s\n", logger.Bold("http://localhost:4000/dashboard/")))
 		} else {
 			fmt.Printf("\x1b[32m%s\x1b[0m", fmt.Sprintf("The cluster(pid=%d, version=%s) run in bare-metal has been deleted now...\n", os.Getpid(), v))
+			return nil
 		}
 
 		// Wait for all the child processes to exit.
