@@ -136,7 +136,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 	}
 
 	if len(d.config.Config) > 0 {
-		args = append(args, fmt.Sprintf("-c %s", d.config.Config))
+		args = append(args, fmt.Sprintf("-c=%s", d.config.Config))
 	}
 
 	return args
