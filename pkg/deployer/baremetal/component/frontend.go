@@ -95,7 +95,7 @@ func (f *frontend) BuildArgs(ctx context.Context, params ...interface{}) []strin
 	}
 
 	if len(f.config.Config) > 0 {
-		args = append(args, fmt.Sprintf("-c %s", f.config.Config))
+		args = append(args, fmt.Sprintf("-c=%s", f.config.Config))
 	}
 
 	return args

@@ -126,7 +126,7 @@ func (m *metaSrv) BuildArgs(ctx context.Context, params ...interface{}) []string
 	}
 
 	if len(m.config.Config) > 0 {
-		args = append(args, fmt.Sprintf("-c %s", m.config.Config))
+		args = append(args, fmt.Sprintf("-c=%s", m.config.Config))
 	}
 
 	return args
