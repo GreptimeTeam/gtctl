@@ -47,8 +47,8 @@ const (
 )
 
 var (
-	// KubernetesVersion is the target version of the kubernetes.
-	KubernetesVersion string
+	// KubeVersion is the target version of the kubernetes.
+	KubeVersion string
 )
 
 // Manager is the Helm charts manager. The implementation is based on Helm SDK.
@@ -324,7 +324,7 @@ func (r *Manager) isInChartsCache(packageName string) bool {
 }
 
 func (r *Manager) newHelmClient(releaseName, namespace string) (*action.Install, error) {
-	kubeVersion, err := chartutil.ParseKubeVersion(KubernetesVersion)
+	kubeVersion, err := chartutil.ParseKubeVersion(KubeVersion)
 	if err != nil {
 		return nil, fmt.Errorf("invalid kube version '%s': %s", kubeVersion, err)
 	}
