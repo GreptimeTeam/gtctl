@@ -47,7 +47,7 @@ const (
 )
 
 var (
-	// KubeVersion is the default target version of the kubernetes.
+	// KubeVersion is the target version of the kubernetes.
 	KubeVersion string = "v1.20.0"
 )
 
