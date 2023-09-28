@@ -48,7 +48,7 @@ const (
 
 var (
 	// KubeVersion is the target version of the kubernetes.
-	KubeVersion string
+	KubeVersion string = "v1.20.0"
 )
 
 // Manager is the Helm charts manager. The implementation is based on Helm SDK.
