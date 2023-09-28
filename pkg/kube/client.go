@@ -42,6 +42,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 
 	greptimev1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	"github.com/GreptimeTeam/gtctl/pkg/helm"
 )
 
 type Client struct {
@@ -102,6 +103,12 @@ func NewClient(kubeconfig string) (*Client, error) {
 			panic(err)
 		}
 	})
+
+	kubeVersion, err := kubeClient.ServerVersion()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kubernetes server version: %v\n", err)
+	}
+	helm.KubernetesVersion = kubeVersion.String()
 
 	return &Client{
 		kubeClient:        kubeClient,

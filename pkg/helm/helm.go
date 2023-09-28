@@ -31,6 +31,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/registry"
 	. "helm.sh/helm/v3/pkg/repo"
@@ -43,6 +44,11 @@ import (
 
 const (
 	helmFieldTag = "helm"
+)
+
+var (
+	// KubernetesVersion is the target version of the kubernetes.
+	KubernetesVersion string
 )
 
 // Manager is the Helm charts manager. The implementation is based on Helm SDK.
@@ -318,6 +324,11 @@ func (r *Manager) isInChartsCache(packageName string) bool {
 }
 
 func (r *Manager) newHelmClient(releaseName, namespace string) (*action.Install, error) {
+	kubeVersion, err := chartutil.ParseKubeVersion(KubernetesVersion)
+	if err != nil {
+		return nil, fmt.Errorf("invalid kube version '%s': %s", kubeVersion, err)
+	}
+
 	helmClient := action.NewInstall(new(action.Configuration))
 	helmClient.DryRun = true
 	helmClient.ReleaseName = releaseName
@@ -325,6 +336,7 @@ func (r *Manager) newHelmClient(releaseName, namespace string) (*action.Install,
 	helmClient.ClientOnly = true
 	helmClient.IncludeCRDs = true
 	helmClient.Namespace = namespace
+	helmClient.KubeVersion = kubeVersion
 
 	return helmClient, nil
 }
