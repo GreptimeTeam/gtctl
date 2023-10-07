@@ -45,9 +45,18 @@ const (
 	// EtcdGithubRepo is the GitHub repository of etcd.
 	EtcdGithubRepo = "etcd"
 
-	// GreptimeArtifactName is the artifact name of greptime.
-	GreptimeArtifactName = "greptime"
+	// GreptimeBinName is the artifact name of greptime.
+	GreptimeBinName = "greptime"
 
-	// EtcdArtifactName is the artifact name of etcd.
-	EtcdArtifactName = "etcd"
+	// EtcdBinName is the artifact name of etcd.
+	EtcdBinName = "etcd"
+
+	// GreptimeDBChartName is the chart name of GreptimeDB.
+	GreptimeDBChartName = "greptimedb"
+
+	// GreptimeDBOperatorChartName is the chart name of GreptimeDB operator.
+	GreptimeDBOperatorChartName = "greptimedb-operator"
+
+	// EtcdChartName is the chart name of etcd.
+	EtcdChartName = "etcd"
 )

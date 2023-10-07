@@ -122,7 +122,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 			src.URL = fmt.Sprintf("%s/%s/%s/%s", GreptimeCNCharts, src.Name, version, src.FileName)
 		} else {
 			// Specify the OCI registry URL for the etcd chart.
-			if src.Name == EtcdArtifactName {
+			if src.Name == EtcdChartName {
 				// The download URL example: 'oci://registry-1.docker.io/bitnamicharts/etcd:9.2.0'.
 				src.URL = EtcdOCIRegistry
 				return src, nil
@@ -149,7 +149,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 	}
 
 	if src.Type == ArtifactTypeBinary {
-		if src.Name == EtcdArtifactName {
+		if src.Name == EtcdBinName {
 			downloadURL, err := m.etcdBinaryDownloadURL(src.Version)
 			if err != nil {
 				return nil, err
@@ -158,7 +158,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 			src.FileName = path.Base(src.URL)
 		}
 
-		if src.Name == GreptimeArtifactName {
+		if src.Name == GreptimeBinName {
 			specificVersion := src.Version
 			if specificVersion == LatestVersionTag && !src.FromCNRegion {
 				// Get the latest version of the latest greptime binary.
@@ -398,15 +398,15 @@ func (m *manager) greptimeBinaryDownloadURL(version string) (string, error) {
 		return "", err
 	}
 
-	// If version >= BreakingChangeVersion, use the new download URL.
+	var packageName string
 	if newVersion {
-		return fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/greptime-%s-%s-%s.tar.gz",
-			GreptimeGitHubOrg, GreptimeDBGithubRepo, version, runtime.GOOS, runtime.GOARCH, version), nil
+		packageName = fmt.Sprintf("greptime-%s-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH, version)
+	} else {
+		packageName = fmt.Sprintf("greptime-%s-%s.tgz", runtime.GOOS, runtime.GOARCH)
 	}
 
-	// If version < BreakingChangeVersion, use the old download URL.
-	return fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/greptime-%s-%s.tgz",
-		GreptimeGitHubOrg, GreptimeDBGithubRepo, version, runtime.GOOS, runtime.GOARCH), nil
+	return fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s",
+		GreptimeGitHubOrg, GreptimeDBGithubRepo, version, packageName), nil
 }
 
 // installBinaries installs the binaries to the installDir.
