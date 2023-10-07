@@ -59,4 +59,10 @@ const (
 
 	// EtcdChartName is the chart name of etcd.
 	EtcdChartName = "etcd"
+
+	// DefaultEtcdChartVersion is the default etcd chart version.
+	DefaultEtcdChartVersion = "9.2.0"
+
+	// DefaultEtcdBinVersion is the default etcd binary version.
+	DefaultEtcdBinVersion = "v3.5.7"
 )

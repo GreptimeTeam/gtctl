@@ -23,6 +23,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/google/go-github/v53/github"
 	"helm.sh/helm/v3/pkg/action"
@@ -43,8 +44,8 @@ type Manager interface {
 	// NewSource creates an artifact source with name, version, type and fromCNRegion.
 	NewSource(name, version string, typ ArtifactType, fromCNRegion bool) (*Source, error)
 
-	// DownloadTo downloads the artifact from the source to the dest.
-	DownloadTo(ctx context.Context, from *Source, destDir string, opts *DownloadOptions) error
+	// DownloadTo downloads the artifact from the source to the dest and returns the path of the artifact.
+	DownloadTo(ctx context.Context, from *Source, destDir string, opts *DownloadOptions) (string, error)
 }
 
 // ArtifactType is the type of the artifact.
@@ -143,7 +144,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 				src.URL = chartVersion.URLs[0]
 			} else {
 				// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
-				src.URL = fmt.Sprintf("%s/%s/%s", GreptimeChartReleaseDownloadURL, src.Name, src.FileName)
+				src.URL = fmt.Sprintf("%s/%s/%s", GreptimeChartReleaseDownloadURL, strings.TrimSuffix(src.FileName, fileutils.TgzExtension), src.FileName)
 			}
 		}
 	}
@@ -181,7 +182,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 	return src, nil
 }
 
-func (m *manager) DownloadTo(ctx context.Context, from *Source, destDir string, opts *DownloadOptions) error {
+func (m *manager) DownloadTo(ctx context.Context, from *Source, destDir string, opts *DownloadOptions) (string, error) {
 	artifactFile := filepath.Join(destDir, from.FileName)
 	shouldDownload := true
 	if opts.UseCache {
@@ -195,7 +196,7 @@ func (m *manager) DownloadTo(ctx context.Context, from *Source, destDir string, 
 
 		// Other error happened, return it.
 		if err != nil && !os.IsNotExist(err) {
-			return err
+			return "", err
 		}
 	}
 
@@ -204,29 +205,31 @@ func (m *manager) DownloadTo(ctx context.Context, from *Source, destDir string, 
 
 		// Ensure the directories of the destDir exist.
 		if err := fileutils.EnsureDir(destDir); err != nil {
-			return err
+			return "", err
 		}
 
 		// Download the helm chart from OCI registry.
 		if registry.IsOCI(from.URL) && from.Type == ArtifactTypeChart {
 			if err := m.downloadFromOCI(from.URL, from.Version, destDir); err != nil {
-				return err
+				return "", err
 			}
-			return nil
+			return artifactFile, nil
 		}
 
 		if err := m.downloadFromHTTP(ctx, from.URL, artifactFile); err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	if from.Type == ArtifactTypeBinary {
-		if err := m.installBinaries(artifactFile, filepath.Join(filepath.Dir(destDir), "bin")); err != nil {
-			return err
+		installDir := filepath.Join(filepath.Dir(destDir), "bin")
+		if err := m.installBinaries(artifactFile, installDir); err != nil {
+			return "", err
 		}
+		return filepath.Join(filepath.Dir(destDir), "bin", from.Name), nil
 	}
 
-	return nil
+	return artifactFile, nil
 }
 
 func (m *manager) downloadFromHTTP(ctx context.Context, httpURL string, dest string) error {
@@ -415,7 +418,7 @@ func (m *manager) installBinaries(downloadFile, installDir string) error {
 		return err
 	}
 
-	tempDir, err := os.MkdirTemp("", "gtctl")
+	tempDir, err := os.MkdirTemp("/tmp", "gtctl-")
 	if err != nil {
 		return err
 	}
