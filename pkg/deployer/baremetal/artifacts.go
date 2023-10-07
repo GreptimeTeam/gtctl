@@ -71,7 +71,7 @@ func (t ArtifactType) String() string {
 
 func NewArtifactManager(workingDir string, l logger.Logger, alwaysDownload bool) (*ArtifactManager, error) {
 	dir := path.Join(workingDir, "artifacts")
-	if err := fileutils.CreateDirIfNotExists(dir); err != nil {
+	if err := fileutils.EnsureDir(dir); err != nil {
 		return nil, err
 	}
 
@@ -148,7 +148,7 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 		return err
 	}
 
-	if err := fileutils.CreateDirIfNotExists(binDir); err != nil {
+	if err := fileutils.EnsureDir(binDir); err != nil {
 		return err
 	}
 
@@ -169,7 +169,7 @@ func (am *ArtifactManager) installEtcd(artifactFile, pkgDir, binDir string) erro
 }
 
 func (am *ArtifactManager) installGreptime(artifactFile, binDir, version string) error {
-	if err := fileutils.CreateDirIfNotExists(binDir); err != nil {
+	if err := fileutils.EnsureDir(binDir); err != nil {
 		return err
 	}
 
@@ -206,7 +206,7 @@ func (am *ArtifactManager) download(ctx context.Context, typ ArtifactType, versi
 		return "", err
 	}
 
-	if err := fileutils.CreateDirIfNotExists(pkgDir); err != nil {
+	if err := fileutils.EnsureDir(pkgDir); err != nil {
 		return "", err
 	}
 

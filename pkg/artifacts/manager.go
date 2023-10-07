@@ -203,7 +203,7 @@ func (m *manager) DownloadTo(ctx context.Context, from *Source, destDir string, 
 		m.logger.V(3).Infof("Downloading artifact from '%s' to '%s'", from.URL, destDir)
 
 		// Ensure the directories of the destDir exist.
-		if err := m.ensureDirs(destDir); err != nil {
+		if err := fileutils.EnsureDir(destDir); err != nil {
 			return err
 		}
 
@@ -288,18 +288,6 @@ func (m *manager) downloadFromOCI(registryURL, version, dest string) error {
 	// Execute the pull action
 	if _, err := client.Run(registryURL); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// ensureDirs ensures the directories of the dest exist.
-// If the directories do not exist, it will create them. otherwise, it will do nothing.
-func (m *manager) ensureDirs(dirs string) error {
-	// Check if the directory exists
-	if _, err := os.Stat(dirs); os.IsNotExist(err) {
-		// Create the directory along with any necessary parents.
-		return os.MkdirAll(dirs, 0755)
 	}
 
 	return nil
@@ -423,7 +411,7 @@ func (m *manager) greptimeBinaryDownloadURL(version string) (string, error) {
 
 // installBinaries installs the binaries to the installDir.
 func (m *manager) installBinaries(downloadFile, installDir string) error {
-	if err := m.ensureDirs(installDir); err != nil {
+	if err := fileutils.EnsureDir(installDir); err != nil {
 		return err
 	}
 

@@ -83,7 +83,7 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		d.baseDir = path.Join(homeDir, config.GtctlDir)
 	}
 
-	if err := fileutils.CreateDirIfNotExists(d.baseDir); err != nil {
+	if err := fileutils.EnsureDir(d.baseDir); err != nil {
 		return nil, err
 	}
 
@@ -151,7 +151,7 @@ func (d *Deployer) createClusterDirs() error {
 	}
 
 	for _, dir := range dirs {
-		if err := fileutils.CreateDirIfNotExists(dir); err != nil {
+		if err := fileutils.EnsureDir(dir); err != nil {
 			return err
 		}
 	}

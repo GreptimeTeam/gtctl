@@ -82,7 +82,7 @@ func NewManager(l logger.Logger, opts ...Option) (*Manager, error) {
 		r.chartsCacheDir = filepath.Join(homeDir, DefaultChartsCache)
 	}
 
-	if err := fileutils.CreateDirIfNotExists(r.chartsCacheDir); err != nil {
+	if err := fileutils.EnsureDir(r.chartsCacheDir); err != nil {
 		return nil, err
 	}
 

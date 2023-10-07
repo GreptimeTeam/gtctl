@@ -26,10 +26,14 @@ import (
 	"path/filepath"
 )
 
-func CreateDirIfNotExists(dir string) (err error) {
-	if err := os.MkdirAll(dir, 0755); err != nil && !os.IsExist(err) {
-		return err
+// EnsureDir ensures the directory exists.
+func EnsureDir(dir string) error {
+	// Check if the directory exists
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		// Create the directory along with any necessary parents.
+		return os.MkdirAll(dir, 0755)
 	}
+
 	return nil
 }
 
