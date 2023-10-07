@@ -177,18 +177,24 @@ func untar(file, dst string) error {
 
 		switch header.Typeflag {
 		case tar.TypeReg:
-			outFile, err := os.Create(dst + "/" + header.Name)
-			if err != nil {
+			filePath := path.Join(dst, header.Name)
+			outFile, err := os.Create(filePath)
+			if err != nil && !os.IsExist(err) {
 				return err
 			}
 			if _, err := io.Copy(outFile, tarReader); err != nil {
 				return err
 			}
+
+			if err := os.Chmod(filePath, os.FileMode(header.Mode)); err != nil {
+				return err
+			}
+
 			if err := outFile.Close(); err != nil {
 				return err
 			}
 		case tar.TypeDir:
-			if err := os.Mkdir(dst+"/"+header.Name, 0755); err != nil {
+			if err := os.Mkdir(path.Join(dst, header.Name), 0755); err != nil && !os.IsExist(err) {
 				return err
 			}
 		default:
