@@ -22,6 +22,7 @@ import (
 
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 
+	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 	. "github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
@@ -126,7 +127,7 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 		options.ConfigValues += fmt.Sprintf("image.registry=%s,initializer.registry=%s,", AliCloudRegistry, AliCloudRegistry)
 	}
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBChartName, options.GreptimeDBChartVersion, options.UseGreptimeCNArtifacts, *options)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, artifacts.GreptimeDBChartName, options.GreptimeDBChartVersion, options.UseGreptimeCNArtifacts, *options)
 	if err != nil {
 		return err
 	}
@@ -185,7 +186,7 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 		options.ConfigValues += fmt.Sprintf("image.registry=%s,", AliCloudRegistry)
 	}
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.EtcdBitnamiOCIRegistry, helm.DefaultEtcdChartVersion, options.UseGreptimeCNArtifacts, *options)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, artifacts.EtcdChartName, artifacts.DefaultEtcdChartVersion, options.UseGreptimeCNArtifacts, *options)
 	if err != nil {
 		return fmt.Errorf("error while loading helm chart: %v", err)
 	}
@@ -221,7 +222,7 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 		options.ConfigValues += fmt.Sprintf("image.registry=%s,", AliCloudRegistry)
 	}
 
-	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, helm.GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion, options.UseGreptimeCNArtifacts, *options)
+	manifests, err := d.helmManager.LoadAndRenderChart(ctx, resourceName, resourceNamespace, artifacts.GreptimeDBOperatorChartName, options.GreptimeDBOperatorChartVersion, options.UseGreptimeCNArtifacts, *options)
 	if err != nil {
 		return err
 	}
