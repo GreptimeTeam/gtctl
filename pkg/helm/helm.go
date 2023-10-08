@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -31,6 +30,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
+	"github.com/GreptimeTeam/gtctl/pkg/metadata"
 )
 
 const (
@@ -39,7 +39,7 @@ const (
 
 var (
 	// KubeVersion is the target version of the kubernetes.
-	KubeVersion string = "v1.20.0"
+	KubeVersion = "v1.20.0"
 )
 
 // Manager is the Helm charts manager. The implementation is based on Helm SDK.
@@ -50,11 +50,11 @@ type Manager struct {
 	// logger is the logger for the Manager.
 	logger logger.Logger
 
-	// artifactsManager is the artifacts manager to manage charts.
+	// am is the artifacts manager to manage charts.
 	am artifacts.Manager
 
-	// metadataDir is the directory to store the metadata of the gtctl.
-	metadataDir string
+	// mm is the metadata manager to manage the metadata.
+	mm metadata.Manager
 }
 
 type Option func(*Manager)
@@ -68,12 +68,11 @@ func NewManager(l logger.Logger, opts ...Option) (*Manager, error) {
 	}
 	r.am = am
 
-	// TODO(zyy17): The metadataDir will be managed by the independent manager in the future.
-	homeDir, err := os.UserHomeDir()
+	mm, err := metadata.New("")
 	if err != nil {
 		return nil, err
 	}
-	r.metadataDir = filepath.Join(homeDir, ".gtctl")
+	r.mm = mm
 
 	for _, opt := range opts {
 		opt(r)
@@ -82,9 +81,14 @@ func NewManager(l logger.Logger, opts ...Option) (*Manager, error) {
 	return r, nil
 }
 
-func WithMetadataDir(dir string) Option {
+func WithHomeDir(dir string) Option {
 	return func(r *Manager) {
-		r.metadataDir = dir
+		metadataManager, err := metadata.New(dir)
+		if err != nil {
+			r.logger.Errorf("failed to create metadata manager: %v", err)
+			os.Exit(1)
+		}
+		r.mm = metadataManager
 	}
 }
 
@@ -105,7 +109,11 @@ func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chart
 		return nil, err
 	}
 
-	destDir := filepath.Join(r.metadataDir, "artifacts", "charts", chartName, chartVersion)
+	destDir, err := r.mm.AllocateArtifactFilePath(src, false)
+	if err != nil {
+		return nil, err
+	}
+
 	chartFile, err := r.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true})
 	if err != nil {
 		return nil, err

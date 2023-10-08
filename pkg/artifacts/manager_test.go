@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"sigs.k8s.io/kind/pkg/log"
@@ -146,7 +147,7 @@ func TestDownloadBinaries(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to create source: %v", err)
 		}
-		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false, BinaryInstallDir: filepath.Join(filepath.Dir(destDir(tempDir, src)), "bin")})
 		if err != nil {
 			t.Errorf("failed to download: %v", err)
 		}

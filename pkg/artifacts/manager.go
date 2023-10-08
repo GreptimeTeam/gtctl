@@ -84,6 +84,9 @@ type Source struct {
 type DownloadOptions struct {
 	// If UseCache is true, the manager will use the cache if the artifact already exists.
 	UseCache bool
+
+	// If the artifact is a binary, the manager will install the binary to the BinaryInstallDir after downloading its package.
+	BinaryInstallDir string
 }
 
 // manager is the implementation of Manager interface.
@@ -222,8 +225,10 @@ func (m *manager) DownloadTo(ctx context.Context, from *Source, destDir string, 
 	}
 
 	if from.Type == ArtifactTypeBinary {
-		installDir := filepath.Join(filepath.Dir(destDir), "bin")
-		if err := m.installBinaries(artifactFile, installDir); err != nil {
+		if opts.BinaryInstallDir == "" {
+			return "", fmt.Errorf("binary install dir is empty")
+		}
+		if err := m.installBinaries(artifactFile, opts.BinaryInstallDir); err != nil {
 			return "", err
 		}
 		return filepath.Join(filepath.Dir(destDir), "bin", from.Name), nil
