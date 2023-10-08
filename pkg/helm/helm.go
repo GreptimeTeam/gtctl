@@ -114,7 +114,7 @@ func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chart
 		return nil, err
 	}
 
-	chartFile, err := r.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true})
+	chartFile, err := r.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{EnableCache: true})
 	if err != nil {
 		return nil, err
 	}

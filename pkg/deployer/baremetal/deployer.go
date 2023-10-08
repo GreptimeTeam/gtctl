@@ -53,7 +53,7 @@ type Deployer struct {
 	am artifacts.Manager
 	mm metadata.Manager
 
-	alwaysDownload bool
+	enableCache bool
 }
 
 var _ Interface = &Deployer{}
@@ -241,9 +241,9 @@ func WithGreptimeVersion(version string) Option {
 	}
 }
 
-func WithAlawaysDownload(alwaysDownload bool) Option {
+func WithEnableCache(enableCache bool) Option {
 	return func(d *Deployer) {
-		d.alwaysDownload = alwaysDownload
+		d.enableCache = enableCache
 	}
 }
 
@@ -315,7 +315,7 @@ func (d *Deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName stri
 				return err
 			}
 
-			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true, BinaryInstallDir: installDir})
+			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{EnableCache: d.enableCache, BinaryInstallDir: installDir})
 			if err != nil {
 				return err
 			}
@@ -394,7 +394,7 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 				return err
 			}
 
-			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true, BinaryInstallDir: installDir})
+			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{EnableCache: d.enableCache, BinaryInstallDir: installDir})
 			if err != nil {
 				return err
 			}

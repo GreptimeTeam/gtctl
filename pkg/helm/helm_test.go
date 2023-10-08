@@ -34,7 +34,7 @@ const (
 )
 
 func TestLoadAndRenderChart(t *testing.T) {
-	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()), WithMetadataDir(testMetadataDir))
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()), WithHomeDir(testMetadataDir))
 	if err != nil {
 		t.Errorf("failed to create render: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestLoadAndRenderChart(t *testing.T) {
 }
 
 func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
-	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()), WithMetadataDir(testMetadataDir))
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()), WithHomeDir(testMetadataDir))
 	if err != nil {
 		t.Errorf("failed to create render: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestRender_GenerateGreptimeDBHelmValues(t *testing.T) {
 }
 
 func TestRender_GenerateGreptimeDBOperatorHelmValues(t *testing.T) {
-	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()), WithMetadataDir(testMetadataDir))
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()), WithHomeDir(testMetadataDir))
 	if err != nil {
 		t.Errorf("failed to create render: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestRender_GenerateGreptimeDBOperatorHelmValues(t *testing.T) {
 }
 
 func TestRender_GenerateEtcdHelmValues(t *testing.T) {
-	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()), WithMetadataDir(testMetadataDir))
+	r, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()), WithHomeDir(testMetadataDir))
 	if err != nil {
 		t.Errorf("failed to create render: %v", err)
 	}
