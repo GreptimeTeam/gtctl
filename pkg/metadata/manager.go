@@ -31,6 +31,10 @@ type Manager interface {
 	// SetHomeDir sets the home directory of the metadata manager.
 	SetHomeDir(dir string) error
 
+	// GetWorkingDir returns the working directory of the metadata manager.
+	// It should be ${HomeDir}/${BaseDir}.
+	GetWorkingDir() string
+
 	// Clean cleans up all the metadata. It will remove the working directory.
 	Clean() error
 }
@@ -83,6 +87,10 @@ func (m *manager) AllocateArtifactFilePath(src *artifacts.Source, installBinary 
 func (m *manager) SetHomeDir(dir string) error {
 	m.workingDir = filepath.Join(dir, BaseDir)
 	return nil
+}
+
+func (m *manager) GetWorkingDir() string {
+	return m.workingDir
 }
 
 func (m *manager) Clean() error {
