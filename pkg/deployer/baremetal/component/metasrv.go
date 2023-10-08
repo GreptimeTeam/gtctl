@@ -64,13 +64,13 @@ func (m *metaSrv) Start(ctx context.Context, binary string) error {
 		dirName := fmt.Sprintf("%s.%d", m.Name(), i)
 
 		metaSrvLogDir := path.Join(m.workingDirs.LogsDir, dirName)
-		if err := fileutils.CreateDirIfNotExists(metaSrvLogDir); err != nil {
+		if err := fileutils.EnsureDir(metaSrvLogDir); err != nil {
 			return err
 		}
 		m.logsDirs = append(m.logsDirs, metaSrvLogDir)
 
 		metaSrvPidDir := path.Join(m.workingDirs.PidsDir, dirName)
-		if err := fileutils.CreateDirIfNotExists(metaSrvPidDir); err != nil {
+		if err := fileutils.EnsureDir(metaSrvPidDir); err != nil {
 			return err
 		}
 		m.pidsDirs = append(m.pidsDirs, metaSrvPidDir)

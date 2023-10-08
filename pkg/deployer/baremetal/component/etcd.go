@@ -51,7 +51,7 @@ func (e *etcd) Start(ctx context.Context, binary string) error {
 		etcdDirs    = []string{etcdDataDir, etcdLogDir, etcdPidDir}
 	)
 	for _, dir := range etcdDirs {
-		if err := fileutils.CreateDirIfNotExists(dir); err != nil {
+		if err := fileutils.EnsureDir(dir); err != nil {
 			return err
 		}
 	}

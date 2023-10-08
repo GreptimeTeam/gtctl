@@ -21,6 +21,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -28,6 +29,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 	. "github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
@@ -38,7 +40,7 @@ import (
 type Deployer struct {
 	logger logger.Logger
 	config *config.Config
-	am     *ArtifactManager
+	am     artifacts.Manager
 	wg     sync.WaitGroup
 	bm     *component.BareMetalCluster
 	ctx    context.Context
@@ -83,11 +85,11 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		d.baseDir = path.Join(homeDir, config.GtctlDir)
 	}
 
-	if err := fileutils.CreateDirIfNotExists(d.baseDir); err != nil {
+	if err := fileutils.EnsureDir(d.baseDir); err != nil {
 		return nil, err
 	}
 
-	am, err := NewArtifactManager(d.baseDir, l, d.alwaysDownload)
+	am, err := artifacts.NewManager(l)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +153,7 @@ func (d *Deployer) createClusterDirs() error {
 	}
 
 	for _, dir := range dirs {
-		if err := fileutils.CreateDirIfNotExists(dir); err != nil {
+		if err := fileutils.EnsureDir(dir); err != nil {
 			return err
 		}
 	}
@@ -285,24 +287,34 @@ func (d *Deployer) ListGreptimeDBClusters(ctx context.Context, options *ListGrep
 }
 
 func (d *Deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName string, options *CreateGreptimeDBClusterOptions) error {
-	if err := d.am.PrepareArtifact(ctx, GreptimeArtifactType, d.config.Cluster.Artifact); err != nil {
+	var binPath string
+	if d.config.Cluster.Artifact != nil {
+		if d.config.Cluster.Artifact.Local != "" {
+			binPath = d.config.Cluster.Artifact.Local
+		} else {
+			src, err := d.am.NewSource(artifacts.GreptimeBinName, d.config.Cluster.Artifact.Version, artifacts.ArtifactTypeBinary, false)
+			if err != nil {
+				return err
+			}
+
+			destDir := filepath.Join(d.baseDir, "artifacts", "binaries", artifacts.GreptimeBinName, d.config.Cluster.Artifact.Version, "pkg")
+			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true})
+			if err != nil {
+				return err
+			}
+			binPath = artifactFile
+		}
+	}
+
+	if err := d.bm.MetaSrv.Start(d.ctx, binPath); err != nil {
 		return err
 	}
 
-	binary, err := d.am.BinaryPath(GreptimeArtifactType, d.config.Cluster.Artifact)
-	if err != nil {
+	if err := d.bm.Datanode.Start(d.ctx, binPath); err != nil {
 		return err
 	}
 
-	if err := d.bm.MetaSrv.Start(d.ctx, binary); err != nil {
-		return err
-	}
-
-	if err := d.bm.Datanode.Start(d.ctx, binary); err != nil {
-		return err
-	}
-
-	if err := d.bm.Frontend.Start(d.ctx, binary); err != nil {
+	if err := d.bm.Frontend.Start(d.ctx, binPath); err != nil {
 		return err
 	}
 
@@ -345,20 +357,30 @@ func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context, option
 }
 
 func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, options *CreateEtcdClusterOptions) error {
-	if err := d.am.PrepareArtifact(ctx, EtcdArtifactType, d.config.Etcd.Artifact); err != nil {
+	var binPath string
+	if d.config.Etcd.Artifact != nil {
+		if d.config.Etcd.Artifact.Local != "" {
+			binPath = d.config.Etcd.Artifact.Local
+		} else {
+			src, err := d.am.NewSource(artifacts.EtcdBinName, d.config.Etcd.Artifact.Version, artifacts.ArtifactTypeBinary, false)
+			if err != nil {
+				return err
+			}
+
+			destDir := filepath.Join(d.baseDir, "artifacts", "binaries", artifacts.EtcdBinName, d.config.Etcd.Artifact.Version, "pkg")
+			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true})
+			if err != nil {
+				return err
+			}
+			binPath = artifactFile
+		}
+	}
+
+	if err := d.bm.Etcd.Start(d.ctx, binPath); err != nil {
 		return err
 	}
 
-	bin, err := d.am.BinaryPath(EtcdArtifactType, d.config.Etcd.Artifact)
-	if err != nil {
-		return err
-	}
-
-	if err = d.bm.Etcd.Start(d.ctx, bin); err != nil {
-		return err
-	}
-
-	if err := d.checkEtcdHealth(bin); err != nil {
+	if err := d.checkEtcdHealth(binPath); err != nil {
 		return err
 	}
 

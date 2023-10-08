@@ -61,25 +61,25 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 		dirName := fmt.Sprintf("%s.%d", d.Name(), i)
 
 		dataHomeDir := path.Join(d.workingDirs.DataDir, config.DataHomeDir)
-		if err := fileutils.CreateDirIfNotExists(dataHomeDir); err != nil {
+		if err := fileutils.EnsureDir(dataHomeDir); err != nil {
 			return err
 		}
 		d.dataHomeDirs = append(d.dataHomeDirs, dataHomeDir)
 
 		datanodeLogDir := path.Join(d.workingDirs.LogsDir, dirName)
-		if err := fileutils.CreateDirIfNotExists(datanodeLogDir); err != nil {
+		if err := fileutils.EnsureDir(datanodeLogDir); err != nil {
 			return err
 		}
 		d.logsDirs = append(d.logsDirs, datanodeLogDir)
 
 		datanodePidDir := path.Join(d.workingDirs.PidsDir, dirName)
-		if err := fileutils.CreateDirIfNotExists(datanodePidDir); err != nil {
+		if err := fileutils.EnsureDir(datanodePidDir); err != nil {
 			return err
 		}
 		d.pidsDirs = append(d.pidsDirs, datanodePidDir)
 
 		walDir := path.Join(d.workingDirs.DataDir, dirName, config.DataWalDir)
-		if err := fileutils.CreateDirIfNotExists(walDir); err != nil {
+		if err := fileutils.EnsureDir(walDir); err != nil {
 			return err
 		}
 		d.dataDirs = append(d.dataDirs, path.Join(d.workingDirs.DataDir, dirName))

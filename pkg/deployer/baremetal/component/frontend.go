@@ -56,13 +56,13 @@ func (f *frontend) Start(ctx context.Context, binary string) error {
 		dirName := fmt.Sprintf("%s.%d", f.Name(), i)
 
 		frontendLogDir := path.Join(f.workingDirs.LogsDir, dirName)
-		if err := fileutils.CreateDirIfNotExists(frontendLogDir); err != nil {
+		if err := fileutils.EnsureDir(frontendLogDir); err != nil {
 			return err
 		}
 		f.logsDirs = append(f.logsDirs, frontendLogDir)
 
 		frontendPidDir := path.Join(f.workingDirs.PidsDir, dirName)
-		if err := fileutils.CreateDirIfNotExists(frontendPidDir); err != nil {
+		if err := fileutils.EnsureDir(frontendPidDir); err != nil {
 			return err
 		}
 		f.pidsDirs = append(f.pidsDirs, frontendPidDir)
