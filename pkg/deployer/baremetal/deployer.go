@@ -21,7 +21,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
-	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -34,13 +33,13 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
+	"github.com/GreptimeTeam/gtctl/pkg/metadata"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 type Deployer struct {
 	logger logger.Logger
 	config *config.Config
-	am     artifacts.Manager
 	wg     sync.WaitGroup
 	bm     *component.BareMetalCluster
 	ctx    context.Context
@@ -50,6 +49,9 @@ type Deployer struct {
 	clusterDir        string
 	baseDir           string
 	clusterConfigPath string
+
+	am artifacts.Manager
+	mm metadata.Manager
 
 	alwaysDownload bool
 }
@@ -66,6 +68,12 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		config: config.DefaultConfig(),
 		ctx:    ctx,
 	}
+
+	mm, err := metadata.New("")
+	if err != nil {
+		return nil, err
+	}
+	d.mm = mm
 
 	for _, opt := range opts {
 		if opt != nil {
@@ -297,8 +305,17 @@ func (d *Deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName stri
 				return err
 			}
 
-			destDir := filepath.Join(d.baseDir, "artifacts", "binaries", artifacts.GreptimeBinName, d.config.Cluster.Artifact.Version, "pkg")
-			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true})
+			destDir, err := d.mm.AllocateArtifactFilePath(src, false)
+			if err != nil {
+				return err
+			}
+
+			installDir, err := d.mm.AllocateArtifactFilePath(src, true)
+			if err != nil {
+				return err
+			}
+
+			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true, BinaryInstallDir: installDir})
 			if err != nil {
 				return err
 			}
@@ -367,8 +384,17 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 				return err
 			}
 
-			destDir := filepath.Join(d.baseDir, "artifacts", "binaries", artifacts.EtcdBinName, d.config.Etcd.Artifact.Version, "pkg")
-			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true})
+			destDir, err := d.mm.AllocateArtifactFilePath(src, false)
+			if err != nil {
+				return err
+			}
+
+			installDir, err := d.mm.AllocateArtifactFilePath(src, true)
+			if err != nil {
+				return err
+			}
+
+			artifactFile, err := d.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{UseCache: true, BinaryInstallDir: installDir})
 			if err != nil {
 				return err
 			}

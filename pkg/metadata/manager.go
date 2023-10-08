@@ -68,6 +68,7 @@ func (m *manager) AllocateArtifactFilePath(src *artifacts.Source, installBinary 
 		filePath = filepath.Join(m.workingDir, "artifacts", "charts", src.Name, src.Version, "pkg")
 	case artifacts.ArtifactTypeBinary:
 		if installBinary {
+			// TODO(zyy17): It seems that we need to call AllocateArtifactFilePath() twice to get the correct path. Can we make it easier?
 			filePath = filepath.Join(m.workingDir, "artifacts", "binaries", src.Name, src.Version, "bin")
 		} else {
 			filePath = filepath.Join(m.workingDir, "artifacts", "binaries", src.Name, src.Version, "pkg")
