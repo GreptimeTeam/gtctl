@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cluster
+package main
 
 import (
 	"errors"
 
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/connect"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/create"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/delete"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/get"
@@ -35,20 +34,21 @@ func NewClusterCommand(l logger.Logger) *cobra.Command {
 		Short: "Manage GreptimeDB cluster",
 		Long:  `Manage GreptimeDB cluster in Kubernetes`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := cmd.Help()
-			if err != nil {
+			if err := cmd.Help(); err != nil {
 				return err
 			}
+
 			return errors.New("subcommand is required")
 		},
 	}
 
+	// TODO(sh2): will refactor them in the following PR.
 	cmd.AddCommand(create.NewCreateClusterCommand(l))
 	cmd.AddCommand(delete.NewDeleteClusterCommand(l))
 	cmd.AddCommand(scale.NewScaleClusterCommand(l))
 	cmd.AddCommand(get.NewGetClusterCommand(l))
 	cmd.AddCommand(list.NewListClustersCommand(l))
-	cmd.AddCommand(connect.NewConnectCommand(l))
+	cmd.AddCommand(NewConnectCommand(l))
 
 	return cmd
 }

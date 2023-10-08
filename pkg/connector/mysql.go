@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql
+package connector
 
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -30,34 +32,37 @@ import (
 )
 
 const (
-	ArgHost     = "-h"
-	ArgPort     = "-P"
-	MySQL       = "mysql"
-	DefaultAddr = "127.0.0.1"
-	DefaultNet  = "tcp"
-	PrePort     = ":"
-	Kubectl     = "kubectl"
-	PortForward = "port-forward"
+	mySQLDriver      = "mysql"
+	mySQLDefaultAddr = "127.0.0.1"
+	mySQLDefaultNet  = "tcp"
+
+	mySQLPortArg = "-P"
+	mySQLHostArg = "-h"
+
+	kubectl     = "kubectl"
+	portForward = "port-forward"
 )
 
-// ConnectCommand connects to a GreptimeDB cluster
-func ConnectCommand(rawCluster *greptimedbclusterv1alpha1.GreptimeDBCluster, l logger.Logger) error {
-	return connect(strconv.Itoa(int(rawCluster.Spec.MySQLServicePort)), rawCluster.Name, l)
+// MySQLConnectCommand connects to a GreptimeDB cluster
+func MySQLConnectCommand(rawCluster *greptimedbclusterv1alpha1.GreptimeDBCluster, l logger.Logger) error {
+	return mysqlConnect(strconv.Itoa(int(rawCluster.Spec.MySQLServicePort)), rawCluster.Name, l)
 }
 
-// connect connects to a GreptimeDB cluster
-func connect(port, clusterName string, l logger.Logger) error {
+// mysqlConnect connects to a GreptimeDB cluster
+func mysqlConnect(port, clusterName string, l logger.Logger) error {
 	waitGroup := sync.WaitGroup{}
-	cmd := exec.CommandContext(context.Background(), Kubectl, PortForward, "-n", "default", "svc/"+clusterName+"-frontend", port+PrePort+port)
-	err := cmd.Start()
-	if err != nil {
+
+	// TODO(sh2): is there any elegant way to enable port-forward?
+	cmd := exec.CommandContext(context.Background(), kubectl, portForward, "-n", "default", "svc/"+clusterName+"-frontend", fmt.Sprintf("%s:%s", port, port))
+	if err := cmd.Start(); err != nil {
 		l.Errorf("Error starting port-forwarding: %v", err)
 		return err
 	}
+
 	waitGroup.Add(1)
 	go func() {
 		defer waitGroup.Done()
-		if err = cmd.Wait(); err != nil {
+		if err := cmd.Wait(); err != nil {
 			// exit status 1
 			exitError, ok := err.(*exec.ExitError)
 			if !ok {
@@ -69,33 +74,33 @@ func connect(port, clusterName string, l logger.Logger) error {
 			}
 		}
 	}()
+
 	for {
 		cfg := mysql.Config{
-			Net:                  DefaultNet,
-			Addr:                 DefaultAddr + PrePort + port,
+			Net:                  mySQLDefaultNet,
+			Addr:                 net.JoinHostPort(mySQLDefaultAddr, port),
 			User:                 "",
 			Passwd:               "",
 			DBName:               "",
 			AllowNativePasswords: true,
 		}
 
-		db, err := sql.Open(MySQL, cfg.FormatDSN())
+		db, err := sql.Open(mySQLDriver, cfg.FormatDSN())
 		if err != nil {
 			continue
 		}
 
-		_, err = db.Conn(context.Background())
-		if err != nil {
+		if _, err = db.Conn(context.Background()); err != nil {
 			continue
 		}
 
-		err = db.Close()
-		if err != nil {
+		if err = db.Close(); err != nil {
 			if err == os.ErrProcessDone {
 				return nil
 			}
 			return err
 		}
+
 		break
 	}
 
@@ -103,28 +108,29 @@ func connect(port, clusterName string, l logger.Logger) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	err = cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		l.Errorf("Error starting mysql client: %v", err)
 		return err
 	}
-	if err = cmd.Wait(); err != nil {
+
+	if err := cmd.Wait(); err != nil {
 		l.Errorf("Error waiting for mysql client to finish: %v", err)
 		return err
 	}
+
 	// gracefully stop port-forwarding
-	err = cmd.Process.Kill()
-	if err != nil {
+	if err := cmd.Process.Kill(); err != nil {
 		if err == os.ErrProcessDone {
 			l.V(1).Info("Shutting down port-forwarding successfully")
 			return nil
 		}
 		return err
 	}
+
 	waitGroup.Wait()
 	return nil
 }
 
 func mysqlCommand(port string) *exec.Cmd {
-	return exec.Command(MySQL, ArgHost, DefaultAddr, ArgPort, port)
+	return exec.Command(mySQLDriver, mySQLHostArg, mySQLDefaultAddr, mySQLPortArg, port)
 }

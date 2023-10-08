@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package connect
+package main
 
 import (
 	"context"
@@ -23,24 +23,24 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/connect/mysql"
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/connect/pg"
+	"github.com/GreptimeTeam/gtctl/pkg/connector"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
-const (
-	connectionProtocolMySQL    = "mysql"
-	connectionProtocolPostgres = "pg"
-)
-
-type getClusterCliOptions struct {
+type clusterConnectCliOptions struct {
 	Namespace string
 	Protocol  string
 }
 
 func NewConnectCommand(l logger.Logger) *cobra.Command {
-	var options getClusterCliOptions
+	const (
+		connectionProtocolMySQL    = "mysql"
+		connectionProtocolPostgres = "pg"
+	)
+
+	var options clusterConnectCliOptions
+
 	cmd := &cobra.Command{
 		Use:   "connect",
 		Short: "Connect to a GreptimeDB cluster",
@@ -70,29 +70,30 @@ func NewConnectCommand(l logger.Logger) *cobra.Command {
 				l.Errorf("cluster %s in %s not found\n", clusterName, namespace)
 				return nil
 			}
+
 			rawCluster, ok := cluster.Raw.(*greptimedbclusterv1alpha1.GreptimeDBCluster)
 			if !ok {
 				return fmt.Errorf("invalid cluster type")
 			}
+
 			switch options.Protocol {
 			case connectionProtocolMySQL:
-				err := mysql.ConnectCommand(rawCluster, l)
-				if err != nil {
+				if err = connector.MySQLConnectCommand(rawCluster, l); err != nil {
 					return fmt.Errorf("error connecting to mysql: %v", err)
 				}
 			case connectionProtocolPostgres:
-				err := pg.ConnectCommand(rawCluster, l)
-				if err != nil {
+				if err = connector.PostgresSQLConnectCommand(rawCluster, l); err != nil {
 					return fmt.Errorf("error connecting to postgres: %v", err)
 				}
 			default:
-				return fmt.Errorf("database type not supported")
+				return fmt.Errorf("database type not supported: %s", options.Protocol)
 			}
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
-	cmd.Flags().StringVarP(&options.Protocol, "protocol", "p", "mysql", "Specify a database")
+	cmd.Flags().StringVarP(&options.Protocol, "protocol", "p", "mysql", "Specify a database, like mysql or pg.")
+
 	return cmd
 }
