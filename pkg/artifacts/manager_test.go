@@ -117,6 +117,52 @@ func TestDownloadChartsFromCNRegion(t *testing.T) {
 	}
 }
 
+func TestDownloadBinariesFromCNRegion(t *testing.T) {
+	tempDir, err := os.MkdirTemp("/tmp", "gtctl-ut-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	m, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()))
+	if err != nil {
+		t.Fatalf("failed to create artifacts manager: %v", err)
+	}
+
+	ctx := context.Background()
+
+	tests := []struct {
+		name         string
+		version      string
+		typ          ArtifactType
+		fromCNRegion bool
+	}{
+		{GreptimeBinName, "v0.4.0-nightly-20231002", ArtifactTypeBinary, true},
+		{EtcdBinName, DefaultEtcdBinVersion, ArtifactTypeBinary, true},
+	}
+	for _, tt := range tests {
+		src, err := m.NewSource(tt.name, tt.version, tt.typ, tt.fromCNRegion)
+		if err != nil {
+			t.Errorf("failed to create source: %v", err)
+		}
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		if err != nil {
+			t.Errorf("failed to download: %v", err)
+		}
+
+		info, err := os.Stat(artifactFile)
+		if os.IsNotExist(err) {
+			t.Errorf("artifact file does not exist: %v", err)
+		}
+		if info.Mode()&0111 == 0 {
+			t.Errorf("binary file is not executable")
+		}
+		if err != nil {
+			t.Errorf("failed to stat artifact file: %v", err)
+		}
+	}
+}
+
 func TestDownloadBinaries(t *testing.T) {
 	tempDir, err := os.MkdirTemp("/tmp", "gtctl-ut-")
 	if err != nil {
