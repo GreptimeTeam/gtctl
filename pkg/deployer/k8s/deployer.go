@@ -135,6 +135,7 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 		FromCNRegion:  options.UseGreptimeCNArtifacts,
 		ValuesOptions: *options,
 		EnableCache:   true,
+		ValuesFile:    options.ValuesFile,
 	}
 	manifests, err := d.helmLoader.LoadAndRenderChart(ctx, opts)
 	if err != nil {
@@ -203,6 +204,7 @@ func (d *deployer) CreateEtcdCluster(ctx context.Context, name string, options *
 		FromCNRegion:  options.UseGreptimeCNArtifacts,
 		ValuesOptions: *options,
 		EnableCache:   true,
+		ValuesFile:    options.ValuesFile,
 	}
 	manifests, err := d.helmLoader.LoadAndRenderChart(ctx, opts)
 	if err != nil {
@@ -248,6 +250,7 @@ func (d *deployer) CreateGreptimeDBOperator(ctx context.Context, name string, op
 		FromCNRegion:  options.UseGreptimeCNArtifacts,
 		ValuesOptions: *options,
 		EnableCache:   true,
+		ValuesFile:    options.ValuesFile,
 	}
 	manifests, err := d.helmLoader.LoadAndRenderChart(ctx, opts)
 	if err != nil {
