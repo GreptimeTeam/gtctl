@@ -221,11 +221,13 @@ func TestArtifactsCache(t *testing.T) {
 
 func destDir(workingDir string, src *Source) string {
 	var artifactsDir string
-	if src.Type == ArtifactTypeBinary {
+
+	switch src.Type {
+	case ArtifactTypeBinary:
 		artifactsDir = "binaries"
-	} else if src.Type == ArtifactTypeChart {
+	case ArtifactTypeChart:
 		artifactsDir = "charts"
-	} else {
+	default:
 		panic(fmt.Sprintf("unknown artifact type: %s", src.Type))
 	}
 
