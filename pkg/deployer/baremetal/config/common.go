@@ -16,6 +16,8 @@ package config
 
 import (
 	"time"
+
+	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 )
 
 const (
@@ -27,9 +29,6 @@ const (
 
 	DataHomeDir = "home"
 	DataWalDir  = "wal"
-
-	DefaultEtcdVersion     = "v3.5.7"
-	DefaultGreptimeVersion = "latest"
 
 	DefaultLogLevel = "info"
 )
@@ -74,7 +73,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Cluster: &Cluster{
 			Artifact: &Artifact{
-				Version: DefaultGreptimeVersion,
+				Version: artifacts.LatestVersionTag,
 			},
 			Frontend: &Frontend{
 				Replicas: 1,
@@ -93,7 +92,7 @@ func DefaultConfig() *Config {
 		},
 		Etcd: &Etcd{
 			Artifact: &Artifact{
-				Version: DefaultEtcdVersion,
+				Version: artifacts.DefaultEtcdBinVersion,
 			},
 		},
 	}
