@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"sigs.k8s.io/kind/pkg/log"
@@ -56,7 +57,7 @@ func TestDownloadCharts(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to create source: %v", err)
 		}
-		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false})
 		if err != nil {
 			t.Errorf("failed to download: %v", err)
 		}
@@ -102,7 +103,7 @@ func TestDownloadChartsFromCNRegion(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to create source: %v", err)
 		}
-		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false})
 		if err != nil {
 			t.Errorf("failed to download: %v", err)
 		}
@@ -110,6 +111,52 @@ func TestDownloadChartsFromCNRegion(t *testing.T) {
 		_, err = os.Stat(artifactFile)
 		if os.IsNotExist(err) {
 			t.Errorf("artifact file does not exist: %v", err)
+		}
+		if err != nil {
+			t.Errorf("failed to stat artifact file: %v", err)
+		}
+	}
+}
+
+func TestDownloadBinariesFromCNRegion(t *testing.T) {
+	tempDir, err := os.MkdirTemp("/tmp", "gtctl-ut-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	m, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()))
+	if err != nil {
+		t.Fatalf("failed to create artifacts manager: %v", err)
+	}
+
+	ctx := context.Background()
+
+	tests := []struct {
+		name         string
+		version      string
+		typ          ArtifactType
+		fromCNRegion bool
+	}{
+		{GreptimeBinName, "v0.4.0-nightly-20231002", ArtifactTypeBinary, true},
+		{EtcdBinName, DefaultEtcdBinVersion, ArtifactTypeBinary, true},
+	}
+	for _, tt := range tests {
+		src, err := m.NewSource(tt.name, tt.version, tt.typ, tt.fromCNRegion)
+		if err != nil {
+			t.Errorf("failed to create source: %v", err)
+		}
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		if err != nil {
+			t.Errorf("failed to download: %v", err)
+		}
+
+		info, err := os.Stat(artifactFile)
+		if os.IsNotExist(err) {
+			t.Errorf("artifact file does not exist: %v", err)
+		}
+		if info.Mode()&0111 == 0 {
+			t.Errorf("binary file is not executable")
 		}
 		if err != nil {
 			t.Errorf("failed to stat artifact file: %v", err)
@@ -146,7 +193,7 @@ func TestDownloadBinaries(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to create source: %v", err)
 		}
-		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false, BinaryInstallDir: filepath.Join(filepath.Dir(destDir(tempDir, src)), "bin")})
 		if err != nil {
 			t.Errorf("failed to download: %v", err)
 		}
@@ -182,7 +229,7 @@ func TestArtifactsCache(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create source: %v", err)
 	}
-	artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+	artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false})
 	if err != nil {
 		t.Errorf("failed to download: %v", err)
 	}
@@ -196,7 +243,7 @@ func TestArtifactsCache(t *testing.T) {
 	}
 
 	// Download again with cache.
-	artifactFile, err = m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: true})
+	artifactFile, err = m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: true})
 	if err != nil {
 		t.Errorf("failed to download: %v", err)
 	}

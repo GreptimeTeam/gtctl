@@ -57,7 +57,7 @@ type ClusterCliOptions struct {
 	BareMetal          bool
 	Config             string
 	GreptimeBinVersion string
-	AlwaysDownload     bool
+	EnableCache        bool
 	RetainLogs         bool
 
 	// Common options.
@@ -104,7 +104,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal environment.")
 	cmd.Flags().StringVar(&options.GreptimeBinVersion, "greptime-bin-version", "", "The version of greptime binary(can be override by config file).")
 	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal environment.")
-	cmd.Flags().BoolVar(&options.AlwaysDownload, "always-download", false, "If true, always download the binary.")
+	cmd.Flags().BoolVar(&options.EnableCache, "enable-cache", true, "If true, enable cache for downloading artifacts(charts and binaries).")
 	cmd.Flags().BoolVar(&options.RetainLogs, "retain-logs", true, "If true, always retain the logs of binary.")
 	cmd.Flags().BoolVar(&options.UseGreptimeCNArtifacts, "use-greptime-cn-artifacts", false, "If true, use greptime-cn artifacts(charts and binaries).")
 
@@ -218,7 +218,7 @@ func newDeployer(l logger.Logger, clusterName string, options *ClusterCliOptions
 		opts = append(opts, baremetal.WithMergeConfig(&cfg, raw))
 	}
 
-	opts = append(opts, baremetal.WithAlawaysDownload(options.AlwaysDownload))
+	opts = append(opts, baremetal.WithEnableCache(options.EnableCache))
 
 	baremetalDeployer, err := baremetal.NewDeployer(l, clusterName, opts...)
 	if err != nil {

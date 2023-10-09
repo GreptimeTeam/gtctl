@@ -51,15 +51,15 @@ func TestNewDeployer(t *testing.T) {
 		LogsDir: path.Join(homedir, clusterName, "logs"),
 		PidsDir: path.Join(homedir, clusterName, "pids"),
 	})
-	assert.False(t, d1.alwaysDownload)
+	assert.False(t, d1.enableCache)
 
 	// New Deployer with always download option
-	deployer, err = NewDeployer(L, clusterName, WithAlawaysDownload(true))
+	deployer, err = NewDeployer(L, clusterName, WithEnableCache(true))
 	assert.NoError(t, err)
 	d2, ok := deployer.(*Deployer)
 	assert.True(t, ok)
 	assert.NotNil(t, d2)
-	assert.True(t, d2.alwaysDownload)
+	assert.True(t, d2.enableCache)
 
 	// New Deployer with replace config option
 	newConfig := config.DefaultConfig()

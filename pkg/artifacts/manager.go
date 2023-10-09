@@ -82,8 +82,11 @@ type Source struct {
 
 // DownloadOptions is the options for downloading the artifact.
 type DownloadOptions struct {
-	// If UseCache is true, the manager will use the cache if the artifact already exists.
-	UseCache bool
+	// If EnableCache is true, the manager will use the cache if the artifact already exists.
+	EnableCache bool
+
+	// If the artifact is a binary, the manager will install the binary to the BinaryInstallDir after downloading its package.
+	BinaryInstallDir string
 }
 
 // manager is the implementation of Manager interface.
@@ -151,7 +154,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 
 	if src.Type == ArtifactTypeBinary {
 		if src.Name == EtcdBinName {
-			downloadURL, err := m.etcdBinaryDownloadURL(src.Version)
+			downloadURL, err := m.etcdBinaryDownloadURL(src.Version, src.FromCNRegion)
 			if err != nil {
 				return nil, err
 			}
@@ -170,7 +173,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 				specificVersion = latestVersion
 			}
 
-			downloadURL, err := m.greptimeBinaryDownloadURL(specificVersion)
+			downloadURL, err := m.greptimeBinaryDownloadURL(specificVersion, src.FromCNRegion)
 			if err != nil {
 				return nil, err
 			}
@@ -185,7 +188,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 func (m *manager) DownloadTo(ctx context.Context, from *Source, destDir string, opts *DownloadOptions) (string, error) {
 	artifactFile := filepath.Join(destDir, from.FileName)
 	shouldDownload := true
-	if opts.UseCache {
+	if opts.EnableCache {
 		_, err := os.Stat(artifactFile)
 
 		// If the file exists, skip downloading.
@@ -222,8 +225,10 @@ func (m *manager) DownloadTo(ctx context.Context, from *Source, destDir string, 
 	}
 
 	if from.Type == ArtifactTypeBinary {
-		installDir := filepath.Join(filepath.Dir(destDir), "bin")
-		if err := m.installBinaries(artifactFile, installDir); err != nil {
+		if opts.BinaryInstallDir == "" {
+			return "", fmt.Errorf("binary install dir is empty")
+		}
+		if err := m.installBinaries(artifactFile, opts.BinaryInstallDir); err != nil {
 			return "", err
 		}
 		return filepath.Join(filepath.Dir(destDir), "bin", from.Name), nil
@@ -376,7 +381,15 @@ func (m *manager) latestGitHubReleaseVersion(org, repo string) (string, error) {
 	return *release.TagName, nil
 }
 
-func (m *manager) etcdBinaryDownloadURL(version string) (string, error) {
+func (m *manager) etcdBinaryDownloadURL(version string, fromCNRegion bool) (string, error) {
+	if version != DefaultEtcdBinVersion && fromCNRegion {
+		return "", fmt.Errorf("only support %s in cn region", DefaultEtcdBinVersion)
+	}
+
+	if version == LatestVersionTag {
+		return "", fmt.Errorf("can't support latest version")
+	}
+
 	var ext string
 
 	switch runtime.GOOS {
@@ -388,14 +401,23 @@ func (m *manager) etcdBinaryDownloadURL(version string) (string, error) {
 		return "", fmt.Errorf("unsupported OS: %s", runtime.GOOS)
 	}
 
-	// For the function stability, we always use the specific version of etcd.
-	downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/etcd-%s-%s-%s%s",
-		EtcdGitHubOrg, EtcdGithubRepo, version, version, runtime.GOOS, runtime.GOARCH, ext)
+	var downloadURL string
+	if fromCNRegion {
+		downloadURL = EtcdCNBinaries
+	} else {
+		downloadURL = fmt.Sprintf("https://github.com/%s/%s/releases/download", EtcdGitHubOrg, EtcdGithubRepo)
+	}
 
-	return downloadURL, nil
+	// For the function stability, we always use the specific version of etcd.
+	return fmt.Sprintf("%s/%s/etcd-%s-%s-%s%s", downloadURL, version, version, runtime.GOOS, runtime.GOARCH, ext), nil
 }
 
-func (m *manager) greptimeBinaryDownloadURL(version string) (string, error) {
+func (m *manager) greptimeBinaryDownloadURL(version string, fromCNRegion bool) (string, error) {
+	// FIXME(zyy17): we should support the latest version in the future.
+	if version == LatestVersionTag && fromCNRegion {
+		return "", fmt.Errorf("can't support latest version in cn region")
+	}
+
 	newVersion, err := isBreakingVersion(version)
 	if err != nil {
 		return "", err
@@ -408,8 +430,14 @@ func (m *manager) greptimeBinaryDownloadURL(version string) (string, error) {
 		packageName = fmt.Sprintf("greptime-%s-%s.tgz", runtime.GOOS, runtime.GOARCH)
 	}
 
-	return fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s",
-		GreptimeGitHubOrg, GreptimeDBGithubRepo, version, packageName), nil
+	var downloadURL string
+	if fromCNRegion {
+		downloadURL = GreptimeDBCNBinaries
+	} else {
+		downloadURL = fmt.Sprintf("https://github.com/%s/%s/releases/download", GreptimeGitHubOrg, GreptimeDBGithubRepo)
+	}
+
+	return fmt.Sprintf("%s/%s/%s", downloadURL, version, packageName), nil
 }
 
 // installBinaries installs the binaries to the installDir.
