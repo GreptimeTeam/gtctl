@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"sigs.k8s.io/kind/pkg/log"
@@ -56,7 +57,7 @@ func TestDownloadCharts(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to create source: %v", err)
 		}
-		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false})
 		if err != nil {
 			t.Errorf("failed to download: %v", err)
 		}
@@ -102,7 +103,7 @@ func TestDownloadChartsFromCNRegion(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to create source: %v", err)
 		}
-		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false})
 		if err != nil {
 			t.Errorf("failed to download: %v", err)
 		}
@@ -192,7 +193,7 @@ func TestDownloadBinaries(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to create source: %v", err)
 		}
-		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false, BinaryInstallDir: filepath.Join(filepath.Dir(destDir(tempDir, src)), "bin")})
 		if err != nil {
 			t.Errorf("failed to download: %v", err)
 		}
@@ -228,7 +229,7 @@ func TestArtifactsCache(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create source: %v", err)
 	}
-	artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+	artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false})
 	if err != nil {
 		t.Errorf("failed to download: %v", err)
 	}
@@ -242,7 +243,7 @@ func TestArtifactsCache(t *testing.T) {
 	}
 
 	// Download again with cache.
-	artifactFile, err = m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: true})
+	artifactFile, err = m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: true})
 	if err != nil {
 		t.Errorf("failed to download: %v", err)
 	}
