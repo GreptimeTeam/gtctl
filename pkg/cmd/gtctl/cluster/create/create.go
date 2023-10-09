@@ -340,7 +340,7 @@ func printTips(l logger.Logger, clusterName string, options *ClusterCliOptions) 
 	if !options.BareMetal {
 		l.V(0).Infof("%s", fmt.Sprintf("%s kubectl port-forward svc/%s-frontend -n %s 4003:4003 > connections-pg.out &", logger.Bold("$"), clusterName, options.Namespace))
 	}
-	l.V(0).Infof("%s", fmt.Sprintf("%s psql -h 127.0.0.1 -p 4003", logger.Bold("$")))
+	l.V(0).Infof("%s", fmt.Sprintf("%s psql -h 127.0.0.1 -p 4003 -d public", logger.Bold("$")))
 	l.V(0).Infof("\nThank you for using %s! Check for more information on %s. 😊", logger.Bold("GreptimeDB"), logger.Bold("https://greptime.com"))
 	l.V(0).Infof("\n%s 🔑", logger.Bold("Invest in Data, Harvest over Time."))
 }
