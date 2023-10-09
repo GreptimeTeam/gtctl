@@ -27,6 +27,9 @@ const (
 	// GreptimeDBCNBinaries is the URL of the GreptimeDB binaries that stored in the S3 bucket of the CN region.
 	GreptimeDBCNBinaries = "https://downloads.greptime.cn/releases/greptimedb"
 
+	// EtcdCNBinaries is the URL of the etcd binaries that stored in the S3 bucket of the CN region.
+	EtcdCNBinaries = "https://downloads.greptime.cn/releases/etcd"
+
 	// LatestVersionTag is the tag of the latest version.
 	LatestVersionTag = "latest"
 
