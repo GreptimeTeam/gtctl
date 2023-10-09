@@ -146,7 +146,7 @@ func TestDownloadBinariesFromCNRegion(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to create source: %v", err)
 		}
-		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{UseCache: false})
+		artifactFile, err := m.DownloadTo(ctx, src, destDir(tempDir, src), &DownloadOptions{EnableCache: false})
 		if err != nil {
 			t.Errorf("failed to download: %v", err)
 		}
