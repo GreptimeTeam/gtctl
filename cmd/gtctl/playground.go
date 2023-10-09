@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package playground
+package main
 
 import (
 	"github.com/lucasepe/codename"
@@ -41,7 +41,7 @@ func NewPlaygroundCommand(l logger.Logger) *cobra.Command {
 				EnableCache: false,
 			}
 
-			if err := create.NewCluster([]string{playgroundName}, playgroundOptions, l); err != nil {
+			if err = create.NewCluster([]string{playgroundName}, playgroundOptions, l); err != nil {
 				return err
 			}
 			return nil
