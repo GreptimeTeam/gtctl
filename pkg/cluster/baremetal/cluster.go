@@ -96,9 +96,8 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (*Cluster, 
 
 	cluster.initClusterDirsAndPath(clusterName)
 
-	if !cluster.createNoDirs {
-		// TODO(sh2): later implementation
-	}
+	// TODO(sh2): implement it in the following PR
+	//if !cluster.createNoDirs {}
 
 	return cluster, nil
 }
