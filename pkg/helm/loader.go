@@ -19,22 +19,16 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/strvals"
 
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/metadata"
-)
-
-const (
-	helmFieldTag = "helm"
 )
 
 var (
@@ -42,12 +36,12 @@ var (
 	KubeVersion = "v1.20.0"
 )
 
-// Manager is the Helm charts manager. The implementation is based on Helm SDK.
-// The main purpose of Manager is:
+// Loader is the Helm charts loader. The implementation is based on Helm SDK.
+// The main purpose of Loader is:
 // 1. Load the chart from remote charts and save them in cache directory.
 // 2. Generate the manifests from the chart with the values.
-type Manager struct {
-	// logger is the logger for the Manager.
+type Loader struct {
+	// logger is the logger for the Loader.
 	logger logger.Logger
 
 	// am is the artifacts manager to manage charts.
@@ -57,10 +51,10 @@ type Manager struct {
 	mm metadata.Manager
 }
 
-type Option func(*Manager)
+type Option func(*Loader)
 
-func NewManager(l logger.Logger, opts ...Option) (*Manager, error) {
-	r := &Manager{logger: l}
+func NewLoader(l logger.Logger, opts ...Option) (*Loader, error) {
+	r := &Loader{logger: l}
 
 	am, err := artifacts.NewManager(l)
 	if err != nil {
@@ -82,29 +76,56 @@ func NewManager(l logger.Logger, opts ...Option) (*Manager, error) {
 }
 
 func WithHomeDir(dir string) Option {
-	return func(r *Manager) {
-		metadataManager, err := metadata.New(dir)
+	return func(r *Loader) {
+		mm, err := metadata.New(dir)
 		if err != nil {
 			r.logger.Errorf("failed to create metadata manager: %v", err)
 			os.Exit(1)
 		}
-		r.mm = metadataManager
+		r.mm = mm
 	}
 }
 
+// LoadOptions is the options for running LoadAndRenderChart.
+type LoadOptions struct {
+	// ReleaseName is the name of the release.
+	ReleaseName string
+
+	// Namespace is the namespace of the release.
+	Namespace string
+
+	// ChartName is the name of the chart.
+	ChartName string
+
+	// ChartVersion is the version of the chart.
+	ChartVersion string
+
+	// FromCNRegion indicates whether to use the artifacts from CN region.
+	FromCNRegion bool
+
+	// ValuesOptions is the options for generating the helm values.
+	ValuesOptions interface{}
+
+	// ValuesFile is the path to the values file.
+	ValuesFile string
+
+	// EnableCache indicates whether to enable the cache.
+	EnableCache bool
+}
+
 // LoadAndRenderChart loads the chart from the remote charts and render the manifests with the values.
-func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chartName, chartVersion string, useGreptimeCNArtifacts bool, options interface{}) ([]byte, error) {
-	values, err := r.generateHelmValues(options)
+func (r *Loader) LoadAndRenderChart(ctx context.Context, opts *LoadOptions) ([]byte, error) {
+	values, err := ToHelmValues(opts.ValuesOptions, opts.ValuesFile)
 	if err != nil {
 		return nil, err
 	}
-	r.logger.V(3).Infof("create '%s' with values: %v", name, values)
+	r.logger.V(3).Infof("create '%s' with values: %v", opts.ReleaseName, values)
 
-	if chartVersion == "" {
-		chartVersion = artifacts.LatestVersionTag
+	if opts.ChartVersion == "" {
+		opts.ChartVersion = artifacts.LatestVersionTag
 	}
 
-	src, err := r.am.NewSource(chartName, chartVersion, artifacts.ArtifactTypeChart, useGreptimeCNArtifacts)
+	src, err := r.am.NewSource(opts.ChartName, opts.ChartVersion, artifacts.ArtifactTypeChart, opts.FromCNRegion)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +135,7 @@ func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chart
 		return nil, err
 	}
 
-	chartFile, err := r.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{EnableCache: true})
+	chartFile, err := r.am.DownloadTo(ctx, src, destDir, &artifacts.DownloadOptions{EnableCache: opts.EnableCache})
 	if err != nil {
 		return nil, err
 	}
@@ -128,17 +149,16 @@ func (r *Manager) LoadAndRenderChart(ctx context.Context, name, namespace, chart
 		return nil, err
 	}
 
-	manifests, err := r.generateManifests(ctx, name, namespace, helmChart, values)
+	manifests, err := r.generateManifests(ctx, opts.ReleaseName, opts.Namespace, helmChart, values)
 	if err != nil {
 		return nil, err
 	}
-	r.logger.V(3).Infof("create '%s' with manifests: %s", name, string(manifests))
+	r.logger.V(3).Infof("create '%s' with manifests: %s", opts.ReleaseName, string(manifests))
 
 	return manifests, nil
 }
 
-func (r *Manager) generateManifests(ctx context.Context, releaseName, namespace string,
-	chart *chart.Chart, values map[string]interface{}) ([]byte, error) {
+func (r *Loader) generateManifests(ctx context.Context, releaseName, namespace string, chart *chart.Chart, values map[string]interface{}) ([]byte, error) {
 	client, err := r.newHelmClient(releaseName, namespace)
 	if err != nil {
 		return nil, err
@@ -158,39 +178,7 @@ func (r *Manager) generateManifests(ctx context.Context, releaseName, namespace 
 	return manifests.Bytes(), nil
 }
 
-func (r *Manager) generateHelmValues(input interface{}) (map[string]interface{}, error) {
-	var rawArgs []string
-	valueOf := reflect.ValueOf(input)
-
-	// Make sure we are handling with a struct here.
-	if valueOf.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("invalid input type, should be struct")
-	}
-
-	typeOf := reflect.TypeOf(input)
-	for i := 0; i < valueOf.NumField(); i++ {
-		helmValueKey := typeOf.Field(i).Tag.Get(helmFieldTag)
-		if len(helmValueKey) > 0 && valueOf.Field(i).Len() > 0 {
-			if helmValueKey == "*" {
-				rawArgs = append(rawArgs, valueOf.Field(i).String())
-			} else {
-				rawArgs = append(rawArgs, fmt.Sprintf("%s=%s", helmValueKey, valueOf.Field(i)))
-			}
-		}
-	}
-
-	if len(rawArgs) > 0 {
-		values := make(map[string]interface{})
-		if err := strvals.ParseInto(strings.Join(rawArgs, ","), values); err != nil {
-			return nil, err
-		}
-		return values, nil
-	}
-
-	return nil, nil
-}
-
-func (r *Manager) newHelmClient(releaseName, namespace string) (*action.Install, error) {
+func (r *Loader) newHelmClient(releaseName, namespace string) (*action.Install, error) {
 	kubeVersion, err := chartutil.ParseKubeVersion(KubeVersion)
 	if err != nil {
 		return nil, fmt.Errorf("invalid kube version '%s': %s", kubeVersion, err)

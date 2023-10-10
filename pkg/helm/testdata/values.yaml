@@ -1,0 +1,23 @@
+fullnameOverride: ""
+image:
+  imagePullPolicy: IfNotPresent
+  pullSecrets: []
+  registry: docker.io
+  repository: greptime/greptimedb-operator
+  tag: latest
+nameOverride: ""
+nodeSelector: {}
+rbac:
+  create: true
+replicas: 1
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 250m
+    memory: 64Mi
+serviceAccount:
+  annotations: {}
+  create: true
+  name: ""
