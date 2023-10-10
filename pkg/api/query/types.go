@@ -12,24 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package get
+package query
 
 import (
-	"path/filepath"
-	"testing"
+	"context"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/olekukonko/tablewriter"
 )
 
-func TestCollectPidsForBareMetal(t *testing.T) {
-	pidsPath := filepath.Join("test_data", "pids")
-	want := map[string]string{
-		"a": "123",
-		"b": "456",
-		"c": "789",
-	}
+// Getter defines the get operation for one cluster.
+type Getter interface {
+	// Get gets the current cluster profile.
+	Get(ctx context.Context, options *Options) error
+}
 
-	ret := collectPidsForBareMetal(pidsPath)
+// Lister defines the list operation for one cluster.
+type Lister interface {
+	// List lists the current cluster profiles.
+	List(ctx context.Context, options *Options) error
+}
 
-	assert.Equal(t, want, ret)
+type Options struct {
+	Namespace string
+	Name      string
+
+	// Table view render
+	Table *tablewriter.Table
 }

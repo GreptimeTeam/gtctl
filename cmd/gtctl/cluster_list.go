@@ -15,37 +15,41 @@
 package main
 
 import (
-	"errors"
+	"context"
+	"os"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/create"
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/delete"
+	"github.com/GreptimeTeam/gtctl/pkg/api/query"
+	"github.com/GreptimeTeam/gtctl/pkg/cluster/kubernetes"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
-func NewClusterCommand(l logger.Logger) *cobra.Command {
+func NewListClustersCommand(l logger.Logger) *cobra.Command {
+	table := tablewriter.NewWriter(os.Stdout)
+
 	cmd := &cobra.Command{
-		Args:  cobra.NoArgs,
-		Use:   "cluster",
-		Short: "Manage GreptimeDB cluster",
-		Long:  `Manage GreptimeDB cluster in Kubernetes`,
+		Use:   "list",
+		Short: "List all GreptimeDB clusters",
+		Long:  `List all GreptimeDB clusters`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cmd.Help(); err != nil {
+			var (
+				ctx    = context.Background()
+				err    error
+				lister query.Lister
+			)
+
+			lister, err = kubernetes.NewCluster(l)
+			if err != nil {
 				return err
 			}
 
-			return errors.New("subcommand is required")
+			return lister.List(ctx, &query.Options{
+				Table: table,
+			})
 		},
 	}
-
-	// TODO(sh2): will refactor them in the following PR.
-	cmd.AddCommand(create.NewCreateClusterCommand(l))
-	cmd.AddCommand(delete.NewDeleteClusterCommand(l))
-	cmd.AddCommand(NewScaleClusterCommand(l))
-	cmd.AddCommand(NewGetClusterCommand(l))
-	cmd.AddCommand(NewListClustersCommand(l))
-	cmd.AddCommand(NewConnectCommand(l))
 
 	return cmd
 }

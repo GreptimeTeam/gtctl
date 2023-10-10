@@ -33,6 +33,7 @@ type clusterConnectCliOptions struct {
 	Protocol  string
 }
 
+// TODO(sh2): should be abstracted into one api interface `connect`
 func NewConnectCommand(l logger.Logger) *cobra.Command {
 	const (
 		connectionProtocolMySQL    = "mysql"

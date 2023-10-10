@@ -17,12 +17,11 @@ package baremetal
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
-
-	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 )
 
 func TestValidateConfig(t *testing.T) {
@@ -62,8 +61,9 @@ func TestValidateConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var actual config.Config
-			if err := loadConfig(fmt.Sprintf("test_data/%s.yaml", tc.name), &actual); err != nil {
+			var actual Config
+			if err := loadConfig(filepath.Join("testdata", "validate",
+				fmt.Sprintf("%s.yaml", tc.name)), &actual); err != nil {
 				t.Errorf("error while loading %s file: %v", tc.name, err)
 			}
 
@@ -80,7 +80,7 @@ func TestValidateConfig(t *testing.T) {
 	}
 }
 
-func loadConfig(path string, ret *config.Config) error {
+func loadConfig(path string, ret *Config) error {
 	configs, err := os.ReadFile(path)
 	if err != nil {
 		return err
