@@ -45,8 +45,8 @@ func (s clusterScaleCliOptions) validate() error {
 		return fmt.Errorf("component type is invalid")
 	}
 
-	if s.Replicas < 1 {
-		return fmt.Errorf("replicas should be equal or greater than 1")
+	if s.Replicas < 0 {
+		return fmt.Errorf("replicas should be equal or greater than 0")
 	}
 
 	return nil
