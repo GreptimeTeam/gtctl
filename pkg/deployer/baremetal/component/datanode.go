@@ -60,7 +60,7 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 	for i := 0; i < d.config.Replicas; i++ {
 		dirName := fmt.Sprintf("%s.%d", d.Name(), i)
 
-		dataHomeDir := path.Join(d.workingDirs.DataDir, config.DataHomeDir)
+		dataHomeDir := path.Join(d.workingDirs.DataDir, dirName, config.DataHomeDir)
 		if err := fileutils.EnsureDir(dataHomeDir); err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		logLevel = config.DefaultLogLevel
 	}
 
-	nodeID_, walDir, dataHomeDir := params[0], params[1], params[2]
+	nodeID_, _, dataHomeDir := params[0], params[1], params[2]
 	nodeID := nodeID_.(int)
 
 	args := []string{
@@ -132,7 +132,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		fmt.Sprintf("--rpc-addr=%s", generateDatanodeAddr(d.config.RPCAddr, nodeID)),
 		fmt.Sprintf("--http-addr=%s", generateDatanodeAddr(d.config.HTTPAddr, nodeID)),
 		fmt.Sprintf("--data-home=%s", dataHomeDir),
-		fmt.Sprintf("--wal-dir=%s", walDir),
+		//fmt.Sprintf("--wal-dir=%s", walDir),
 	}
 
 	if len(d.config.Config) > 0 {
