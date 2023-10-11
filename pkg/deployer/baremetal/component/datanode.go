@@ -132,7 +132,6 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		fmt.Sprintf("--rpc-addr=%s", generateDatanodeAddr(d.config.RPCAddr, nodeID)),
 		fmt.Sprintf("--http-addr=%s", generateDatanodeAddr(d.config.HTTPAddr, nodeID)),
 		fmt.Sprintf("--data-home=%s", dataHomeDir),
-		//fmt.Sprintf("--wal-dir=%s", walDir),
 	}
 
 	if len(d.config.Config) > 0 {
