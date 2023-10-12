@@ -119,7 +119,7 @@ func getClusterFromBareMetal(ctx context.Context, l logger.Logger, nn types.Name
 		return err
 	}
 
-	rawCluster, ok := cluster.Raw.(*bmconfig.MetaConfig)
+	rawCluster, ok := cluster.Raw.(*bmconfig.RuntimeConfig)
 	if !ok {
 		return fmt.Errorf("invalid cluster type")
 	}
@@ -136,7 +136,7 @@ func getClusterFromBareMetal(ctx context.Context, l logger.Logger, nn types.Name
 	return nil
 }
 
-func collectClusterInfoFromBareMetal(data *bmconfig.MetaConfig) (
+func collectClusterInfoFromBareMetal(data *bmconfig.RuntimeConfig) (
 	headers, footers []string, bulk [][]string) {
 	headers = []string{"COMPONENT", "PID"}
 
