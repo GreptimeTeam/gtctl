@@ -1,0 +1,39 @@
+---
+# Source: greptimedb/templates/cluster.yaml
+apiVersion: greptime.io/v1alpha1
+kind: GreptimeDBCluster
+metadata:
+  name: gtctl-ut
+  namespace: default
+spec:
+  base:
+    main:
+      image: 'registry.cn-hangzhou.aliyuncs.com/greptime/greptimedb:v0.4.0'
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 500m
+          memory: 512Mi
+  frontend:
+    replicas: 3
+  meta:
+    replicas: 3
+    etcdEndpoints:
+      - 127.0.0.1:2379
+  datanode:
+    replicas: 3
+    storage:
+      storageClassName: ebs-sc
+      storageSize: 11Gi
+      storageRetainPolicy: Delete
+  httpServicePort: 4000
+  grpcServicePort: 4001
+  mysqlServicePort: 4002
+  postgresServicePort: 4003
+  openTSDBServicePort: 4242
+  initializer:
+    image: 'registry.cn-hangzhou.aliyuncs.com/greptime/greptimedb-initializer:0.1.0-alpha.16'
+  storage:
+    {}

@@ -34,14 +34,14 @@ const (
                         ts TIMESTAMP DEFAULT current_timestamp(),
                         n INT,
     					row_id INT,
-                        TIME INDEX (ts)
+                        TIME INDEX (ts),
+                        PRIMARY KEY(n)
                      )
                      PARTITION BY RANGE COLUMNS (n) (
     				 	PARTITION r0 VALUES LESS THAN (5),
     					PARTITION r1 VALUES LESS THAN (9),
     					PARTITION r2 VALUES LESS THAN (MAXVALUE),
-					)
-					engine=mito`
+					)`
 
 	insertDataSQLStr = "INSERT INTO dist_table(n, row_id) VALUES (%d, %d)"
 

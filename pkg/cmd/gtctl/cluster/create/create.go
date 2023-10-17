@@ -53,6 +53,11 @@ type ClusterCliOptions struct {
 	EtcdStorageSize                string
 	EtcdClusterSize                string
 
+	// Values files that set in command line.
+	GreptimeDBClusterValuesFile  string
+	EtcdClusterValuesFile        string
+	GreptimeDBOperatorValuesFile string
+
 	// The options for deploying GreptimeDBCluster in bare-metal.
 	BareMetal          bool
 	Config             string
@@ -107,6 +112,9 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().BoolVar(&options.EnableCache, "enable-cache", true, "If true, enable cache for downloading artifacts(charts and binaries).")
 	cmd.Flags().BoolVar(&options.RetainLogs, "retain-logs", true, "If true, always retain the logs of binary.")
 	cmd.Flags().BoolVar(&options.UseGreptimeCNArtifacts, "use-greptime-cn-artifacts", false, "If true, use greptime-cn artifacts(charts and binaries).")
+	cmd.Flags().StringVar(&options.GreptimeDBClusterValuesFile, "greptimedb-cluster-values-file", "", "The values file for greptimedb cluster.")
+	cmd.Flags().StringVar(&options.EtcdClusterValuesFile, "etcd-cluster-values-file", "", "The values file for etcd cluster.")
+	cmd.Flags().StringVar(&options.GreptimeDBOperatorValuesFile, "greptimedb-operator-values-file", "", "The values file for greptimedb operator.")
 
 	return cmd
 }
@@ -240,6 +248,7 @@ func deployGreptimeDBOperator(ctx context.Context, l logger.Logger, options *Clu
 		ImageRegistry:                  options.ImageRegistry,
 		ConfigValues:                   options.Set.operatorConfig,
 		UseGreptimeCNArtifacts:         options.UseGreptimeCNArtifacts,
+		ValuesFile:                     options.GreptimeDBOperatorValuesFile,
 	}
 
 	name := types.NamespacedName{Namespace: options.OperatorNamespace, Name: "greptimedb-operator"}.String()
@@ -270,6 +279,7 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *ClusterCli
 		EtcdClusterSize:        options.EtcdClusterSize,
 		ConfigValues:           options.Set.etcdConfig,
 		UseGreptimeCNArtifacts: options.UseGreptimeCNArtifacts,
+		ValuesFile:             options.EtcdClusterValuesFile,
 	}
 
 	var name string
@@ -308,6 +318,7 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *Clus
 		EtcdEndPoint:                fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
 		ConfigValues:                options.Set.clusterConfig,
 		UseGreptimeCNArtifacts:      options.UseGreptimeCNArtifacts,
+		ValuesFile:                  options.GreptimeDBClusterValuesFile,
 	}
 
 	var name string
@@ -340,7 +351,7 @@ func printTips(l logger.Logger, clusterName string, options *ClusterCliOptions) 
 	if !options.BareMetal {
 		l.V(0).Infof("%s", fmt.Sprintf("%s kubectl port-forward svc/%s-frontend -n %s 4003:4003 > connections-pg.out &", logger.Bold("$"), clusterName, options.Namespace))
 	}
-	l.V(0).Infof("%s", fmt.Sprintf("%s psql -h 127.0.0.1 -p 4003", logger.Bold("$")))
+	l.V(0).Infof("%s", fmt.Sprintf("%s psql -h 127.0.0.1 -p 4003 -d public", logger.Bold("$")))
 	l.V(0).Infof("\nThank you for using %s! Check for more information on %s. 😊", logger.Bold("GreptimeDB"), logger.Bold("https://greptime.com"))
 	l.V(0).Infof("\n%s 🔑", logger.Bold("Invest in Data, Harvest over Time."))
 }
