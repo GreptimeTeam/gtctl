@@ -22,7 +22,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/api/query"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/cluster/baremetal"
 	"github.com/GreptimeTeam/gtctl/pkg/cluster/kubernetes"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -52,25 +52,25 @@ func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 			var (
 				ctx         = context.TODO()
 				err         error
-				getter      query.Getter
+				cluster     opt.Operations
 				clusterName = args[0]
 			)
 
 			if options.BareMetal {
-				getter, err = baremetal.NewCluster(l, clusterName) // TODO(sh2): call baremetal.WithCreateNoDirs()
+				cluster, err = baremetal.NewCluster(l, clusterName) // TODO(sh2): call baremetal.WithCreateNoDirs()
 			} else {
-				getter, err = kubernetes.NewCluster(l)
+				cluster, err = kubernetes.NewCluster(l)
 			}
 			if err != nil {
 				return err
 			}
 
-			getOptions := &query.Options{
+			getOptions := &opt.GetOptions{
 				Namespace: options.Namespace,
 				Name:      clusterName,
 				Table:     table,
 			}
-			return getter.Get(ctx, getOptions)
+			return cluster.Get(ctx, getOptions)
 		},
 	}
 

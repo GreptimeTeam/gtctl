@@ -21,12 +21,10 @@ import (
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/GreptimeTeam/gtctl/pkg/api/query"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 )
 
-var _ query.Getter = &Cluster{}
-
-func (c *Cluster) Get(ctx context.Context, options *query.Options) error {
+func (c *Cluster) Get(ctx context.Context, options *opt.GetOptions) error {
 	cluster, err := c.get(ctx, options)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
@@ -41,7 +39,7 @@ func (c *Cluster) Get(ctx context.Context, options *query.Options) error {
 	return nil
 }
 
-func (c *Cluster) get(ctx context.Context, options *query.Options) (*greptimedbclusterv1alpha1.GreptimeDBCluster, error) {
+func (c *Cluster) get(ctx context.Context, options *opt.GetOptions) (*greptimedbclusterv1alpha1.GreptimeDBCluster, error) {
 	cluster, err := c.client.GetCluster(ctx, options.Name, options.Namespace)
 	if err != nil {
 		return nil, err

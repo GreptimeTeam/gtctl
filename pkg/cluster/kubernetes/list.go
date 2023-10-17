@@ -22,12 +22,10 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/GreptimeTeam/gtctl/pkg/api/query"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 )
 
-var _ query.Lister = &Cluster{}
-
-func (c *Cluster) List(ctx context.Context, options *query.Options) error {
+func (c *Cluster) List(ctx context.Context, options *opt.ListOptions) error {
 	clusters, err := c.list(ctx)
 	if err != nil && !errors.IsNotFound(err) {
 		return err

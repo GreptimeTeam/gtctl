@@ -26,13 +26,11 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"gopkg.in/yaml.v3"
 
-	"github.com/GreptimeTeam/gtctl/pkg/api/query"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
-var _ query.Getter = &Cluster{}
-
-func (c *Cluster) Get(ctx context.Context, options *query.Options) error {
+func (c *Cluster) Get(ctx context.Context, options *opt.GetOptions) error {
 	cluster, err := c.get(ctx, options)
 	if err != nil {
 		return err
@@ -43,7 +41,7 @@ func (c *Cluster) Get(ctx context.Context, options *query.Options) error {
 	return nil
 }
 
-func (c *Cluster) get(_ context.Context, options *query.Options) (*ClusterMetadata, error) {
+func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*ClusterMetadata, error) {
 	_, err := os.Stat(c.clusterDir)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("cluster %s is not exist", options.Name)

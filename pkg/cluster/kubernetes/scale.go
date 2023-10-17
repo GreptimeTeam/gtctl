@@ -19,14 +19,11 @@ import (
 
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 
-	"github.com/GreptimeTeam/gtctl/pkg/api/query"
-	"github.com/GreptimeTeam/gtctl/pkg/api/scale"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 )
 
-var _ scale.Scaler = &Cluster{}
-
-func (c *Cluster) Scale(ctx context.Context, options *scale.Options) error {
-	cluster, err := c.get(ctx, &query.Options{
+func (c *Cluster) Scale(ctx context.Context, options *opt.ScaleOptions) error {
+	cluster, err := c.get(ctx, &opt.GetOptions{
 		Namespace: options.Namespace,
 		Name:      options.Name,
 	})
@@ -45,15 +42,15 @@ func (c *Cluster) Scale(ctx context.Context, options *scale.Options) error {
 	return c.client.WaitForClusterReady(ctx, options.Name, options.Namespace, c.timeout)
 }
 
-func (c *Cluster) scale(options *scale.Options, cluster *greptimedbclusterv1alpha1.GreptimeDBCluster) {
+func (c *Cluster) scale(options *opt.ScaleOptions, cluster *greptimedbclusterv1alpha1.GreptimeDBCluster) {
 	switch options.ComponentType {
-	case string(greptimedbclusterv1alpha1.FrontendComponentKind):
+	case greptimedbclusterv1alpha1.FrontendComponentKind:
 		options.OldReplicas = cluster.Spec.Frontend.Replicas
 		cluster.Spec.Frontend.Replicas = options.NewReplicas
-	case string(greptimedbclusterv1alpha1.DatanodeComponentKind):
+	case greptimedbclusterv1alpha1.DatanodeComponentKind:
 		options.OldReplicas = cluster.Spec.Datanode.Replicas
 		cluster.Spec.Datanode.Replicas = options.NewReplicas
-	case string(greptimedbclusterv1alpha1.MetaComponentKind):
+	case greptimedbclusterv1alpha1.MetaComponentKind:
 		options.OldReplicas = cluster.Spec.Meta.Replicas
 		cluster.Spec.Meta.Replicas = options.NewReplicas
 	}

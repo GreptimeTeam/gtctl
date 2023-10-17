@@ -12,21 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package scale
+package cluster
 
-import "context"
+import (
+	"context"
 
-// Scaler defines the scale operation for one cluster.
-type Scaler interface {
+	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+	"github.com/olekukonko/tablewriter"
+)
+
+type Operations interface {
+	// Get gets the current cluster profile.
+	Get(ctx context.Context, options *GetOptions) error
+
+	// List lists all cluster profiles.
+	List(ctx context.Context, options *ListOptions) error
+
 	// Scale scales the current cluster according to NewReplicas in ScaleOptions,
 	// and refill the OldReplicas in ScaleOptions.
-	Scale(ctx context.Context, options *Options) error
+	Scale(ctx context.Context, options *ScaleOptions) error
+
+	// TODO(sh2): implementing Create and Delete
 }
 
-type Options struct {
+type GetOptions struct {
+	Namespace string
+	Name      string
+
+	// Table view render.
+	Table *tablewriter.Table
+}
+
+type ListOptions struct {
+	GetOptions
+}
+
+type ScaleOptions struct {
 	NewReplicas   int32
 	OldReplicas   int32
 	Namespace     string
 	Name          string
-	ComponentType string
+	ComponentType greptimedbclusterv1alpha1.ComponentKind
 }

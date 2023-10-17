@@ -21,7 +21,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/api/query"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/cluster/kubernetes"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
@@ -34,19 +34,17 @@ func NewListClustersCommand(l logger.Logger) *cobra.Command {
 		Short: "List all GreptimeDB clusters",
 		Long:  `List all GreptimeDB clusters`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var (
-				ctx    = context.Background()
-				err    error
-				lister query.Lister
-			)
+			var ctx = context.Background()
 
-			lister, err = kubernetes.NewCluster(l)
+			cluster, err := kubernetes.NewCluster(l)
 			if err != nil {
 				return err
 			}
 
-			return lister.List(ctx, &query.Options{
-				Table: table,
+			return cluster.List(ctx, &opt.ListOptions{
+				GetOptions: opt.GetOptions{
+					Table: table,
+				},
 			})
 		},
 	}

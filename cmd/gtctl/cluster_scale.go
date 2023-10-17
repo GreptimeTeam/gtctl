@@ -22,7 +22,7 @@ import (
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/api/scale"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/cluster/kubernetes"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
@@ -70,8 +70,6 @@ func NewScaleClusterCommand(l logger.Logger) *cobra.Command {
 
 			var (
 				ctx    = context.Background()
-				err    error
-				scaler scale.Scaler
 				cancel context.CancelFunc
 			)
 
@@ -80,18 +78,18 @@ func NewScaleClusterCommand(l logger.Logger) *cobra.Command {
 				defer cancel()
 			}
 
-			scaler, err = kubernetes.NewCluster(l)
+			cluster, err := kubernetes.NewCluster(l)
 			if err != nil {
 				return err
 			}
 
-			scaleOptions := &scale.Options{
+			scaleOptions := &opt.ScaleOptions{
 				Name:          args[0],
 				Namespace:     options.Namespace,
 				NewReplicas:   options.Replicas,
-				ComponentType: options.ComponentType,
+				ComponentType: greptimedbclusterv1alpha1.ComponentKind(options.ComponentType),
 			}
-			return scaler.Scale(ctx, scaleOptions)
+			return cluster.Scale(ctx, scaleOptions)
 		},
 	}
 

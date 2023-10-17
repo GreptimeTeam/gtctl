@@ -17,15 +17,16 @@ package kubernetes
 import (
 	"time"
 
+	"github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/helm"
 	"github.com/GreptimeTeam/gtctl/pkg/kube"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
 type Cluster struct {
-	helmManager *helm.Manager
-	client      *kube.Client
-	logger      logger.Logger
+	helmLoader *helm.Loader
+	client     *kube.Client
+	logger     logger.Logger
 
 	timeout time.Duration
 	dryRun  bool
@@ -33,28 +34,28 @@ type Cluster struct {
 
 type Option func(cluster *Cluster)
 
-func NewCluster(l logger.Logger, opts ...Option) (*Cluster, error) {
-	hm, err := helm.NewManager(l)
+func NewCluster(l logger.Logger, opts ...Option) (cluster.Operations, error) {
+	hl, err := helm.NewLoader(l)
 	if err != nil {
 		return nil, err
 	}
 
-	cluster := &Cluster{
-		helmManager: hm,
-		logger:      l,
+	c := &Cluster{
+		helmLoader: hl,
+		logger:     l,
 	}
 	for _, opt := range opts {
-		opt(cluster)
+		opt(c)
 	}
 
 	var client *kube.Client
-	if !cluster.dryRun {
+	if !c.dryRun {
 		client, err = kube.NewClient("")
 		if err != nil {
 			return nil, err
 		}
 	}
-	cluster.client = client
+	c.client = client
 
-	return cluster, nil
+	return c, nil
 }

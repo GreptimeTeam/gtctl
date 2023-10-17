@@ -24,6 +24,7 @@ import (
 	"syscall"
 
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
+	"github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/metadata"
@@ -37,7 +38,6 @@ type Cluster struct {
 	bm     *component.BareMetalCluster
 	ctx    context.Context
 
-	// TODO(sh2): move these dir into meta manager
 	createNoDirs      bool
 	workingDirs       component.WorkingDirs
 	clusterDir        string
@@ -52,9 +52,9 @@ type Cluster struct {
 
 type Option func(cluster *Cluster)
 
-func NewCluster(l logger.Logger, clusterName string, opts ...Option) (*Cluster, error) {
+func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Operations, error) {
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	cluster := &Cluster{
+	c := &Cluster{
 		logger: l,
 		config: DefaultConfig(),
 		ctx:    ctx,
@@ -64,27 +64,27 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (*Cluster, 
 	if err != nil {
 		return nil, err
 	}
-	cluster.mm = mm
+	c.mm = mm
 
 	for _, opt := range opts {
 		if opt != nil {
-			opt(cluster)
+			opt(c)
 		}
 	}
 
-	if err = ValidateConfig(cluster.config); err != nil {
+	if err = ValidateConfig(c.config); err != nil {
 		return nil, err
 	}
 
-	if len(cluster.baseDir) == 0 {
+	if len(c.baseDir) == 0 {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return nil, err
 		}
-		cluster.baseDir = path.Join(homeDir, GtctlDir)
+		c.baseDir = path.Join(homeDir, GtctlDir)
 	}
 
-	if err = fileutils.EnsureDir(cluster.baseDir); err != nil {
+	if err = fileutils.EnsureDir(c.baseDir); err != nil {
 		return nil, err
 	}
 
@@ -92,14 +92,14 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (*Cluster, 
 	if err != nil {
 		return nil, err
 	}
-	cluster.am = am
+	c.am = am
 
-	cluster.initClusterDirsAndPath(clusterName)
+	c.initClusterDirsAndPath(clusterName)
 
 	// TODO(sh2): implement it in the following PR
 	// if !cluster.createNoDirs {}
 
-	return cluster, nil
+	return c, nil
 }
 
 func (c *Cluster) initClusterDirsAndPath(clusterName string) {

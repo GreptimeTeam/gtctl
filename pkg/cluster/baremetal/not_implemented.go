@@ -12,30 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package query
+package baremetal
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/olekukonko/tablewriter"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 )
 
-// Getter defines the get operation for one cluster.
-type Getter interface {
-	// Get gets the current cluster profile.
-	Get(ctx context.Context, options *Options) error
+func (c *Cluster) List(ctx context.Context, options *opt.ListOptions) error {
+	return fmt.Errorf("do not support")
 }
 
-// Lister defines the list operation for one cluster.
-type Lister interface {
-	// List lists the current cluster profiles.
-	List(ctx context.Context, options *Options) error
-}
-
-type Options struct {
-	Namespace string
-	Name      string
-
-	// Table view render
-	Table *tablewriter.Table
+func (c *Cluster) Scale(ctx context.Context, options *opt.ScaleOptions) error {
+	return fmt.Errorf("do not support")
 }
