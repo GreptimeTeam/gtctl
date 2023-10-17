@@ -91,7 +91,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&options.OperatorNamespace, "operator-namespace", "default", "The namespace of deploying greptimedb-operator.")
-	cmd.Flags().StringVar(&options.StorageClassName, "storage-class-name", "standard", "Datanode storage class name.")
+	cmd.Flags().StringVar(&options.StorageClassName, "storage-class-name", "null", "Datanode storage class name.")
 	cmd.Flags().StringVar(&options.StorageSize, "storage-size", "10Gi", "Datanode persistent volume size.")
 	cmd.Flags().StringVar(&options.StorageRetainPolicy, "retain-policy", "Retain", "Datanode pvc retain policy.")
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
@@ -103,7 +103,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.EtcdChartVersion, "etcd-chart-version", "", "The greptimedb-etcd helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.ImageRegistry, "image-registry", "", "The image registry.")
 	cmd.Flags().StringVar(&options.EtcdNamespace, "etcd-namespace", "default", "The namespace of etcd cluster.")
-	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "standard", "The etcd storage class name.")
+	cmd.Flags().StringVar(&options.EtcdStorageClassName, "etcd-storage-class-name", "null", "The etcd storage class name.")
 	cmd.Flags().StringVar(&options.EtcdStorageSize, "etcd-storage-size", "10Gi", "the etcd persistent volume size.")
 	cmd.Flags().StringVar(&options.EtcdClusterSize, "etcd-cluster-size", "1", "the etcd cluster size.")
 	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Deploy the greptimedb cluster on bare-metal environment.")
