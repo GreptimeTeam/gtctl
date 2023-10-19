@@ -12,24 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package get
+package baremetal
 
 import (
-	"path/filepath"
-	"testing"
+	"context"
+	"fmt"
 
-	"github.com/stretchr/testify/assert"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 )
 
-func TestCollectPidsForBareMetal(t *testing.T) {
-	pidsPath := filepath.Join("test_data", "pids")
-	want := map[string]string{
-		"a": "123",
-		"b": "456",
-		"c": "789",
-	}
+func (c *Cluster) List(ctx context.Context, options *opt.ListOptions) error {
+	return fmt.Errorf("do not support")
+}
 
-	ret := collectPidsForBareMetal(pidsPath)
-
-	assert.Equal(t, want, ret)
+func (c *Cluster) Scale(ctx context.Context, options *opt.ScaleOptions) error {
+	return fmt.Errorf("do not support")
 }
