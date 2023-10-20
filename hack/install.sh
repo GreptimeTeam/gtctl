@@ -22,7 +22,7 @@ GITHUB_ORG="GreptimeTeam"
 GITHUB_REPO="gtctl"
 BIN="gtctl"
 DOWNLOAD_SOURCE="github"
-INSTALL_DIR=$(PWD)
+INSTALL_DIR=$(pwd)
 GREPTIME_AWS_CN_RELEASE_BUCKET="https://downloads.greptime.cn/releases"
 
 usage() {
@@ -125,5 +125,5 @@ done
 get_os_type
 get_arch_type
 do_download
-verify_sha256sum "$(PWD)"/${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz "$(PWD)"/${BIN}-${OS_TYPE}-${ARCH_TYPE}.sha256sum
+verify_sha256sum "$(pwd)"/${BIN}-${OS_TYPE}-${ARCH_TYPE}.tgz "$(pwd)"/${BIN}-${OS_TYPE}-${ARCH_TYPE}.sha256sum
 install_binary
