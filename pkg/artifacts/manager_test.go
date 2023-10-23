@@ -48,7 +48,7 @@ func TestDownloadCharts(t *testing.T) {
 	}{
 		{GreptimeDBClusterChartName, "latest", ArtifactTypeChart, false},
 		{GreptimeDBOperatorChartName, "latest", ArtifactTypeChart, false},
-		{GreptimeDBClusterChartName, "0.1.1-alpha.13", ArtifactTypeChart, false},
+		{GreptimeDBClusterChartName, "0.1.2", ArtifactTypeChart, false},
 		{GreptimeDBOperatorChartName, "0.1.1-alpha.12", ArtifactTypeChart, false},
 		{EtcdChartName, DefaultEtcdChartVersion, ArtifactTypeChart, false},
 	}
@@ -94,7 +94,7 @@ func TestDownloadChartsFromCNRegion(t *testing.T) {
 	}{
 		{GreptimeDBClusterChartName, LatestVersionTag, ArtifactTypeChart, true},
 		{GreptimeDBOperatorChartName, LatestVersionTag, ArtifactTypeChart, true},
-		{GreptimeDBClusterChartName, "0.1.1-alpha.13", ArtifactTypeChart, true},
+		{GreptimeDBClusterChartName, "0.1.2", ArtifactTypeChart, true},
 		{GreptimeDBOperatorChartName, "0.1.1-alpha.12", ArtifactTypeChart, true},
 		{EtcdChartName, DefaultEtcdChartVersion, ArtifactTypeChart, true},
 	}
