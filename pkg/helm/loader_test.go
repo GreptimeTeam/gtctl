@@ -40,7 +40,7 @@ func TestLoadAndRenderChart(t *testing.T) {
 	opts := &LoadOptions{
 		ReleaseName:  "gtctl-ut",
 		Namespace:    "default",
-		ChartName:    artifacts.GreptimeDBChartName,
+		ChartName:    artifacts.GreptimeDBClusterChartName,
 		ChartVersion: artifacts.LatestVersionTag,
 		FromCNRegion: false,
 		ValuesOptions: deployer.CreateGreptimeDBClusterOptions{

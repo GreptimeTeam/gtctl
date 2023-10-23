@@ -57,8 +57,8 @@ const (
 	// EtcdBinName is the artifact name of etcd.
 	EtcdBinName = "etcd"
 
-	// GreptimeDBChartName is the chart name of GreptimeDB.
-	GreptimeDBChartName = "greptimedb"
+	// GreptimeDBClusterChartName is the chart name of GreptimeDB.
+	GreptimeDBClusterChartName = "greptimedb-cluster"
 
 	// GreptimeDBOperatorChartName is the chart name of GreptimeDB operator.
 	GreptimeDBOperatorChartName = "greptimedb-operator"

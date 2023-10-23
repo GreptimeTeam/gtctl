@@ -46,9 +46,9 @@ func TestDownloadCharts(t *testing.T) {
 		typ          ArtifactType
 		fromCNRegion bool
 	}{
-		{GreptimeDBChartName, "latest", ArtifactTypeChart, false},
+		{GreptimeDBClusterChartName, "latest", ArtifactTypeChart, false},
 		{GreptimeDBOperatorChartName, "latest", ArtifactTypeChart, false},
-		{GreptimeDBChartName, "0.1.1-alpha.13", ArtifactTypeChart, false},
+		{GreptimeDBClusterChartName, "0.1.1-alpha.13", ArtifactTypeChart, false},
 		{GreptimeDBOperatorChartName, "0.1.1-alpha.12", ArtifactTypeChart, false},
 		{EtcdChartName, DefaultEtcdChartVersion, ArtifactTypeChart, false},
 	}
@@ -92,9 +92,9 @@ func TestDownloadChartsFromCNRegion(t *testing.T) {
 		typ          ArtifactType
 		fromCNRegion bool
 	}{
-		{GreptimeDBChartName, LatestVersionTag, ArtifactTypeChart, true},
+		{GreptimeDBClusterChartName, LatestVersionTag, ArtifactTypeChart, true},
 		{GreptimeDBOperatorChartName, LatestVersionTag, ArtifactTypeChart, true},
-		{GreptimeDBChartName, "0.1.1-alpha.13", ArtifactTypeChart, true},
+		{GreptimeDBClusterChartName, "0.1.1-alpha.13", ArtifactTypeChart, true},
 		{GreptimeDBOperatorChartName, "0.1.1-alpha.12", ArtifactTypeChart, true},
 		{EtcdChartName, DefaultEtcdChartVersion, ArtifactTypeChart, true},
 	}
@@ -225,7 +225,7 @@ func TestArtifactsCache(t *testing.T) {
 
 	ctx := context.Background()
 
-	src, err := m.NewSource(GreptimeDBChartName, LatestVersionTag, ArtifactTypeChart, false)
+	src, err := m.NewSource(GreptimeDBClusterChartName, LatestVersionTag, ArtifactTypeChart, false)
 	if err != nil {
 		t.Errorf("failed to create source: %v", err)
 	}
