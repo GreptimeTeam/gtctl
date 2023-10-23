@@ -62,7 +62,9 @@ func NewLoader(l logger.Logger, opts ...Option) (*Loader, error) {
 	}
 	r.am = am
 
-	mm, err := metadata.New("")
+	// We ignore the cluster name here, because we are sure that
+	// there's no operations on cluster scope directories in this pkg.
+	mm, err := metadata.New("", "")
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +79,7 @@ func NewLoader(l logger.Logger, opts ...Option) (*Loader, error) {
 
 func WithHomeDir(dir string) Option {
 	return func(r *Loader) {
-		mm, err := metadata.New(dir)
+		mm, err := metadata.New(dir, "")
 		if err != nil {
 			r.logger.Errorf("failed to create metadata manager: %v", err)
 			os.Exit(1)

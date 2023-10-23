@@ -16,10 +16,7 @@ package baremetal
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"os/signal"
-	"path"
 	"sync"
 	"syscall"
 
@@ -28,43 +25,32 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/metadata"
-	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 type Cluster struct {
 	logger logger.Logger
 	config *Config
 	wg     sync.WaitGroup
-	bm     *component.BareMetalCluster
 	ctx    context.Context
 
-	createNoDirs      bool
-	workingDirs       component.WorkingDirs
-	clusterDir        string
-	baseDir           string
-	clusterConfigPath string
+	createNoDirs bool
+	enableCache  bool
 
 	am artifacts.Manager
 	mm metadata.Manager
-
-	enableCache bool
+	bm *component.BareMetalCluster
 }
 
 type Option func(cluster *Cluster)
 
 func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Operations, error) {
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
 	c := &Cluster{
 		logger: l,
 		config: DefaultConfig(),
 		ctx:    ctx,
 	}
-
-	mm, err := metadata.New("")
-	if err != nil {
-		return nil, err
-	}
-	c.mm = mm
 
 	for _, opt := range opts {
 		if opt != nil {
@@ -72,63 +58,26 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Op
 		}
 	}
 
-	if err = ValidateConfig(c.config); err != nil {
+	if err := ValidateConfig(c.config); err != nil {
 		return nil, err
 	}
 
-	if len(c.baseDir) == 0 {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, err
-		}
-		c.baseDir = path.Join(homeDir, GtctlDir)
-	}
-
-	if err = fileutils.EnsureDir(c.baseDir); err != nil {
+	// Configure Metadata Manager
+	mm, err := metadata.New("", clusterName)
+	if err != nil {
 		return nil, err
 	}
+	c.mm = mm
 
+	// Configure Artifact Manager.
 	am, err := artifacts.NewManager(l)
 	if err != nil {
 		return nil, err
 	}
 	c.am = am
 
-	c.initClusterDirsAndPath(clusterName)
-
 	// TODO(sh2): implement it in the following PR
 	// if !cluster.createNoDirs {}
 
 	return c, nil
-}
-
-func (c *Cluster) initClusterDirsAndPath(clusterName string) {
-	// Dirs
-	var (
-		// ${HOME}/${GtctlDir}/${ClusterName}
-		clusterDir = path.Join(c.baseDir, clusterName)
-
-		// ${HOME}/${GtctlDir}/${ClusterName}/logs
-		logsDir = path.Join(clusterDir, LogsDir)
-
-		// ${HOME}/${GtctlDir}/${ClusterName}/data
-		dataDir = path.Join(clusterDir, DataDir)
-
-		// ${HOME}/${GtctlDir}/${ClusterName}/pids
-		pidsDir = path.Join(clusterDir, PidsDir)
-	)
-
-	// Path
-	var (
-		// ${HOME}/${GtctlDir}/${ClusterName}/${ClusterName}.yaml
-		clusterConfigPath = path.Join(clusterDir, fmt.Sprintf("%s.yaml", clusterName))
-	)
-
-	c.clusterDir = clusterDir
-	c.workingDirs = component.WorkingDirs{
-		LogsDir: logsDir,
-		DataDir: dataDir,
-		PidsDir: pidsDir,
-	}
-	c.clusterConfigPath = clusterConfigPath
 }

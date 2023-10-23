@@ -44,20 +44,18 @@ type Deployer struct {
 	ctx    context.Context
 
 	createNoDirs bool
-	homeDir      string
+	enableCache  bool
 
 	am artifacts.Manager
-	bm *component.BareMetalCluster
 	mm metadata.Manager
-	rm *RuntimeManager
-
-	enableCache bool
+	bm *component.BareMetalCluster
 }
 
 var _ Interface = &Deployer{}
 
 type Option func(*Deployer)
 
+// TODO(sh2): remove this deployer later
 func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface, error) {
 	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
@@ -77,47 +75,35 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		return nil, err
 	}
 
-	// Config Metadata Manager.
-	mm, err := metadata.New("")
+	mm, err := metadata.New("", clusterName)
 	if err != nil {
 		return nil, err
 	}
 	d.mm = mm
 
-	// Config Artifact Manager.
 	am, err := artifacts.NewManager(l)
 	if err != nil {
 		return nil, err
 	}
 	d.am = am
 
-	// Config Runtime Manager.
-	if len(d.homeDir) == 0 {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, err
-		}
-		d.homeDir = homeDir
-	}
-	rm := NewRuntimeManager(clusterName, d.homeDir)
-	rm.configDirsAndPaths()
 	if !d.createNoDirs {
-		if err = rm.createDirs(); err != nil {
+		if err = mm.AllocateClusterScopeDirs(); err != nil {
 			return nil, err
 		}
 
+		csd := mm.GetClusterScopeDir()
 		d.bm = component.NewBareMetalCluster(d.config.Cluster, component.WorkingDirs{
-			DataDir: rm.clusterDataDir,
-			LogsDir: rm.clusterLogsDir,
-			PidsDir: rm.clusterPidsDir,
+			DataDir: csd.DataDir,
+			LogsDir: csd.LogsDir,
+			PidsDir: csd.PidsDir,
 		}, &d.wg, d.logger)
 
 		// Save a copy of cluster config in yaml format.
-		if err = rm.createPaths(d.config); err != nil {
+		if err = mm.AllocateClusterConfigPath(d.config); err != nil {
 			return nil, err
 		}
 	}
-	d.rm = rm
 
 	return d, nil
 }
@@ -177,14 +163,9 @@ func WithCreateNoDirs() Option {
 	}
 }
 
-func WithHomeDir(homeDir string) Option {
-	return func(d *Deployer) {
-		d.homeDir = homeDir
-	}
-}
-
 func (d *Deployer) GetGreptimeDBCluster(ctx context.Context, name string, options *GetGreptimeDBClusterOptions) (*GreptimeDBCluster, error) {
-	_, err := os.Stat(d.rm.clusterDir)
+	csd := d.mm.GetClusterScopeDir()
+	_, err := os.Stat(csd.BaseDir)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("cluster %s is not exist", name)
 	}
@@ -192,7 +173,7 @@ func (d *Deployer) GetGreptimeDBCluster(ctx context.Context, name string, option
 		return nil, err
 	}
 
-	ok, err := fileutils.IsFileExists(d.rm.clusterConfigPath)
+	ok, err := fileutils.IsFileExists(csd.ConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +182,7 @@ func (d *Deployer) GetGreptimeDBCluster(ctx context.Context, name string, option
 	}
 
 	var cluster config.RuntimeConfig
-	in, err := os.ReadFile(d.rm.clusterConfigPath)
+	in, err := os.ReadFile(csd.ConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -273,23 +254,24 @@ func (d *Deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, opt
 // deleteGreptimeDBClusterForeground delete the whole cluster if it runs in foreground.
 func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context, option component.DeleteOptions) error {
 	// No matter what options are, the config file of one cluster must be deleted.
-	if err := os.Remove(d.rm.clusterConfigPath); err != nil {
+	csd := d.mm.GetClusterScopeDir()
+	if err := os.Remove(csd.ConfigPath); err != nil {
 		return err
 	}
 
 	if option.RetainLogs {
 		// It is unnecessary to delete each component resources in cluster since it only retains the logs.
 		// So deleting the whole cluster resources excluding logs here would be fine.
-		if err := fileutils.DeleteDirIfExists(d.rm.clusterDataDir); err != nil {
+		if err := fileutils.DeleteDirIfExists(csd.DataDir); err != nil {
 			return err
 		}
-		if err := fileutils.DeleteDirIfExists(d.rm.clusterPidsDir); err != nil {
+		if err := fileutils.DeleteDirIfExists(csd.PidsDir); err != nil {
 			return err
 		}
 	} else {
 		// It is unnecessary to delete each component resources in cluster since it has nothing to retain.
 		// So deleting the whole cluster resources here would be fine.
-		if err := fileutils.DeleteDirIfExists(d.rm.clusterDir); err != nil {
+		if err := fileutils.DeleteDirIfExists(csd.BaseDir); err != nil {
 			return err
 		}
 	}
@@ -383,7 +365,9 @@ func (d *Deployer) checkEtcdHealth(etcdBin string) error {
 
 		time.Sleep(1 * time.Second)
 	}
-	return fmt.Errorf("etcd is not ready in 10 second! You can find its logs in %s", path.Join(d.rm.clusterLogsDir, "etcd"))
+
+	csd := d.mm.GetClusterScopeDir()
+	return fmt.Errorf("etcd is not ready in 10 second! You can find its logs in %s", path.Join(csd.LogsDir, "etcd"))
 }
 
 func (d *Deployer) DeleteEtcdCluster(ctx context.Context, name string, options *DeleteEtcdClusterOption) error {

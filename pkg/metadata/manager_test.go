@@ -19,7 +19,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
+
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
+	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 )
 
 func TestMetadataManager(t *testing.T) {
@@ -29,7 +33,7 @@ func TestMetadataManager(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	m, err := New(tempDir)
+	m, err := New(tempDir, "")
 	if err != nil {
 		t.Fatalf("failed to create metadata manager: %v", err)
 	}
@@ -99,7 +103,7 @@ func TestMetadataManager(t *testing.T) {
 }
 
 func TestCreateMetadataManagerWithEmptyHomeDir(t *testing.T) {
-	m, err := New("")
+	m, err := New("", "")
 	if err != nil {
 		t.Fatalf("failed to create metadata manager: %v", err)
 	}
@@ -113,4 +117,28 @@ func TestCreateMetadataManagerWithEmptyHomeDir(t *testing.T) {
 	if m.GetWorkingDir() != wantedWorkingDir {
 		t.Fatalf("got %s, wanted %s", m.GetWorkingDir(), wantedWorkingDir)
 	}
+}
+
+func TestMetadataManagerWithClusterConfigPath(t *testing.T) {
+	m, err := New("/tmp", "test")
+	assert.NoError(t, err)
+
+	expect := config.DefaultConfig()
+	err = m.AllocateClusterConfigPath(expect)
+	assert.NoError(t, err)
+
+	csd := m.GetClusterScopeDir()
+	assert.NotNil(t, csd)
+	assert.NotEmpty(t, csd.ConfigPath)
+
+	cnt, err := os.ReadFile(csd.ConfigPath)
+	assert.NoError(t, err)
+
+	var actual config.RuntimeConfig
+	err = yaml.Unmarshal(cnt, &actual)
+	assert.NoError(t, err)
+	assert.Equal(t, expect, actual.Config)
+
+	err = m.Clean()
+	assert.NoError(t, err)
 }

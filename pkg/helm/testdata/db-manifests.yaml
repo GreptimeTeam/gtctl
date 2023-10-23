@@ -8,7 +8,7 @@ metadata:
 spec:
   base:
     main:
-      image: 'registry.cn-hangzhou.aliyuncs.com/greptime/greptimedb:v0.4.0'
+      image: 'registry.cn-hangzhou.aliyuncs.com/greptime/greptimedb:v0.4.1'
       resources:
         limits:
           cpu: 500m
@@ -34,6 +34,6 @@ spec:
   postgresServicePort: 4003
   openTSDBServicePort: 4242
   initializer:
-    image: 'registry.cn-hangzhou.aliyuncs.com/greptime/greptimedb-initializer:0.1.0-alpha.16'
+    image: 'registry.cn-hangzhou.aliyuncs.com/greptime/greptimedb-initializer:0.1.0-alpha.17'
   storage:
     {}
