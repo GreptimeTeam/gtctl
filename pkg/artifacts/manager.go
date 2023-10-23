@@ -495,6 +495,10 @@ func (m *manager) installBinaries(downloadFile, installDir string) error {
 }
 
 func (m *manager) getVersionInfoFromS3(typ ArtifactType, name string, nightly bool) (string, error) {
+	// Note: it uses 'greptimedb' directory to store the greptime binary.
+	if name == GreptimeBinName {
+		name = "greptimedb"
+	}
 	var latestVersionInfoURL string
 	switch typ {
 	case ArtifactTypeChart:
