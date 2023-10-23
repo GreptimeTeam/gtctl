@@ -129,6 +129,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 					return nil, err
 				}
 				src.Version = latestVersion
+				src.FileName = m.chartFileName(src.Name, src.Version)
 			}
 			// The download URL example: 'https://downloads.greptime.cn/releases/charts/etcd/9.2.0/etcd-9.2.0.tgz'.
 			src.URL = fmt.Sprintf("%s/%s/%s/%s", GreptimeCNCharts, src.Name, src.Version, src.FileName)
@@ -153,6 +154,8 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 				}
 
 				src.URL = chartVersion.URLs[0]
+				src.Version = chartVersion.Version
+				src.FileName = m.chartFileName(src.Name, src.Version)
 			} else {
 				// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
 				src.URL = fmt.Sprintf("%s/%s/%s", GreptimeChartReleaseDownloadURL, strings.TrimSuffix(src.FileName, fileutils.TgzExtension), src.FileName)
