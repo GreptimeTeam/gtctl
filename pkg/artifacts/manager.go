@@ -119,18 +119,17 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 		FromCNRegion: fromCNRegion,
 	}
 
+	if version == LatestVersionTag || len(version) == 0 {
+		latestVersion, err := m.resovleLatestVersion(typ, name, fromCNRegion)
+		if err != nil {
+			return nil, err
+		}
+		src.Version = latestVersion
+	}
+
 	if src.Type == ArtifactTypeChart {
 		src.FileName = m.chartFileName(src.Name, src.Version)
 		if src.FromCNRegion {
-			if src.Version == LatestVersionTag {
-				// Get the latest version of the latest chart.
-				latestVersion, err := m.getVersionInfoFromS3(ArtifactTypeChart, src.Name, false)
-				if err != nil {
-					return nil, err
-				}
-				src.Version = latestVersion
-				src.FileName = m.chartFileName(src.Name, src.Version)
-			}
 			// The download URL example: 'https://downloads.greptime.cn/releases/charts/etcd/9.2.0/etcd-9.2.0.tgz'.
 			src.URL = fmt.Sprintf("%s/%s/%s/%s", GreptimeCNCharts, src.Name, src.Version, src.FileName)
 		} else {
@@ -138,24 +137,6 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 			if src.Name == EtcdChartName {
 				// The download URL example: 'oci://registry-1.docker.io/bitnamicharts/etcd:9.2.0'.
 				src.URL = EtcdOCIRegistry
-				return src, nil
-			}
-
-			if src.Version == LatestVersionTag {
-				// Use chart index file to locate the latest chart version.
-				indexFile, err := m.chartIndexFile(context.TODO(), GreptimeChartIndexURL)
-				if err != nil {
-					return nil, err
-				}
-
-				chartVersion, err := m.latestChartVersion(indexFile, src.Name)
-				if err != nil {
-					return nil, err
-				}
-
-				src.URL = chartVersion.URLs[0]
-				src.Version = chartVersion.Version
-				src.FileName = m.chartFileName(src.Name, src.Version)
 			} else {
 				// The download URL example: 'https://github.com/GreptimeTeam/helm-charts/releases/download/greptimedb-0.1.1-alpha.3/greptimedb-0.1.1-alpha.3.tgz'.
 				src.URL = fmt.Sprintf("%s/%s/%s", GreptimeChartReleaseDownloadURL, strings.TrimSuffix(src.FileName, fileutils.TgzExtension), src.FileName)
@@ -393,14 +374,6 @@ func (m *manager) latestGitHubReleaseVersion(org, repo string) (string, error) {
 }
 
 func (m *manager) etcdBinaryDownloadURL(version string, fromCNRegion bool) (string, error) {
-	if version != DefaultEtcdBinVersion && fromCNRegion {
-		return "", fmt.Errorf("only support %s in cn region", DefaultEtcdBinVersion)
-	}
-
-	if version == LatestVersionTag {
-		return "", fmt.Errorf("can't support latest version")
-	}
-
 	var ext string
 
 	switch runtime.GOOS {
@@ -424,14 +397,6 @@ func (m *manager) etcdBinaryDownloadURL(version string, fromCNRegion bool) (stri
 }
 
 func (m *manager) greptimeBinaryDownloadURL(version string, fromCNRegion bool) (string, error) {
-	if version == LatestVersionTag && fromCNRegion {
-		latestVersion, err := m.getVersionInfoFromS3(ArtifactTypeBinary, GreptimeBinName, false)
-		if err != nil {
-			return "", err
-		}
-		version = latestVersion
-	}
-
 	newVersion, err := isBreakingVersion(version)
 	if err != nil {
 		return "", err
@@ -494,6 +459,38 @@ func (m *manager) installBinaries(downloadFile, installDir string) error {
 	return nil
 }
 
+// resovleLatestVersion resolves the latest tag to the specific version.
+func (m *manager) resovleLatestVersion(typ ArtifactType, name string, fromCNRegion bool) (string, error) {
+	if fromCNRegion {
+		return m.getVersionInfoFromS3(typ, name, false)
+	}
+
+	switch typ {
+	case ArtifactTypeChart:
+		// Use chart index file to locate the latest chart version.
+		indexFile, err := m.chartIndexFile(context.TODO(), GreptimeChartIndexURL)
+		if err != nil {
+			return "", err
+		}
+
+		chartVersion, err := m.latestChartVersion(indexFile, name)
+		if err != nil {
+			return "", err
+		}
+		return chartVersion.Version, nil
+	case ArtifactTypeBinary:
+		// Get the latest version of the latest greptime binary.
+		latestVersion, err := m.latestGitHubReleaseVersion(GreptimeGitHubOrg, GreptimeDBGithubRepo)
+		if err != nil {
+			return "", err
+		}
+		return latestVersion, nil
+	default:
+		return "", fmt.Errorf("unsupported artifact type: %s", string(typ))
+	}
+}
+
+// getVersionInfoFromS3 gets the latest version info from S3.
 func (m *manager) getVersionInfoFromS3(typ ArtifactType, name string, nightly bool) (string, error) {
 	// Note: it uses 'greptimedb' directory to store the greptime binary.
 	if name == GreptimeBinName {
