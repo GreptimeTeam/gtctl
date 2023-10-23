@@ -120,7 +120,7 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 	}
 
 	if version == LatestVersionTag || len(version) == 0 {
-		latestVersion, err := m.resovleLatestVersion(typ, name, fromCNRegion)
+		latestVersion, err := m.resolveLatestVersion(typ, name, fromCNRegion)
 		if err != nil {
 			return nil, err
 		}
@@ -459,8 +459,8 @@ func (m *manager) installBinaries(downloadFile, installDir string) error {
 	return nil
 }
 
-// resovleLatestVersion resolves the latest tag to the specific version.
-func (m *manager) resovleLatestVersion(typ ArtifactType, name string, fromCNRegion bool) (string, error) {
+// resolveLatestVersion resolves the latest tag to the specific version.
+func (m *manager) resolveLatestVersion(typ ArtifactType, name string, fromCNRegion bool) (string, error) {
 	if fromCNRegion {
 		return m.getVersionInfoFromS3(typ, name, false)
 	}
