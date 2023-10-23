@@ -42,7 +42,8 @@ func (c *Cluster) Get(ctx context.Context, options *opt.GetOptions) error {
 }
 
 func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*ClusterMetadata, error) {
-	_, err := os.Stat(c.clusterDir)
+	csd := c.mm.GetClusterScopeDir()
+	_, err := os.Stat(csd.BaseDir)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("cluster %s is not exist", options.Name)
 	}
@@ -50,7 +51,7 @@ func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*ClusterMetad
 		return nil, err
 	}
 
-	ok, err := fileutils.IsFileExists(c.clusterConfigPath)
+	ok, err := fileutils.IsFileExists(csd.ConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +60,7 @@ func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*ClusterMetad
 	}
 
 	var cluster ClusterMetadata
-	in, err := os.ReadFile(c.clusterConfigPath)
+	in, err := os.ReadFile(csd.ConfigPath)
 	if err != nil {
 		return nil, err
 	}
