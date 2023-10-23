@@ -122,8 +122,16 @@ func (m *manager) NewSource(name, version string, typ ArtifactType, fromCNRegion
 	if src.Type == ArtifactTypeChart {
 		src.FileName = m.chartFileName(src.Name, src.Version)
 		if src.FromCNRegion {
+			if src.Version == LatestVersionTag {
+				// Get the latest version of the latest chart.
+				latestVersion, err := m.getVersionInfoFromS3(ArtifactTypeChart, src.Name, false)
+				if err != nil {
+					return nil, err
+				}
+				src.Version = latestVersion
+			}
 			// The download URL example: 'https://downloads.greptime.cn/releases/charts/etcd/9.2.0/etcd-9.2.0.tgz'.
-			src.URL = fmt.Sprintf("%s/%s/%s/%s", GreptimeCNCharts, src.Name, version, src.FileName)
+			src.URL = fmt.Sprintf("%s/%s/%s/%s", GreptimeCNCharts, src.Name, src.Version, src.FileName)
 		} else {
 			// Specify the OCI registry URL for the etcd chart.
 			if src.Name == EtcdChartName {
@@ -413,9 +421,12 @@ func (m *manager) etcdBinaryDownloadURL(version string, fromCNRegion bool) (stri
 }
 
 func (m *manager) greptimeBinaryDownloadURL(version string, fromCNRegion bool) (string, error) {
-	// FIXME(zyy17): we should support the latest version in the future.
 	if version == LatestVersionTag && fromCNRegion {
-		return "", fmt.Errorf("can't support latest version in cn region")
+		latestVersion, err := m.getVersionInfoFromS3(ArtifactTypeBinary, GreptimeBinName, false)
+		if err != nil {
+			return "", err
+		}
+		version = latestVersion
 	}
 
 	newVersion, err := isBreakingVersion(version)
@@ -478,6 +489,44 @@ func (m *manager) installBinaries(downloadFile, installDir string) error {
 	}
 
 	return nil
+}
+
+func (m *manager) getVersionInfoFromS3(typ ArtifactType, name string, nightly bool) (string, error) {
+	var latestVersionInfoURL string
+	switch typ {
+	case ArtifactTypeChart:
+		latestVersionInfoURL = fmt.Sprintf("%s/charts/%s/latest-version.txt", GreptimeReleaseBucketCN, name)
+	case ArtifactTypeBinary:
+		if nightly {
+			latestVersionInfoURL = fmt.Sprintf("%s/%s/latest-nightly-version.txt", GreptimeReleaseBucketCN, name)
+		} else {
+			latestVersionInfoURL = fmt.Sprintf("%s/%s/latest-version.txt", GreptimeReleaseBucketCN, name)
+		}
+	default:
+		return "", fmt.Errorf("unsupported artifact type: %s", string(typ))
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, latestVersionInfoURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("get latest info from '%s' failed, status code: %d", latestVersionInfoURL, resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimRight(string(data), "\n"), nil
 }
 
 // BreakingChangeVersion is the version that the download URL of the greptime binary is changed.

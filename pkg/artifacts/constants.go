@@ -21,14 +21,17 @@ const (
 	// GreptimeChartReleaseDownloadURL is the URL of the Greptime charts that stored in the GitHub release.
 	GreptimeChartReleaseDownloadURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 
+	// Greptime release bucket public endpoint in CN region.
+	GreptimeReleaseBucketCN = "https://downloads.greptime.cn/releases"
+
 	// GreptimeCNCharts is the URL of the Greptime charts that stored in the S3 bucket of the CN region.
-	GreptimeCNCharts = "https://downloads.greptime.cn/releases/charts"
+	GreptimeCNCharts = GreptimeReleaseBucketCN + "/charts"
 
 	// GreptimeDBCNBinaries is the URL of the GreptimeDB binaries that stored in the S3 bucket of the CN region.
-	GreptimeDBCNBinaries = "https://downloads.greptime.cn/releases/greptimedb"
+	GreptimeDBCNBinaries = GreptimeReleaseBucketCN + "/greptimedb"
 
 	// EtcdCNBinaries is the URL of the etcd binaries that stored in the S3 bucket of the CN region.
-	EtcdCNBinaries = "https://downloads.greptime.cn/releases/etcd"
+	EtcdCNBinaries = GreptimeReleaseBucketCN + "/etcd"
 
 	// LatestVersionTag is the tag of the latest version.
 	LatestVersionTag = "latest"
