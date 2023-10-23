@@ -315,7 +315,7 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *Clus
 		DatanodeStorageClassName:    options.StorageClassName,
 		DatanodeStorageSize:         options.StorageSize,
 		DatanodeStorageRetainPolicy: options.StorageRetainPolicy,
-		EtcdEndPoint:                fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
+		EtcdEndPoints:               fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
 		ConfigValues:                options.Set.clusterConfig,
 		UseGreptimeCNArtifacts:      options.UseGreptimeCNArtifacts,
 		ValuesFile:                  options.GreptimeDBClusterValuesFile,

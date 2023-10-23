@@ -48,7 +48,7 @@ func TestLoadAndRenderChart(t *testing.T) {
 			DatanodeStorageClassName:    "ebs-sc",
 			DatanodeStorageSize:         "11Gi",
 			DatanodeStorageRetainPolicy: "Delete",
-			EtcdEndPoint:                "127.0.0.1:2379",
+			EtcdEndPoints:               "mycluster-etcd.default:2379",
 			InitializerImageRegistry:    "registry.cn-hangzhou.aliyuncs.com",
 			ConfigValues:                "meta.replicas=3",
 		},

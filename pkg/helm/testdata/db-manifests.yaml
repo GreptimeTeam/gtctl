@@ -21,7 +21,7 @@ spec:
   meta:
     replicas: 3
     etcdEndpoints:
-      - etcd.default.svc.cluster.local:2379
+      - mycluster-etcd.default:2379
   datanode:
     replicas: 3
     storage:
