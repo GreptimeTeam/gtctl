@@ -34,11 +34,8 @@ type Manager interface {
 	// AllocateArtifactFilePath allocates the file path of the artifact.
 	AllocateArtifactFilePath(src *artifacts.Source, installBinary bool) (string, error)
 
-	// AllocateClusterScopeDirs allocates the directories of one cluster.
-	AllocateClusterScopeDirs() error
-
-	// AllocateClusterConfigPath allocates the config path of one cluster.
-	AllocateClusterConfigPath(cfg *config.Config) error
+	// AllocateClusterScopeDirs allocates the directories and config path of one cluster.
+	AllocateClusterScopeDirs(clusterName string)
 
 	// SetHomeDir sets the home directory of the metadata manager.
 	SetHomeDir(dir string) error
@@ -47,8 +44,11 @@ type Manager interface {
 	// It should be ${HomeDir}/${BaseDir}.
 	GetWorkingDir() string
 
-	// GetClusterScopeDir returns the cluster scope directory of current cluster.
-	GetClusterScopeDir() *ClusterScopeDir
+	// CreateClusterScopeDirs creates cluster scope directories and config path that allocated by AllocateClusterScopeDirs.
+	CreateClusterScopeDirs(cfg *config.Config) error
+
+	// GetClusterScopeDirs returns the cluster scope directory of current cluster.
+	GetClusterScopeDirs() *ClusterScopeDirs
 
 	// Clean cleans up all the metadata. It will remove the working directory.
 	Clean() error
@@ -65,7 +65,7 @@ const (
 	clusterPidsDir = "pids"
 )
 
-type ClusterScopeDir struct {
+type ClusterScopeDirs struct {
 	BaseDir    string
 	LogsDir    string
 	DataDir    string
@@ -76,12 +76,12 @@ type ClusterScopeDir struct {
 type manager struct {
 	workingDir string
 
-	clusterDir *ClusterScopeDir
+	clusterDir *ClusterScopeDirs
 }
 
 var _ Manager = &manager{}
 
-func New(homeDir string, clusterName string) (Manager, error) {
+func New(homeDir string) (Manager, error) {
 	m := &manager{}
 	if homeDir == "" {
 		dir, err := os.UserHomeDir()
@@ -92,16 +92,11 @@ func New(homeDir string, clusterName string) (Manager, error) {
 	} else {
 		m.workingDir = filepath.Join(homeDir, BaseDir)
 	}
-
-	if len(clusterName) > 0 {
-		m.initClusterScopeDirs(clusterName)
-	}
-
 	return m, nil
 }
 
-func (m *manager) initClusterScopeDirs(clusterName string) {
-	csd := &ClusterScopeDir{
+func (m *manager) AllocateClusterScopeDirs(clusterName string) {
+	csd := &ClusterScopeDirs{
 		// ${HomeDir}/${BaseDir}${ClusterName}
 		BaseDir: path.Join(m.workingDir, clusterName),
 	}
@@ -137,7 +132,7 @@ func (m *manager) AllocateArtifactFilePath(src *artifacts.Source, installBinary 
 	return filePath, nil
 }
 
-func (m *manager) AllocateClusterScopeDirs() error {
+func (m *manager) CreateClusterScopeDirs(cfg *config.Config) error {
 	if m.clusterDir == nil {
 		return fmt.Errorf("unallocated cluster dir, please initialize a metadata manager with cluster name provided")
 	}
@@ -153,17 +148,6 @@ func (m *manager) AllocateClusterScopeDirs() error {
 		if err := fileutils.EnsureDir(dir); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (m *manager) AllocateClusterConfigPath(cfg *config.Config) error {
-	if m.clusterDir == nil {
-		return fmt.Errorf("unallocated cluster dir, please initialize a metadata manager with cluster name provided")
-	}
-
-	if err := fileutils.EnsureDir(m.clusterDir.BaseDir); err != nil {
-		return err
 	}
 
 	f, err := os.Create(m.clusterDir.ConfigPath)
@@ -203,7 +187,7 @@ func (m *manager) GetWorkingDir() string {
 	return m.workingDir
 }
 
-func (m *manager) GetClusterScopeDir() *ClusterScopeDir {
+func (m *manager) GetClusterScopeDirs() *ClusterScopeDirs {
 	return m.clusterDir
 }
 

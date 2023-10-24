@@ -75,7 +75,7 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 		return nil, err
 	}
 
-	mm, err := metadata.New("", clusterName)
+	mm, err := metadata.New("")
 	if err != nil {
 		return nil, err
 	}
@@ -88,21 +88,17 @@ func NewDeployer(l logger.Logger, clusterName string, opts ...Option) (Interface
 	d.am = am
 
 	if !d.createNoDirs {
-		if err = mm.AllocateClusterScopeDirs(); err != nil {
+		mm.AllocateClusterScopeDirs(clusterName)
+		if err = mm.CreateClusterScopeDirs(d.config); err != nil {
 			return nil, err
 		}
 
-		csd := mm.GetClusterScopeDir()
+		csd := mm.GetClusterScopeDirs()
 		d.bm = component.NewBareMetalCluster(d.config.Cluster, component.WorkingDirs{
 			DataDir: csd.DataDir,
 			LogsDir: csd.LogsDir,
 			PidsDir: csd.PidsDir,
 		}, &d.wg, d.logger)
-
-		// Save a copy of cluster config in yaml format.
-		if err = mm.AllocateClusterConfigPath(d.config); err != nil {
-			return nil, err
-		}
 	}
 
 	return d, nil
@@ -164,7 +160,7 @@ func WithCreateNoDirs() Option {
 }
 
 func (d *Deployer) GetGreptimeDBCluster(ctx context.Context, name string, options *GetGreptimeDBClusterOptions) (*GreptimeDBCluster, error) {
-	csd := d.mm.GetClusterScopeDir()
+	csd := d.mm.GetClusterScopeDirs()
 	_, err := os.Stat(csd.BaseDir)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("cluster %s is not exist", name)
@@ -254,7 +250,7 @@ func (d *Deployer) DeleteGreptimeDBCluster(ctx context.Context, name string, opt
 // deleteGreptimeDBClusterForeground delete the whole cluster if it runs in foreground.
 func (d *Deployer) deleteGreptimeDBClusterForeground(ctx context.Context, option component.DeleteOptions) error {
 	// No matter what options are, the config file of one cluster must be deleted.
-	csd := d.mm.GetClusterScopeDir()
+	csd := d.mm.GetClusterScopeDirs()
 	if err := os.Remove(csd.ConfigPath); err != nil {
 		return err
 	}
@@ -366,7 +362,7 @@ func (d *Deployer) checkEtcdHealth(etcdBin string) error {
 		time.Sleep(1 * time.Second)
 	}
 
-	csd := d.mm.GetClusterScopeDir()
+	csd := d.mm.GetClusterScopeDirs()
 	return fmt.Errorf("etcd is not ready in 10 second! You can find its logs in %s", path.Join(csd.LogsDir, "etcd"))
 }
 

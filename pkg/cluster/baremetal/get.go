@@ -42,7 +42,7 @@ func (c *Cluster) Get(ctx context.Context, options *opt.GetOptions) error {
 }
 
 func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*ClusterMetadata, error) {
-	csd := c.mm.GetClusterScopeDir()
+	csd := c.mm.GetClusterScopeDirs()
 	_, err := os.Stat(csd.BaseDir)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("cluster %s is not exist", options.Name)

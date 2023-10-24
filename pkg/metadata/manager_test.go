@@ -33,7 +33,7 @@ func TestMetadataManager(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	m, err := New(tempDir, "")
+	m, err := New(tempDir)
 	if err != nil {
 		t.Fatalf("failed to create metadata manager: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestMetadataManager(t *testing.T) {
 }
 
 func TestCreateMetadataManagerWithEmptyHomeDir(t *testing.T) {
-	m, err := New("", "")
+	m, err := New("")
 	if err != nil {
 		t.Fatalf("failed to create metadata manager: %v", err)
 	}
@@ -120,14 +120,15 @@ func TestCreateMetadataManagerWithEmptyHomeDir(t *testing.T) {
 }
 
 func TestMetadataManagerWithClusterConfigPath(t *testing.T) {
-	m, err := New("/tmp", "test")
+	m, err := New("/tmp")
 	assert.NoError(t, err)
 
 	expect := config.DefaultConfig()
-	err = m.AllocateClusterConfigPath(expect)
+	m.AllocateClusterScopeDirs("test")
+	err = m.CreateClusterScopeDirs(expect)
 	assert.NoError(t, err)
 
-	csd := m.GetClusterScopeDir()
+	csd := m.GetClusterScopeDirs()
 	assert.NotNil(t, csd)
 	assert.NotEmpty(t, csd.ConfigPath)
 

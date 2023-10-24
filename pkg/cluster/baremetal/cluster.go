@@ -63,7 +63,7 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Op
 	}
 
 	// Configure Metadata Manager
-	mm, err := metadata.New("", clusterName)
+	mm, err := metadata.New("")
 	if err != nil {
 		return nil, err
 	}
