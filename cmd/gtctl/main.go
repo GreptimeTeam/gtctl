@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/kind/pkg/log"
 
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
+	"github.com/GreptimeTeam/gtctl/pkg/plugins"
 	"github.com/GreptimeTeam/gtctl/pkg/version"
 )
 
@@ -41,12 +42,12 @@ func NewRootCommand() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Args:         cobra.NoArgs,
-		Use:          "gtctl",
-		Short:        "gtctl is a command-line tool for managing GreptimeDB cluster.",
-		Long:         fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", GtctlTextBanner),
-		Version:      version.Get().String(),
-		SilenceUsage: true,
+		Use:           "gtctl",
+		Short:         "gtctl is a command-line tool for managing GreptimeDB cluster.",
+		Long:          fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", GtctlTextBanner),
+		Version:       version.Get().String(),
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			type verboser interface {
 				SetVerbosity(log.Level)
@@ -71,8 +72,18 @@ func NewRootCommand() *cobra.Command {
 }
 
 func main() {
+	pm, err := plugins.NewManager()
+	if err != nil {
+		panic(err)
+	}
+
 	if err := NewRootCommand().Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		if pm.ShouldRun(err) {
+			if err := pm.Run(os.Args[1:]); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			os.Exit(0)
+		}
 	}
 }
