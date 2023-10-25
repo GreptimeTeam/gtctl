@@ -300,7 +300,7 @@ func (d *Deployer) CreateGreptimeDBCluster(ctx context.Context, clusterName stri
 		if d.config.Cluster.Artifact.Local != "" {
 			binPath = d.config.Cluster.Artifact.Local
 		} else {
-			src, err := d.am.NewSource(artifacts.GreptimeBinName, d.config.Cluster.Artifact.Version, artifacts.ArtifactTypeBinary, false)
+			src, err := d.am.NewSource(artifacts.GreptimeBinName, d.config.Cluster.Artifact.Version, artifacts.ArtifactTypeBinary, options.UseGreptimeCNArtifacts)
 			if err != nil {
 				return err
 			}
@@ -379,7 +379,7 @@ func (d *Deployer) CreateEtcdCluster(ctx context.Context, clusterName string, op
 		if d.config.Etcd.Artifact.Local != "" {
 			binPath = d.config.Etcd.Artifact.Local
 		} else {
-			src, err := d.am.NewSource(artifacts.EtcdBinName, d.config.Etcd.Artifact.Version, artifacts.ArtifactTypeBinary, false)
+			src, err := d.am.NewSource(artifacts.EtcdBinName, d.config.Etcd.Artifact.Version, artifacts.ArtifactTypeBinary, options.UseGreptimeCNArtifacts)
 			if err != nil {
 				return err
 			}

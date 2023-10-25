@@ -130,7 +130,7 @@ func (d *deployer) CreateGreptimeDBCluster(ctx context.Context, name string, opt
 	opts := &helm.LoadOptions{
 		ReleaseName:   resourceName,
 		Namespace:     resourceNamespace,
-		ChartName:     artifacts.GreptimeDBChartName,
+		ChartName:     artifacts.GreptimeDBClusterChartName,
 		ChartVersion:  options.GreptimeDBChartVersion,
 		FromCNRegion:  options.UseGreptimeCNArtifacts,
 		ValuesOptions: *options,

@@ -40,15 +40,15 @@ func TestLoadAndRenderChart(t *testing.T) {
 	opts := &LoadOptions{
 		ReleaseName:  "gtctl-ut",
 		Namespace:    "default",
-		ChartName:    artifacts.GreptimeDBChartName,
-		ChartVersion: artifacts.LatestVersionTag,
+		ChartName:    artifacts.GreptimeDBClusterChartName,
+		ChartVersion: "0.1.2",
 		FromCNRegion: false,
 		ValuesOptions: deployer.CreateGreptimeDBClusterOptions{
 			ImageRegistry:               "registry.cn-hangzhou.aliyuncs.com",
 			DatanodeStorageClassName:    "ebs-sc",
 			DatanodeStorageSize:         "11Gi",
 			DatanodeStorageRetainPolicy: "Delete",
-			EtcdEndPoint:                "127.0.0.1:2379",
+			EtcdEndPoints:               "mycluster-etcd.default:2379",
 			InitializerImageRegistry:    "registry.cn-hangzhou.aliyuncs.com",
 			ConfigValues:                "meta.replicas=3",
 		},

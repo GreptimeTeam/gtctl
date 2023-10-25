@@ -41,11 +41,11 @@ func TestMetadataManager(t *testing.T) {
 	}{
 		{
 			src: &artifacts.Source{
-				Name:    artifacts.GreptimeDBChartName,
+				Name:    artifacts.GreptimeDBClusterChartName,
 				Version: artifacts.LatestVersionTag,
 				Type:    artifacts.ArtifactTypeChart,
 			},
-			wantedDestDir: filepath.Join(tempDir, BaseDir, "artifacts", "charts", artifacts.GreptimeDBChartName, artifacts.LatestVersionTag, "pkg"),
+			wantedDestDir: filepath.Join(tempDir, BaseDir, "artifacts", "charts", artifacts.GreptimeDBClusterChartName, artifacts.LatestVersionTag, "pkg"),
 		},
 		{
 			src: &artifacts.Source{

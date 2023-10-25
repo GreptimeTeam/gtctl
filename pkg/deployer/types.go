@@ -77,7 +77,7 @@ type CreateGreptimeDBClusterOptions struct {
 	DatanodeStorageClassName    string `helm:"datanode.storage.storageClassName"`
 	DatanodeStorageSize         string `helm:"datanode.storage.storageSize"`
 	DatanodeStorageRetainPolicy string `helm:"datanode.storage.storageRetainPolicy"`
-	EtcdEndPoint                string `helm:"etcdEndpoints"`
+	EtcdEndPoints               string `helm:"meta.etcdEndpoints"`
 	ConfigValues                string `helm:"*"`
 }
 
