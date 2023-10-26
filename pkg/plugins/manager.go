@@ -27,6 +27,8 @@ const (
 	DefaultPluginPrefix = "gtctl-"
 
 	// PluginSearchPathsEnvKey is the environment variable key for the plugin search paths.
+	// If we set this variable, the plugin manager will search the paths provided by this variable.
+	// If we don't set this variable, the plugin manager will search the current working directory and the $PATH.
 	PluginSearchPathsEnvKey = "GTCTL_PLUGIN_PATHS"
 )
 
@@ -37,20 +39,27 @@ type Manager struct {
 }
 
 func NewManager() (*Manager, error) {
-	// Always search the current working directory.
-	pwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
 	m := &Manager{
 		prefix:      DefaultPluginPrefix,
-		searchPaths: []string{pwd},
+		searchPaths: []string{},
 	}
 
 	pluginSearchPaths := os.Getenv(PluginSearchPathsEnvKey)
 	if len(pluginSearchPaths) > 0 {
-		m.searchPaths = append(strings.Split(pluginSearchPaths, ":"), m.searchPaths...)
+		m.searchPaths = append(m.searchPaths, strings.Split(pluginSearchPaths, ":")...)
+	} else {
+		// Search the current working directory.
+		pwd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		m.searchPaths = append(m.searchPaths, pwd)
+
+		// Search the $PATH.
+		pathEnv := os.Getenv("PATH")
+		if len(pathEnv) > 0 {
+			m.searchPaths = append(m.searchPaths, strings.Split(pathEnv, ":")...)
+		}
 	}
 
 	return m, nil
