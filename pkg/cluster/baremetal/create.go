@@ -210,11 +210,13 @@ func (c *Cluster) Wait(ctx context.Context, close bool) error {
 		v = "unknown"
 	}
 
+	csd := c.mm.GetClusterScopeDirs()
 	if !close {
-		c.logger.V(0).Infof("The cluster(pid=%d, version=%s) is running in bare-metal mode now...\n", os.Getpid(), v)
-		c.logger.V(0).Infof("To view dashboard by accessing: %s\n", logger.Bold("http://localhost:4000/dashboard/"))
+		c.logger.V(0).Infof("The cluster(pid=%d, version=%s) is running in bare-metal mode now...", os.Getpid(), v)
+		c.logger.V(0).Infof("To view dashboard by accessing: %s", logger.Bold("http://localhost:4000/dashboard/"))
 	} else {
-		c.logger.Warnf("The cluster(pid=%d, version=%s) run in bare-metal has been shutting down...\n", os.Getpid(), v)
+		c.logger.Warnf("The cluster(pid=%d, version=%s) run in bare-metal has been shutting down...", os.Getpid(), v)
+		c.logger.Warnf("To view the failure by browsing logs in: %s", logger.Bold(csd.LogsDir))
 		return nil
 	}
 
@@ -232,6 +234,7 @@ func (c *Cluster) wait(_ context.Context) error {
 	// it is not the context of current cluster.
 	<-c.ctx.Done()
 
-	c.logger.V(3).Info("Cluster is shutting down...")
+	csd := c.mm.GetClusterScopeDirs()
+	c.logger.V(0).Infof("Cluster is shutting down, don't worry, it still remain in %s", logger.Bold(csd.BaseDir))
 	return nil
 }
