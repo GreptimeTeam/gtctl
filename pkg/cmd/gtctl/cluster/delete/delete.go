@@ -28,6 +28,8 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
+// TODO(sh2): remove this file later
+
 type deleteClusterOptions struct {
 	Namespace    string
 	TearDownEtcd bool

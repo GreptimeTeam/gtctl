@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package component
+package components
 
 import (
 	"context"
@@ -20,7 +20,10 @@ import (
 	"path"
 	"sync"
 
-	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
+	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
@@ -36,8 +39,8 @@ type frontend struct {
 	allocatedDirs
 }
 
-func newFrontend(config *config.Frontend, metaSrvAddr string, workingDirs WorkingDirs,
-	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func NewFrontend(config *config.Frontend, metaSrvAddr string, workingDirs WorkingDirs,
+	wg *sync.WaitGroup, logger logger.Logger) ClusterComponent {
 	return &frontend{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
@@ -48,10 +51,10 @@ func newFrontend(config *config.Frontend, metaSrvAddr string, workingDirs Workin
 }
 
 func (f *frontend) Name() string {
-	return Frontend
+	return string(greptimedbclusterv1alpha1.FrontendComponentKind)
 }
 
-func (f *frontend) Start(ctx context.Context, binary string) error {
+func (f *frontend) Start(ctx context.Context, stop context.CancelFunc, binary string) error {
 	for i := 0; i < f.config.Replicas; i++ {
 		dirName := fmt.Sprintf("%s.%d", f.Name(), i)
 
@@ -72,9 +75,9 @@ func (f *frontend) Start(ctx context.Context, binary string) error {
 			Name:   dirName,
 			logDir: frontendLogDir,
 			pidDir: frontendPidDir,
-			args:   f.BuildArgs(ctx),
+			args:   f.BuildArgs(),
 		}
-		if err := runBinary(ctx, option, f.wg, f.logger); err != nil {
+		if err := runBinary(ctx, stop, option, f.wg, f.logger); err != nil {
 			return err
 		}
 	}
@@ -82,10 +85,10 @@ func (f *frontend) Start(ctx context.Context, binary string) error {
 	return nil
 }
 
-func (f *frontend) BuildArgs(ctx context.Context, params ...interface{}) []string {
+func (f *frontend) BuildArgs(_ ...interface{}) []string {
 	logLevel := f.config.LogLevel
 	if logLevel == "" {
-		logLevel = config.DefaultLogLevel
+		logLevel = DefaultLogLevel
 	}
 
 	args := []string{
@@ -101,13 +104,13 @@ func (f *frontend) BuildArgs(ctx context.Context, params ...interface{}) []strin
 	return args
 }
 
-func (f *frontend) IsRunning(ctx context.Context) bool {
+func (f *frontend) IsRunning(_ context.Context) bool {
 	// Have not implemented the healthy checker now.
 	return false
 }
 
-func (f *frontend) Delete(ctx context.Context, option DeleteOptions) error {
-	if err := f.delete(ctx, option); err != nil {
+func (f *frontend) Delete(ctx context.Context, options *opt.DeleteOptions) error {
+	if err := f.delete(ctx, options); err != nil {
 		return err
 	}
 

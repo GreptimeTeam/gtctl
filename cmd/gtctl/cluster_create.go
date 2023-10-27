@@ -17,15 +17,19 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 
 	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/cluster/baremetal"
 	"github.com/GreptimeTeam/gtctl/pkg/cluster/kubernetes"
+	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/status"
 )
@@ -64,7 +68,6 @@ type clusterCreateCliOptions struct {
 	Config             string
 	GreptimeBinVersion string
 	EnableCache        bool
-	RetainLogs         bool
 
 	// Common options.
 	Timeout int
@@ -103,10 +106,10 @@ func (c *configValues) parseConfig() error {
 
 		for _, value := range values {
 			value = strings.Trim(value, " ")
-			config := strings.SplitN(value, ".", 2)
-			configPrefix = config[0]
-			if len(config) == 2 {
-				configValue = config[1]
+			cfg := strings.SplitN(value, ".", 2)
+			configPrefix = cfg[0]
+			if len(cfg) == 2 {
+				configValue = cfg[1]
 			} else {
 				configValue = configPrefix
 			}
@@ -127,11 +130,9 @@ func (c *configValues) parseConfig() error {
 	if len(operatorConfig) > 0 {
 		c.operatorConfig = strings.Join(operatorConfig, ",")
 	}
-
 	if len(clusterConfig) > 0 {
 		c.clusterConfig = strings.Join(clusterConfig, ",")
 	}
-
 	if len(etcdConfig) > 0 {
 		c.etcdConfig = strings.Join(etcdConfig, ",")
 	}
@@ -171,7 +172,6 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.GreptimeBinVersion, "greptime-bin-version", "", "The version of greptime binary(can be override by config file).")
 	cmd.Flags().StringVar(&options.Config, "config", "", "Configuration to deploy the greptimedb cluster on bare-metal environment.")
 	cmd.Flags().BoolVar(&options.EnableCache, "enable-cache", true, "If true, enable cache for downloading artifacts(charts and binaries).")
-	cmd.Flags().BoolVar(&options.RetainLogs, "retain-logs", true, "If true, always retain the logs of binary.")
 	cmd.Flags().BoolVar(&options.UseGreptimeCNArtifacts, "use-greptime-cn-artifacts", false, "If true, use greptime-cn artifacts(charts and binaries).")
 	cmd.Flags().StringVar(&options.GreptimeDBClusterValuesFile, "greptimedb-cluster-values-file", "", "The values file for greptimedb cluster.")
 	cmd.Flags().StringVar(&options.EtcdClusterValuesFile, "etcd-cluster-values-file", "", "The values file for etcd cluster.")
@@ -243,26 +243,56 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 		},
 	}
 
+	var cluster opt.Operations
 	if options.BareMetal {
-		// TODO(sh2): implement later
 		l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal", logger.Bold(clusterName))
 
+		var opts []baremetal.Option
+		opts = append(opts, baremetal.WithEnableCache(options.EnableCache))
+		if len(options.GreptimeBinVersion) > 0 {
+			opts = append(opts, baremetal.WithGreptimeVersion(options.GreptimeBinVersion))
+		}
+		if len(options.Config) > 0 {
+			var cfg config.BareMetalClusterConfig
+			raw, err := os.ReadFile(options.Config)
+			if err != nil {
+				return err
+			}
+			if err = yaml.Unmarshal(raw, &cfg); err != nil {
+				return err
+			}
+
+			opts = append(opts, baremetal.WithReplaceConfig(&cfg))
+		}
+
+		cluster, err = baremetal.NewCluster(l, clusterName, opts...)
+		if err != nil {
+			return err
+		}
 	} else {
 		l.V(0).Infof("Creating GreptimeDB cluster '%s' in namespace '%s'", logger.Bold(clusterName), logger.Bold(options.Namespace))
 
-		cluster, err := kubernetes.NewCluster(l,
+		cluster, err = kubernetes.NewCluster(l,
 			kubernetes.WithDryRun(options.DryRun),
 			kubernetes.WithTimeout(time.Duration(options.Timeout)*time.Second))
 		if err != nil {
 			return err
 		}
-		if err = cluster.Create(ctx, createOptions, spinner); err != nil {
-			return err
-		}
+	}
+
+	if err = cluster.Create(ctx, createOptions, spinner); err != nil {
+		return err
 	}
 
 	if !options.DryRun {
 		printTips(l, clusterName, options)
+	}
+
+	if options.BareMetal {
+		bm, _ := cluster.(*baremetal.Cluster)
+		if err = bm.Wait(ctx, false); err != nil {
+			return err
+		}
 	}
 
 	return nil

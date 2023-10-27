@@ -35,7 +35,6 @@ func NewPlaygroundCommand(l logger.Logger) *cobra.Command {
 			playgroundName := codename.Generate(rng, 0)
 			playgroundOptions := &clusterCreateCliOptions{
 				BareMetal:   true,
-				RetainLogs:  false,
 				Timeout:     900, // 15min
 				EnableCache: false,
 			}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package baremetal
+package config
 
 import (
 	"time"
@@ -20,40 +20,26 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 )
 
-const (
-	// GtctlDir is the root directory that contains states of cluster info.
-	GtctlDir = ".gtctl"
-	LogsDir  = "logs"
-	DataDir  = "data"
-	PidsDir  = "pids"
-
-	DataHomeDir = "home"
-	DataWalDir  = "wal"
-
-	DefaultLogLevel = "info"
-)
-
-// ClusterMetadata stores metadata of a GreptimeDB cluster with Config nested.
-type ClusterMetadata struct {
-	*Config
-
-	CreationDate  time.Time `yaml:"creationDate"`
-	ClusterDir    string    `yaml:"clusterDir"`
-	ForegroundPid int       `yaml:"foregroundPid"`
+// BareMetalClusterMetadata stores metadata of a GreptimeDB cluster.
+type BareMetalClusterMetadata struct {
+	Config        *BareMetalClusterConfig `yaml:"config"`
+	CreationDate  time.Time               `yaml:"creationDate"`
+	ClusterDir    string                  `yaml:"clusterDir"`
+	ForegroundPid int                     `yaml:"foregroundPid"`
 }
 
-// Config is the desired state of a GreptimeDB cluster on bare metal.
+// BareMetalClusterConfig is the desired state of a GreptimeDB cluster on bare metal.
 //
-// The field of Config that with `validate` tag will be validated
+// The field of BareMetalClusterConfig that with `validate` tag will be validated
 // against its requirement. Each filed has only one requirement.
 //
-// Each field of Config can also have its own exported method `Validate`.
-type Config struct {
-	Cluster *ClusterConfig `yaml:"cluster" validate:"required"`
-	Etcd    *Etcd          `yaml:"etcd" validate:"required"`
+// Each field of BareMetalClusterConfig can also have its own exported method `Validate`.
+type BareMetalClusterConfig struct {
+	Cluster *BareMetalClusterComponentsConfig `yaml:"cluster" validate:"required"`
+	Etcd    *Etcd                             `yaml:"etcd" validate:"required"`
 }
 
-type ClusterConfig struct {
+type BareMetalClusterComponentsConfig struct {
 	Artifact *Artifact `yaml:"artifact" validate:"required"`
 	Frontend *Frontend `yaml:"frontend" validate:"required"`
 	MetaSrv  *MetaSrv  `yaml:"meta" validate:"required"`
@@ -108,9 +94,9 @@ type Etcd struct {
 	Artifact *Artifact `yaml:"artifact" validate:"required"`
 }
 
-func DefaultConfig() *Config {
-	return &Config{
-		Cluster: &ClusterConfig{
+func DefaultBareMetalConfig() *BareMetalClusterConfig {
+	return &BareMetalClusterConfig{
+		Cluster: &BareMetalClusterComponentsConfig{
 			Artifact: &Artifact{
 				Version: artifacts.LatestVersionTag,
 			},

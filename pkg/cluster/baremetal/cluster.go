@@ -22,34 +22,74 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 	"github.com/GreptimeTeam/gtctl/pkg/cluster"
-	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
+	"github.com/GreptimeTeam/gtctl/pkg/components"
+	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/metadata"
 )
 
 type Cluster struct {
-	logger logger.Logger
-	config *Config
-	wg     sync.WaitGroup
-	ctx    context.Context
-
+	config       *config.BareMetalClusterConfig
 	createNoDirs bool
 	enableCache  bool
 
 	am artifacts.Manager
 	mm metadata.Manager
-	bm *component.BareMetalCluster
+	cc *ClusterComponents
+
+	logger logger.Logger
+	stop   context.CancelFunc
+	ctx    context.Context
+	wg     sync.WaitGroup
+}
+
+// ClusterComponents describes all the components need to be deployed under bare-metal mode.
+type ClusterComponents struct {
+	MetaSrv  components.ClusterComponent
+	Datanode components.ClusterComponent
+	Frontend components.ClusterComponent
+	Etcd     components.ClusterComponent
+}
+
+func NewClusterComponents(config *config.BareMetalClusterComponentsConfig, workingDirs components.WorkingDirs,
+	wg *sync.WaitGroup, logger logger.Logger) *ClusterComponents {
+	return &ClusterComponents{
+		MetaSrv:  components.NewMetaSrv(config.MetaSrv, workingDirs, wg, logger),
+		Datanode: components.NewDataNode(config.Datanode, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
+		Frontend: components.NewFrontend(config.Frontend, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
+		Etcd:     components.NewEtcd(workingDirs, wg, logger),
+	}
 }
 
 type Option func(cluster *Cluster)
 
+// WithReplaceConfig replaces current cluster config with given config.
+func WithReplaceConfig(cfg *config.BareMetalClusterConfig) Option {
+	return func(d *Cluster) {
+		d.config = cfg
+	}
+}
+
+func WithGreptimeVersion(version string) Option {
+	return func(d *Cluster) {
+		d.config.Cluster.Artifact.Version = version
+	}
+}
+
+func WithEnableCache(enableCache bool) Option {
+	return func(d *Cluster) {
+		d.enableCache = enableCache
+	}
+}
+
 func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Operations, error) {
-	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
 	c := &Cluster{
 		logger: l,
-		config: DefaultConfig(),
+		config: config.DefaultBareMetalConfig(),
 		ctx:    ctx,
+		stop:   stop,
 	}
 
 	for _, opt := range opts {
@@ -58,7 +98,7 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Op
 		}
 	}
 
-	if err := ValidateConfig(c.config); err != nil {
+	if err := config.ValidateConfig(c.config); err != nil {
 		return nil, err
 	}
 
@@ -76,8 +116,20 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Op
 	}
 	c.am = am
 
-	// TODO(sh2): implement it in the following PR
-	// if !cluster.createNoDirs {}
+	// Configure Cluster Components.
+	if !c.createNoDirs {
+		mm.AllocateClusterScopeDirs(clusterName)
+		if err = mm.CreateClusterScopeDirs(c.config); err != nil {
+			return nil, err
+		}
+
+		csd := mm.GetClusterScopeDirs()
+		c.cc = NewClusterComponents(c.config.Cluster, components.WorkingDirs{
+			DataDir: csd.DataDir,
+			LogsDir: csd.LogsDir,
+			PidsDir: csd.PidsDir,
+		}, &c.wg, c.logger)
+	}
 
 	return c, nil
 }

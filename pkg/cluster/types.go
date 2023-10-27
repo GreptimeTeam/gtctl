@@ -36,6 +36,8 @@ type Operations interface {
 
 	// Create creates a new cluster.
 	Create(ctx context.Context, options *CreateOptions, spinner *status.Spinner) error
+
+	// TODO(sh2): Delete API
 }
 
 type GetOptions struct {
@@ -57,6 +59,8 @@ type ScaleOptions struct {
 	Name          string
 	ComponentType greptimedbclusterv1alpha1.ComponentKind
 }
+
+type DeleteOptions struct{}
 
 type CreateOptions struct {
 	Namespace string

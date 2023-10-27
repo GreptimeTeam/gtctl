@@ -18,6 +18,8 @@ import (
 	"context"
 )
 
+// TODO(sh2): remove this file later
+
 // Interface is the general interface to handle the deployment of GreptimeDB cluster in different environment.
 type Interface interface {
 	// GetGreptimeDBCluster get the current deployed GreptimeDBCluster by its name.

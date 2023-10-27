@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package component
+package components
 
 import (
 	"context"
@@ -24,7 +24,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
@@ -39,8 +40,8 @@ type metaSrv struct {
 	allocatedDirs
 }
 
-func newMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
-	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func NewMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
+	wg *sync.WaitGroup, logger logger.Logger) ClusterComponent {
 	return &metaSrv{
 		config:      config,
 		workingDirs: workingDirs,
@@ -50,10 +51,10 @@ func newMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
 }
 
 func (m *metaSrv) Name() string {
-	return MetaSrv
+	return "metasrv"
 }
 
-func (m *metaSrv) Start(ctx context.Context, binary string) error {
+func (m *metaSrv) Start(ctx context.Context, stop context.CancelFunc, binary string) error {
 	// Default bind address for meta srv.
 	bindAddr := net.JoinHostPort("127.0.0.1", "3002")
 	if len(m.config.BindAddr) > 0 {
@@ -80,9 +81,9 @@ func (m *metaSrv) Start(ctx context.Context, binary string) error {
 			Name:   dirName,
 			logDir: metaSrvLogDir,
 			pidDir: metaSrvPidDir,
-			args:   m.BuildArgs(ctx, i, bindAddr),
+			args:   m.BuildArgs(i, bindAddr),
 		}
-		if err := runBinary(ctx, option, m.wg, m.logger); err != nil {
+		if err := runBinary(ctx, stop, option, m.wg, m.logger); err != nil {
 			return err
 		}
 	}
@@ -106,10 +107,10 @@ CHECKER:
 	return nil
 }
 
-func (m *metaSrv) BuildArgs(ctx context.Context, params ...interface{}) []string {
+func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 	logLevel := m.config.LogLevel
 	if logLevel == "" {
-		logLevel = config.DefaultLogLevel
+		logLevel = DefaultLogLevel
 	}
 
 	nodeID_, bindAddr_ := params[0], params[1]
@@ -132,7 +133,7 @@ func (m *metaSrv) BuildArgs(ctx context.Context, params ...interface{}) []string
 	return args
 }
 
-func (m *metaSrv) IsRunning(ctx context.Context) bool {
+func (m *metaSrv) IsRunning(_ context.Context) bool {
 	for i := 0; i < m.config.Replicas; i++ {
 		addr := generateMetaSrvAddr(m.config.HTTPAddr, i)
 		_, httpPort, err := net.SplitHostPort(addr)
@@ -159,8 +160,8 @@ func (m *metaSrv) IsRunning(ctx context.Context) bool {
 	return true
 }
 
-func (m *metaSrv) Delete(ctx context.Context, option DeleteOptions) error {
-	if err := m.delete(ctx, option); err != nil {
+func (m *metaSrv) Delete(ctx context.Context, options *opt.DeleteOptions) error {
+	if err := m.delete(ctx, options); err != nil {
 		return err
 	}
 	return nil

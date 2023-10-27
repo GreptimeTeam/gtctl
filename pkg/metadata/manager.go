@@ -24,7 +24,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
-	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
+	"github.com/GreptimeTeam/gtctl/pkg/config"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
@@ -45,7 +45,7 @@ type Manager interface {
 	GetWorkingDir() string
 
 	// CreateClusterScopeDirs creates cluster scope directories and config path that allocated by AllocateClusterScopeDirs.
-	CreateClusterScopeDirs(cfg *config.Config) error
+	CreateClusterScopeDirs(cfg *config.BareMetalClusterConfig) error
 
 	// GetClusterScopeDirs returns the cluster scope directory of current cluster.
 	GetClusterScopeDirs() *ClusterScopeDirs
@@ -59,10 +59,9 @@ const (
 	// all the metadata will be stored in ${HomeDir}/${BaseDir}.
 	BaseDir = ".gtctl"
 
-	// Default cluster scope directories.
-	clusterLogsDir = "logs"
-	clusterDataDir = "data"
-	clusterPidsDir = "pids"
+	ClusterLogsDir = "logs"
+	ClusterDataDir = "data"
+	ClusterPidsDir = "pids"
 )
 
 type ClusterScopeDirs struct {
@@ -102,11 +101,11 @@ func (m *manager) AllocateClusterScopeDirs(clusterName string) {
 	}
 
 	// ${HomeDir}/${BaseDir}/${ClusterName}/logs
-	csd.LogsDir = path.Join(csd.BaseDir, clusterLogsDir)
+	csd.LogsDir = path.Join(csd.BaseDir, ClusterLogsDir)
 	// ${HomeDir}/${BaseDir}/${ClusterName}/data
-	csd.DataDir = path.Join(csd.BaseDir, clusterDataDir)
+	csd.DataDir = path.Join(csd.BaseDir, ClusterDataDir)
 	// ${HomeDir}/${BaseDir}/${ClusterName}/pids
-	csd.PidsDir = path.Join(csd.BaseDir, clusterPidsDir)
+	csd.PidsDir = path.Join(csd.BaseDir, ClusterPidsDir)
 	// ${HomeDir}/${BaseDir}/${ClusterName}/${ClusterName}.yaml
 	csd.ConfigPath = filepath.Join(csd.BaseDir, fmt.Sprintf("%s.yaml", clusterName))
 
@@ -132,7 +131,7 @@ func (m *manager) AllocateArtifactFilePath(src *artifacts.Source, installBinary 
 	return filePath, nil
 }
 
-func (m *manager) CreateClusterScopeDirs(cfg *config.Config) error {
+func (m *manager) CreateClusterScopeDirs(cfg *config.BareMetalClusterConfig) error {
 	if m.clusterDir == nil {
 		return fmt.Errorf("unallocated cluster dir, please initialize a metadata manager with cluster name provided")
 	}
@@ -155,7 +154,7 @@ func (m *manager) CreateClusterScopeDirs(cfg *config.Config) error {
 		return err
 	}
 
-	metaConfig := config.RuntimeConfig{
+	metaConfig := config.BareMetalClusterMetadata{
 		Config:        cfg,
 		CreationDate:  time.Now(),
 		ClusterDir:    m.clusterDir.BaseDir,

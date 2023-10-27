@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
-	"github.com/GreptimeTeam/gtctl/pkg/status"
 )
 
 func (c *Cluster) List(ctx context.Context, options *opt.ListOptions) error {
@@ -27,9 +26,5 @@ func (c *Cluster) List(ctx context.Context, options *opt.ListOptions) error {
 }
 
 func (c *Cluster) Scale(ctx context.Context, options *opt.ScaleOptions) error {
-	return fmt.Errorf("do not support")
-}
-
-func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions, spinner *status.Spinner) error {
 	return fmt.Errorf("do not support")
 }
