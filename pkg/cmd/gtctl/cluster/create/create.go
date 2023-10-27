@@ -26,7 +26,6 @@ import (
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/common"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/component"
@@ -286,7 +285,7 @@ func deployEtcdCluster(ctx context.Context, l logger.Logger, options *ClusterCli
 	if options.BareMetal {
 		name = clusterName
 	} else {
-		name = types.NamespacedName{Namespace: options.EtcdNamespace, Name: common.EtcdClusterName(clusterName)}.String()
+		name = types.NamespacedName{Namespace: options.EtcdNamespace, Name: etcdClusterName(clusterName)}.String()
 	}
 
 	if err := clusterDeployer.CreateEtcdCluster(ctx, name, createEtcdClusterOptions); err != nil {
@@ -315,7 +314,7 @@ func deployGreptimeDBCluster(ctx context.Context, l logger.Logger, options *Clus
 		DatanodeStorageClassName:    options.StorageClassName,
 		DatanodeStorageSize:         options.StorageSize,
 		DatanodeStorageRetainPolicy: options.StorageRetainPolicy,
-		EtcdEndPoints:               fmt.Sprintf("%s.%s:2379", common.EtcdClusterName(clusterName), options.EtcdNamespace),
+		EtcdEndPoints:               fmt.Sprintf("%s.%s:2379", etcdClusterName(clusterName), options.EtcdNamespace),
 		ConfigValues:                options.Set.clusterConfig,
 		UseGreptimeCNArtifacts:      options.UseGreptimeCNArtifacts,
 		ValuesFile:                  options.GreptimeDBClusterValuesFile,
@@ -378,4 +377,8 @@ func waitChildProcess(ctx context.Context, deployer deployer.Interface, close bo
 		}
 	}
 	return nil
+}
+
+func etcdClusterName(clusterName string) string {
+	return fmt.Sprintf("%s-etcd", clusterName)
 }

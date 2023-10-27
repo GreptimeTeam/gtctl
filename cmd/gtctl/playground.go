@@ -18,7 +18,6 @@ import (
 	"github.com/lucasepe/codename"
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/create"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
@@ -26,7 +25,7 @@ func NewPlaygroundCommand(l logger.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "playground",
 		Short: "Starts a GreptimeDB cluster playground",
-		Long:  "Starts a GreptimeDB cluster playground in bare-metal",
+		Long:  "Starts a GreptimeDB cluster playground in bare-metal mode",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rng, err := codename.DefaultRNG()
 			if err != nil {
@@ -34,17 +33,14 @@ func NewPlaygroundCommand(l logger.Logger) *cobra.Command {
 			}
 
 			playgroundName := codename.Generate(rng, 0)
-			playgroundOptions := create.ClusterCliOptions{
+			playgroundOptions := &clusterCreateCliOptions{
 				BareMetal:   true,
 				RetainLogs:  false,
 				Timeout:     900, // 15min
 				EnableCache: false,
 			}
 
-			if err = create.NewCluster([]string{playgroundName}, playgroundOptions, l); err != nil {
-				return err
-			}
-			return nil
+			return NewCluster([]string{playgroundName}, playgroundOptions, l)
 		},
 	}
 }

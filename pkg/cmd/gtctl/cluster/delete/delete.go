@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/common"
 	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
@@ -81,7 +80,7 @@ func NewDeleteClusterCommand(l logger.Logger) *cobra.Command {
 			if options.TearDownEtcd {
 				etcdNamespace := strings.Split(strings.Split(rawCluster.Spec.Meta.EtcdEndpoints[0], ".")[1], ":")[0]
 				l.V(0).Infof("Deleting etcd cluster in namespace '%s'...\n", logger.Bold(etcdNamespace))
-				name = types.NamespacedName{Namespace: etcdNamespace, Name: common.EtcdClusterName(clusterName)}.String()
+				name = types.NamespacedName{Namespace: etcdNamespace, Name: EtcdClusterName(clusterName)}.String()
 				if err := k8sDeployer.DeleteEtcdCluster(ctx, name, nil); err != nil {
 					return err
 				}
@@ -96,4 +95,8 @@ func NewDeleteClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().BoolVar(&options.TearDownEtcd, "tear-down-etcd", false, "Tear down etcd cluster.")
 
 	return cmd
+}
+
+func EtcdClusterName(clusterName string) string {
+	return fmt.Sprintf("%s-etcd", clusterName)
 }

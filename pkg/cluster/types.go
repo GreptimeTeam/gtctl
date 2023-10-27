@@ -19,6 +19,8 @@ import (
 
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/olekukonko/tablewriter"
+
+	"github.com/GreptimeTeam/gtctl/pkg/status"
 )
 
 type Operations interface {
@@ -32,7 +34,8 @@ type Operations interface {
 	// and refill the OldReplicas in ScaleOptions.
 	Scale(ctx context.Context, options *ScaleOptions) error
 
-	// TODO(sh2): implementing Create and Delete
+	// Create creates a new cluster.
+	Create(ctx context.Context, options *CreateOptions, spinner *status.Spinner) error
 }
 
 type GetOptions struct {
@@ -53,4 +56,52 @@ type ScaleOptions struct {
 	Namespace     string
 	Name          string
 	ComponentType greptimedbclusterv1alpha1.ComponentKind
+}
+
+type CreateOptions struct {
+	Namespace string
+	Name      string
+
+	Cluster  *CreateClusterOptions
+	Operator *CreateOperatorOptions
+	Etcd     *CreateEtcdOptions
+}
+
+// CreateClusterOptions is the options to create a GreptimeDB cluster.
+type CreateClusterOptions struct {
+	GreptimeDBChartVersion string
+	UseGreptimeCNArtifacts bool
+	ValuesFile             string
+
+	ImageRegistry               string `helm:"image.registry"`
+	InitializerImageRegistry    string `helm:"initializer.registry"`
+	DatanodeStorageClassName    string `helm:"datanode.storage.storageClassName"`
+	DatanodeStorageSize         string `helm:"datanode.storage.storageSize"`
+	DatanodeStorageRetainPolicy string `helm:"datanode.storage.storageRetainPolicy"`
+	EtcdEndPoints               string `helm:"meta.etcdEndpoints"`
+	ConfigValues                string `helm:"*"`
+}
+
+// CreateOperatorOptions is the options to create a GreptimeDB operator.
+type CreateOperatorOptions struct {
+	GreptimeDBOperatorChartVersion string
+	UseGreptimeCNArtifacts         bool
+	ValuesFile                     string
+
+	ImageRegistry string `helm:"image.registry"`
+	ConfigValues  string `helm:"*"`
+}
+
+// CreateEtcdOptions is the options to create an etcd cluster.
+type CreateEtcdOptions struct {
+	EtcdChartVersion       string
+	UseGreptimeCNArtifacts bool
+	ValuesFile             string
+
+	// The parameters reference: https://artifacthub.io/packages/helm/bitnami/etcd.
+	EtcdClusterSize      string `helm:"replicaCount"`
+	ImageRegistry        string `helm:"image.registry"`
+	EtcdStorageClassName string `helm:"persistence.storageClass"`
+	EtcdStorageSize      string `helm:"persistence.size"`
+	ConfigValues         string `helm:"*"`
 }

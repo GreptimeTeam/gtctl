@@ -34,6 +34,20 @@ type Cluster struct {
 
 type Option func(cluster *Cluster)
 
+// WithDryRun enables Cluster to dry run.
+func WithDryRun(dryRun bool) Option {
+	return func(d *Cluster) {
+		d.dryRun = dryRun
+	}
+}
+
+// WithTimeout enables Cluster to have a timeout.
+func WithTimeout(timeout time.Duration) Option {
+	return func(d *Cluster) {
+		d.timeout = timeout
+	}
+}
+
 func NewCluster(l logger.Logger, opts ...Option) (cluster.Operations, error) {
 	hl, err := helm.NewLoader(l)
 	if err != nil {
