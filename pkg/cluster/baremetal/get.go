@@ -27,6 +27,8 @@ import (
 	"gopkg.in/yaml.v3"
 
 	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
+	cfg "github.com/GreptimeTeam/gtctl/pkg/config"
+	"github.com/GreptimeTeam/gtctl/pkg/metadata"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
@@ -41,7 +43,7 @@ func (c *Cluster) Get(ctx context.Context, options *opt.GetOptions) error {
 	return nil
 }
 
-func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*ClusterMetadata, error) {
+func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*cfg.BareMetalClusterMetadata, error) {
 	csd := c.mm.GetClusterScopeDirs()
 	_, err := os.Stat(csd.BaseDir)
 	if os.IsNotExist(err) {
@@ -59,7 +61,7 @@ func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*ClusterMetad
 		return nil, fmt.Errorf("cluster %s is not exist", options.Name)
 	}
 
-	var cluster ClusterMetadata
+	var cluster cfg.BareMetalClusterMetadata
 	in, err := os.ReadFile(csd.ConfigPath)
 	if err != nil {
 		return nil, err
@@ -76,7 +78,7 @@ func (c *Cluster) configGetView(table *tablewriter.Table) {
 	table.SetRowLine(true)
 }
 
-func (c *Cluster) renderGetView(table *tablewriter.Table, data *ClusterMetadata) {
+func (c *Cluster) renderGetView(table *tablewriter.Table, data *cfg.BareMetalClusterMetadata) {
 	c.configGetView(table)
 
 	headers, footers, bulk := collectClusterInfoFromBareMetal(data)
@@ -89,11 +91,11 @@ func (c *Cluster) renderGetView(table *tablewriter.Table, data *ClusterMetadata)
 	}
 }
 
-func collectClusterInfoFromBareMetal(data *ClusterMetadata) (
+func collectClusterInfoFromBareMetal(data *cfg.BareMetalClusterMetadata) (
 	headers, footers []string, bulk [][]string) {
 	headers = []string{"COMPONENT", "PID"}
 
-	pidsDir := path.Join(data.ClusterDir, PidsDir)
+	pidsDir := path.Join(data.ClusterDir, metadata.ClusterPidsDir)
 	pidsMap := collectPidsForBareMetal(pidsDir)
 
 	var (
@@ -110,18 +112,18 @@ func collectClusterInfoFromBareMetal(data *ClusterMetadata) (
 		}
 	)
 
-	rows(string(greptimedbclusterv1alpha1.FrontendComponentKind), data.Cluster.Frontend.Replicas)
-	rows(string(greptimedbclusterv1alpha1.DatanodeComponentKind), data.Cluster.Datanode.Replicas)
-	rows(string(greptimedbclusterv1alpha1.MetaComponentKind), data.Cluster.MetaSrv.Replicas)
+	rows(string(greptimedbclusterv1alpha1.FrontendComponentKind), data.Config.Cluster.Frontend.Replicas)
+	rows(string(greptimedbclusterv1alpha1.DatanodeComponentKind), data.Config.Cluster.Datanode.Replicas)
+	rows(string(greptimedbclusterv1alpha1.MetaComponentKind), data.Config.Cluster.MetaSrv.Replicas)
 
-	// TODO(sh2): make "etcd" a const
+	// TODO(sh2): make "etcd" a const?
 	bulk = append(bulk, []string{"etcd", pidsMap["etcd"]})
 
 	config, err := yaml.Marshal(data.Config)
 	footers = []string{
 		fmt.Sprintf("CREATION-DATE: %s", date),
-		fmt.Sprintf("GREPTIMEDB-VERSION: %s", data.Cluster.Artifact.Version),
-		fmt.Sprintf("ETCD-VERSION: %s", data.Etcd.Artifact.Version),
+		fmt.Sprintf("GREPTIMEDB-VERSION: %s", data.Config.Cluster.Artifact.Version),
+		fmt.Sprintf("ETCD-VERSION: %s", data.Config.Etcd.Artifact.Version),
 		fmt.Sprintf("CLUSTER-DIR: %s", data.ClusterDir),
 	}
 	if err != nil {
@@ -139,7 +141,7 @@ func collectPidsForBareMetal(pidsDir string) map[string]string {
 
 	if err := filepath.WalkDir(pidsDir, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
-			if d.Name() == PidsDir {
+			if d.Name() == metadata.ClusterPidsDir {
 				return nil
 			}
 

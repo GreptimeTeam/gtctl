@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package component
+package components
 
 import (
 	"context"
@@ -24,9 +24,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
+	greptimev1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
+
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
+)
+
+const (
+	dataHomeDir = "home"
+	dataWalDir  = "wal"
 )
 
 type datanode struct {
@@ -41,8 +49,8 @@ type datanode struct {
 	allocatedDirs
 }
 
-func newDataNode(config *config.Datanode, metaSrvAddr string, workingDirs WorkingDirs,
-	wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func NewDataNode(config *config.Datanode, metaSrvAddr string, workingDirs WorkingDirs,
+	wg *sync.WaitGroup, logger logger.Logger) ClusterComponent {
 	return &datanode{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
@@ -53,18 +61,18 @@ func newDataNode(config *config.Datanode, metaSrvAddr string, workingDirs Workin
 }
 
 func (d *datanode) Name() string {
-	return DataNode
+	return string(greptimev1alpha1.DatanodeComponentKind)
 }
 
-func (d *datanode) Start(ctx context.Context, binary string) error {
+func (d *datanode) Start(ctx context.Context, stop context.CancelFunc, binary string) error {
 	for i := 0; i < d.config.Replicas; i++ {
 		dirName := fmt.Sprintf("%s.%d", d.Name(), i)
 
-		dataHomeDir := path.Join(d.workingDirs.DataDir, dirName, config.DataHomeDir)
-		if err := fileutils.EnsureDir(dataHomeDir); err != nil {
+		homeDir := path.Join(d.workingDirs.DataDir, dirName, dataHomeDir)
+		if err := fileutils.EnsureDir(homeDir); err != nil {
 			return err
 		}
-		d.dataHomeDirs = append(d.dataHomeDirs, dataHomeDir)
+		d.dataHomeDirs = append(d.dataHomeDirs, homeDir)
 
 		datanodeLogDir := path.Join(d.workingDirs.LogsDir, dirName)
 		if err := fileutils.EnsureDir(datanodeLogDir); err != nil {
@@ -78,7 +86,7 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 		}
 		d.pidsDirs = append(d.pidsDirs, datanodePidDir)
 
-		walDir := path.Join(d.workingDirs.DataDir, dirName, config.DataWalDir)
+		walDir := path.Join(d.workingDirs.DataDir, dirName, dataWalDir)
 		if err := fileutils.EnsureDir(walDir); err != nil {
 			return err
 		}
@@ -89,9 +97,9 @@ func (d *datanode) Start(ctx context.Context, binary string) error {
 			Name:   dirName,
 			logDir: datanodeLogDir,
 			pidDir: datanodePidDir,
-			args:   d.BuildArgs(ctx, i, walDir, dataHomeDir),
+			args:   d.BuildArgs(i, walDir, homeDir),
 		}
-		if err := runBinary(ctx, option, d.wg, d.logger); err != nil {
+		if err := runBinary(ctx, stop, option, d.wg, d.logger); err != nil {
 			return err
 		}
 	}
@@ -115,13 +123,13 @@ CHECKER:
 	return nil
 }
 
-func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []string {
+func (d *datanode) BuildArgs(params ...interface{}) []string {
 	logLevel := d.config.LogLevel
 	if logLevel == "" {
-		logLevel = config.DefaultLogLevel
+		logLevel = DefaultLogLevel
 	}
 
-	nodeID_, _, dataHomeDir := params[0], params[1], params[2]
+	nodeID_, _, homeDir := params[0], params[1], params[2]
 	nodeID := nodeID_.(int)
 
 	args := []string{
@@ -131,7 +139,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 		fmt.Sprintf("--metasrv-addr=%s", d.metaSrvAddr),
 		fmt.Sprintf("--rpc-addr=%s", generateDatanodeAddr(d.config.RPCAddr, nodeID)),
 		fmt.Sprintf("--http-addr=%s", generateDatanodeAddr(d.config.HTTPAddr, nodeID)),
-		fmt.Sprintf("--data-home=%s", dataHomeDir),
+		fmt.Sprintf("--data-home=%s", homeDir),
 	}
 
 	if len(d.config.Config) > 0 {
@@ -141,7 +149,7 @@ func (d *datanode) BuildArgs(ctx context.Context, params ...interface{}) []strin
 	return args
 }
 
-func (d *datanode) IsRunning(ctx context.Context) bool {
+func (d *datanode) IsRunning(_ context.Context) bool {
 	for i := 0; i < d.config.Replicas; i++ {
 		addr := generateDatanodeAddr(d.config.HTTPAddr, i)
 		_, httpPort, err := net.SplitHostPort(addr)
@@ -168,14 +176,14 @@ func (d *datanode) IsRunning(ctx context.Context) bool {
 	return true
 }
 
-func (d *datanode) Delete(ctx context.Context, option DeleteOptions) error {
+func (d *datanode) Delete(ctx context.Context, options *opt.DeleteOptions) error {
 	for _, dir := range d.dataHomeDirs {
 		if err := fileutils.DeleteDirIfExists(dir); err != nil {
 			return err
 		}
 	}
 
-	if err := d.delete(ctx, option); err != nil {
+	if err := d.delete(ctx, options); err != nil {
 		return err
 	}
 

@@ -19,7 +19,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/create"
 	"github.com/GreptimeTeam/gtctl/pkg/cmd/gtctl/cluster/delete"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
@@ -40,7 +39,7 @@ func NewClusterCommand(l logger.Logger) *cobra.Command {
 	}
 
 	// TODO(sh2): will refactor them in the following PR.
-	cmd.AddCommand(create.NewCreateClusterCommand(l))
+	cmd.AddCommand(NewCreateClusterCommand(l))
 	cmd.AddCommand(delete.NewDeleteClusterCommand(l))
 	cmd.AddCommand(NewScaleClusterCommand(l))
 	cmd.AddCommand(NewGetClusterCommand(l))

@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package component
+package components
 
 import (
 	"context"
 	"path"
 	"sync"
 
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
@@ -31,7 +32,7 @@ type etcd struct {
 	allocatedDirs
 }
 
-func newEtcd(workingDirs WorkingDirs, wg *sync.WaitGroup, logger logger.Logger) BareMetalClusterComponent {
+func NewEtcd(workingDirs WorkingDirs, wg *sync.WaitGroup, logger logger.Logger) ClusterComponent {
 	return &etcd{
 		workingDirs: workingDirs,
 		wg:          wg,
@@ -40,10 +41,10 @@ func newEtcd(workingDirs WorkingDirs, wg *sync.WaitGroup, logger logger.Logger) 
 }
 
 func (e *etcd) Name() string {
-	return Etcd
+	return "etcd"
 }
 
-func (e *etcd) Start(ctx context.Context, binary string) error {
+func (e *etcd) Start(ctx context.Context, stop context.CancelFunc, binary string) error {
 	var (
 		etcdDataDir = path.Join(e.workingDirs.DataDir, e.Name())
 		etcdLogDir  = path.Join(e.workingDirs.LogsDir, e.Name())
@@ -64,26 +65,26 @@ func (e *etcd) Start(ctx context.Context, binary string) error {
 		Name:   e.Name(),
 		logDir: etcdLogDir,
 		pidDir: etcdPidDir,
-		args:   e.BuildArgs(ctx, etcdDataDir),
+		args:   e.BuildArgs(etcdDataDir),
 	}
-	if err := runBinary(ctx, option, e.wg, e.logger); err != nil {
+	if err := runBinary(ctx, stop, option, e.wg, e.logger); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (e *etcd) BuildArgs(ctx context.Context, params ...interface{}) []string {
+func (e *etcd) BuildArgs(params ...interface{}) []string {
 	return []string{"--data-dir", params[0].(string)}
 }
 
-func (e *etcd) IsRunning(ctx context.Context) bool {
+func (e *etcd) IsRunning(_ context.Context) bool {
 	// Have not implemented the healthy checker now.
 	return false
 }
 
-func (e *etcd) Delete(ctx context.Context, option DeleteOptions) error {
-	if err := e.delete(ctx, option); err != nil {
+func (e *etcd) Delete(ctx context.Context, options *opt.DeleteOptions) error {
+	if err := e.delete(ctx, options); err != nil {
 		return err
 	}
 	return nil

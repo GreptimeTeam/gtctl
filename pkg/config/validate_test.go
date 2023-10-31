@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package baremetal
+package config
 
 import (
 	"fmt"
@@ -61,7 +61,7 @@ func TestValidateConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var actual Config
+			var actual BareMetalClusterConfig
 			if err := loadConfig(filepath.Join("testdata", "validate",
 				fmt.Sprintf("%s.yaml", tc.name)), &actual); err != nil {
 				t.Errorf("error while loading %s file: %v", tc.name, err)
@@ -80,7 +80,7 @@ func TestValidateConfig(t *testing.T) {
 	}
 }
 
-func loadConfig(path string, ret *Config) error {
+func loadConfig(path string, ret *BareMetalClusterConfig) error {
 	configs, err := os.ReadFile(path)
 	if err != nil {
 		return err

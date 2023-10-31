@@ -23,7 +23,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
-	"github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
+	"github.com/GreptimeTeam/gtctl/pkg/config"
 )
 
 func TestMetadataManager(t *testing.T) {
@@ -123,7 +123,7 @@ func TestMetadataManagerWithClusterConfigPath(t *testing.T) {
 	m, err := New("/tmp")
 	assert.NoError(t, err)
 
-	expect := config.DefaultConfig()
+	expect := config.DefaultBareMetalConfig()
 	m.AllocateClusterScopeDirs("test")
 	err = m.CreateClusterScopeDirs(expect)
 	assert.NoError(t, err)
@@ -135,7 +135,7 @@ func TestMetadataManagerWithClusterConfigPath(t *testing.T) {
 	cnt, err := os.ReadFile(csd.ConfigPath)
 	assert.NoError(t, err)
 
-	var actual config.RuntimeConfig
+	var actual config.BareMetalClusterMetadata
 	err = yaml.Unmarshal(cnt, &actual)
 	assert.NoError(t, err)
 	assert.Equal(t, expect, actual.Config)

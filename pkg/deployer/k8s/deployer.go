@@ -29,6 +29,8 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
+// TODO(sh2): remove this file later
+
 type deployer struct {
 	helmLoader *helm.Loader
 	client     *kube.Client

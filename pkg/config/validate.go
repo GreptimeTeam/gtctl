@@ -12,20 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package baremetal
+package config
 
 import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
-
-	bmconfig "github.com/GreptimeTeam/gtctl/pkg/deployer/baremetal/config"
 )
 
 var validate *validator.Validate
 
 // ValidateConfig validate config in bare-metal mode.
-func ValidateConfig(config *bmconfig.Config) error {
+func ValidateConfig(config *BareMetalClusterConfig) error {
 	if config == nil {
 		return fmt.Errorf("no config to validate")
 	}
@@ -33,7 +31,7 @@ func ValidateConfig(config *bmconfig.Config) error {
 	validate = validator.New()
 
 	// Register custom validation method for Artifact.
-	validate.RegisterStructValidation(ValidateArtifact, bmconfig.Artifact{})
+	validate.RegisterStructValidation(ValidateArtifact, Artifact{})
 
 	err := validate.Struct(config)
 	if err != nil {
@@ -44,7 +42,7 @@ func ValidateConfig(config *bmconfig.Config) error {
 }
 
 func ValidateArtifact(sl validator.StructLevel) {
-	artifact := sl.Current().Interface().(bmconfig.Artifact)
+	artifact := sl.Current().Interface().(Artifact)
 	if len(artifact.Version) == 0 && len(artifact.Local) == 0 {
 		sl.ReportError(sl.Current().Interface(), "Artifact", "Version/Local", "", "")
 	}
