@@ -16,48 +16,24 @@ package components
 
 import (
 	"context"
-
-	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
-	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 const (
 	DefaultLogLevel = "info"
 )
 
-// WorkingDirs include all the dirs used in bare-metal mode.
+// WorkingDirs include all the directories used in bare-metal mode.
 type WorkingDirs struct {
 	DataDir string `yaml:"dataDir"`
 	LogsDir string `yaml:"logsDir"`
 	PidsDir string `yaml:"pidsDir"`
 }
 
+// allocatedDirs include all the directories that created during bare-metal mode.
 type allocatedDirs struct {
 	dataDirs []string
 	logsDirs []string
 	pidsDirs []string
-}
-
-func (ad *allocatedDirs) delete(_ context.Context, _ *opt.DeleteOptions) error {
-	for _, dir := range ad.logsDirs {
-		if err := fileutils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
-	}
-
-	for _, dir := range ad.dataDirs {
-		if err := fileutils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
-	}
-
-	for _, dir := range ad.pidsDirs {
-		if err := fileutils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // ClusterComponent is the basic component of running GreptimeDB Cluster in bare-metal mode.
@@ -70,9 +46,6 @@ type ClusterComponent interface {
 
 	// IsRunning returns the status of current cluster component.
 	IsRunning(ctx context.Context) bool
-
-	// Delete deletes resources that allocated in the system for current component.
-	Delete(ctx context.Context, options *opt.DeleteOptions) error
 
 	// Name return the name of component.
 	Name() string

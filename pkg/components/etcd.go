@@ -19,7 +19,6 @@ import (
 	"path"
 	"sync"
 
-	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
@@ -81,11 +80,4 @@ func (e *etcd) BuildArgs(params ...interface{}) []string {
 func (e *etcd) IsRunning(_ context.Context) bool {
 	// Have not implemented the healthy checker now.
 	return false
-}
-
-func (e *etcd) Delete(ctx context.Context, options *opt.DeleteOptions) error {
-	if err := e.delete(ctx, options); err != nil {
-		return err
-	}
-	return nil
 }

@@ -16,32 +16,53 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"syscall"
 
 	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 func (c *Cluster) Delete(ctx context.Context, options *opt.DeleteOptions) error {
-	// TODO(sh2): check whether the cluster is still running
-	if err := c.delete(ctx, options); err != nil {
+	cluster, err := c.get(ctx, &opt.GetOptions{Name: options.Name})
+	if err != nil {
 		return err
 	}
+
+	running, ferr, serr := c.isClusterRunning(cluster.ForegroundPid)
+	if ferr != nil {
+		return fmt.Errorf("error checking whether cluster '%s' is running: %v", options.Name, ferr)
+	}
+	if running || serr == nil {
+		return fmt.Errorf("cluster '%s' is running, please stop it before deleting", options.Name)
+	}
+
+	csd := c.mm.GetClusterScopeDirs()
+	c.logger.V(0).Infof("Deleting cluster configurations and runtime directories in %s", csd.BaseDir)
+	if err = c.delete(ctx, csd.BaseDir); err != nil {
+		return err
+	}
+	c.logger.V(0).Info("Deleted!")
 
 	return nil
 }
 
-func (c *Cluster) delete(ctx context.Context, options *opt.DeleteOptions) error {
-	if err := c.cc.Frontend.Delete(ctx, options); err != nil {
-		return err
-	}
-	if err := c.cc.Datanode.Delete(ctx, options); err != nil {
-		return err
-	}
-	if err := c.cc.MetaSrv.Delete(ctx, options); err != nil {
-		return err
-	}
-	if err := c.cc.Etcd.Delete(ctx, options); err != nil {
-		return err
+func (c *Cluster) delete(_ context.Context, baseDir string) error {
+	return fileutils.DeleteDirIfExists(baseDir)
+}
+
+// isClusterRunning checks the current status of cluster by sending signal to process.
+func (c *Cluster) isClusterRunning(pid int) (runs bool, f error, s error) {
+	p, f := os.FindProcess(pid)
+	if f != nil {
+		return false, f, nil
 	}
 
-	return nil
+	s = p.Signal(syscall.Signal(0))
+	if s != nil {
+		return false, nil, s
+	}
+
+	return true, nil, nil
 }

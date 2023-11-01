@@ -24,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
@@ -158,13 +157,6 @@ func (m *metaSrv) IsRunning(_ context.Context) bool {
 	}
 
 	return true
-}
-
-func (m *metaSrv) Delete(ctx context.Context, options *opt.DeleteOptions) error {
-	if err := m.delete(ctx, options); err != nil {
-		return err
-	}
-	return nil
 }
 
 func generateMetaSrvAddr(addr string, nodeID int) string {

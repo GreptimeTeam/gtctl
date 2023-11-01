@@ -22,7 +22,6 @@ import (
 
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 
-	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
@@ -107,12 +106,4 @@ func (f *frontend) BuildArgs(_ ...interface{}) []string {
 func (f *frontend) IsRunning(_ context.Context) bool {
 	// Have not implemented the healthy checker now.
 	return false
-}
-
-func (f *frontend) Delete(ctx context.Context, options *opt.DeleteOptions) error {
-	if err := f.delete(ctx, options); err != nil {
-		return err
-	}
-
-	return nil
 }
