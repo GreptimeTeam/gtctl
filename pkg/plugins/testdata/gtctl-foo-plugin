@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# Just prints the args it receives.
+echo "Hello from gtctl-foo-plugin.sh, args: $*"
