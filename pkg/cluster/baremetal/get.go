@@ -116,7 +116,6 @@ func collectClusterInfoFromBareMetal(data *cfg.BareMetalClusterMetadata) (
 	rows(string(greptimedbclusterv1alpha1.DatanodeComponentKind), data.Config.Cluster.Datanode.Replicas)
 	rows(string(greptimedbclusterv1alpha1.MetaComponentKind), data.Config.Cluster.MetaSrv.Replicas)
 
-	// TODO(sh2): make "etcd" a const?
 	bulk = append(bulk, []string{"etcd", pidsMap["etcd"]})
 
 	config, err := yaml.Marshal(data.Config)

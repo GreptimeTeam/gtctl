@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package config
 
 import (
 	"testing"
@@ -24,31 +24,31 @@ func TestParseConfig(t *testing.T) {
 	testCases := []struct {
 		name   string
 		config []string
-		expect configValues
+		expect SetValues
 		err    bool
 	}{
 		{
 			name:   "all-with-prefix",
 			config: []string{"cluster.foo=bar", "etcd.foo=bar", "operator.foo=bar"},
-			expect: configValues{
-				clusterConfig:  "foo=bar",
-				etcdConfig:     "foo=bar",
-				operatorConfig: "foo=bar",
+			expect: SetValues{
+				ClusterConfig:  "foo=bar",
+				EtcdConfig:     "foo=bar",
+				OperatorConfig: "foo=bar",
 			},
 		},
 		{
 			name:   "all-without-prefix",
 			config: []string{"foo=bar", "foo.boo=bar", "foo.boo.coo=bar"},
-			expect: configValues{
-				clusterConfig: "foo=bar,foo.boo=bar,foo.boo.coo=bar",
+			expect: SetValues{
+				ClusterConfig: "foo=bar,foo.boo=bar,foo.boo.coo=bar",
 			},
 		},
 		{
 			name:   "mix-with-prefix",
 			config: []string{"etcd.foo=bar", "foo.boo=bar", "foo.boo.coo=bar"},
-			expect: configValues{
-				clusterConfig: "foo.boo=bar,foo.boo.coo=bar",
-				etcdConfig:    "foo=bar",
+			expect: SetValues{
+				ClusterConfig: "foo.boo=bar,foo.boo.coo=bar",
+				EtcdConfig:    "foo=bar",
 			},
 		},
 		{
@@ -59,21 +59,21 @@ func TestParseConfig(t *testing.T) {
 		{
 			name:   "empty-config",
 			config: []string{},
-			expect: configValues{},
+			expect: SetValues{},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := configValues{rawConfig: tc.config}
-			err := actual.parseConfig()
+			actual := SetValues{RawConfig: tc.config}
+			err := actual.Parse()
 
 			if tc.err {
 				assert.Error(t, err)
 				return
 			}
 
-			tc.expect.rawConfig = tc.config
+			tc.expect.RawConfig = tc.config
 			assert.Equal(t, tc.expect, actual)
 		})
 	}

@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -32,13 +31,6 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	"github.com/GreptimeTeam/gtctl/pkg/status"
-)
-
-const (
-	// Various of support config type
-	configOperator = "operator"
-	configCluster  = "cluster"
-	configEtcd     = "etcd"
 )
 
 type clusterCreateCliOptions struct {
@@ -72,72 +64,11 @@ type clusterCreateCliOptions struct {
 	// Common options.
 	Timeout int
 	DryRun  bool
-	Set     configValues
+	Set     config.SetValues
 
 	// If UseGreptimeCNArtifacts is true, the creation will download the artifacts(charts and binaries) from 'downloads.greptime.cn'.
 	// Also, it will use ACR registry for charts images.
 	UseGreptimeCNArtifacts bool
-}
-
-type configValues struct {
-	rawConfig []string
-
-	operatorConfig string
-	clusterConfig  string
-	etcdConfig     string
-}
-
-// parseConfig parse raw config values and classify it to different
-// categories of config type by its prefix.
-func (c *configValues) parseConfig() error {
-	var (
-		operatorConfig []string
-		clusterConfig  []string
-		etcdConfig     []string
-	)
-
-	for _, raw := range c.rawConfig {
-		if len(raw) == 0 {
-			return fmt.Errorf("cannot parse empty config values")
-		}
-
-		var configPrefix, configValue string
-		values := strings.Split(raw, ",")
-
-		for _, value := range values {
-			value = strings.Trim(value, " ")
-			cfg := strings.SplitN(value, ".", 2)
-			configPrefix = cfg[0]
-			if len(cfg) == 2 {
-				configValue = cfg[1]
-			} else {
-				configValue = configPrefix
-			}
-
-			switch configPrefix {
-			case configOperator:
-				operatorConfig = append(operatorConfig, configValue)
-			case configCluster:
-				clusterConfig = append(clusterConfig, configValue)
-			case configEtcd:
-				etcdConfig = append(etcdConfig, configValue)
-			default:
-				clusterConfig = append(clusterConfig, value)
-			}
-		}
-	}
-
-	if len(operatorConfig) > 0 {
-		c.operatorConfig = strings.Join(operatorConfig, ",")
-	}
-	if len(clusterConfig) > 0 {
-		c.clusterConfig = strings.Join(clusterConfig, ",")
-	}
-	if len(etcdConfig) > 0 {
-		c.etcdConfig = strings.Join(etcdConfig, ",")
-	}
-
-	return nil
 }
 
 func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
@@ -159,7 +90,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", 600, "Timeout in seconds for the command to complete, -1 means no timeout, default is 10 min.")
-	cmd.Flags().StringArrayVar(&options.Set.rawConfig, "set", []string{}, "set values on the command line for greptimedb cluster, etcd and operator (can specify multiple or separate values with commas: eg. cluster.key1=val1,etcd.key2=val2).")
+	cmd.Flags().StringArrayVar(&options.Set.RawConfig, "set", []string{}, "set values on the command line for greptimedb cluster, etcd and operator (can specify multiple or separate values with commas: eg. cluster.key1=val1,etcd.key2=val2).")
 	cmd.Flags().StringVar(&options.GreptimeDBChartVersion, "greptimedb-chart-version", "", "The greptimedb helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.GreptimeDBOperatorChartVersion, "greptimedb-operator-chart-version", "", "The greptimedb-operator helm chart version, use latest version if not specified.")
 	cmd.Flags().StringVar(&options.EtcdChartVersion, "etcd-chart-version", "", "The greptimedb-etcd helm chart version, use latest version if not specified.")
@@ -205,7 +136,7 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 	}
 
 	// Parse config values that set in command line.
-	if err = options.Set.parseConfig(); err != nil {
+	if err = options.Set.Parse(); err != nil {
 		return err
 	}
 
@@ -218,14 +149,14 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 			EtcdStorageClassName:   options.EtcdStorageClassName,
 			EtcdStorageSize:        options.EtcdStorageSize,
 			EtcdClusterSize:        options.EtcdClusterSize,
-			ConfigValues:           options.Set.etcdConfig,
+			ConfigValues:           options.Set.EtcdConfig,
 			UseGreptimeCNArtifacts: options.UseGreptimeCNArtifacts,
 			ValuesFile:             options.EtcdClusterValuesFile,
 		},
 		Operator: &opt.CreateOperatorOptions{
 			GreptimeDBOperatorChartVersion: options.GreptimeDBOperatorChartVersion,
 			ImageRegistry:                  options.ImageRegistry,
-			ConfigValues:                   options.Set.operatorConfig,
+			ConfigValues:                   options.Set.OperatorConfig,
 			UseGreptimeCNArtifacts:         options.UseGreptimeCNArtifacts,
 			ValuesFile:                     options.GreptimeDBOperatorValuesFile,
 		},
@@ -237,7 +168,7 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 			DatanodeStorageSize:         options.StorageSize,
 			DatanodeStorageRetainPolicy: options.StorageRetainPolicy,
 			EtcdEndPoints:               fmt.Sprintf("%s.%s:2379", kubernetes.EtcdClusterName(clusterName), options.EtcdNamespace),
-			ConfigValues:                options.Set.clusterConfig,
+			ConfigValues:                options.Set.ClusterConfig,
 			UseGreptimeCNArtifacts:      options.UseGreptimeCNArtifacts,
 			ValuesFile:                  options.GreptimeDBClusterValuesFile,
 		},

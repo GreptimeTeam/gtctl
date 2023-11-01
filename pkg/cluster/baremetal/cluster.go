@@ -65,20 +65,26 @@ type Option func(cluster *Cluster)
 
 // WithReplaceConfig replaces current cluster config with given config.
 func WithReplaceConfig(cfg *config.BareMetalClusterConfig) Option {
-	return func(d *Cluster) {
-		d.config = cfg
+	return func(c *Cluster) {
+		c.config = cfg
 	}
 }
 
 func WithGreptimeVersion(version string) Option {
-	return func(d *Cluster) {
-		d.config.Cluster.Artifact.Version = version
+	return func(c *Cluster) {
+		c.config.Cluster.Artifact.Version = version
 	}
 }
 
 func WithEnableCache(enableCache bool) Option {
-	return func(d *Cluster) {
-		d.enableCache = enableCache
+	return func(c *Cluster) {
+		c.enableCache = enableCache
+	}
+}
+
+func WithCreateNoDirs() Option {
+	return func(c *Cluster) {
+		c.createNoDirs = true
 	}
 }
 
@@ -117,19 +123,18 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Op
 	c.am = am
 
 	// Configure Cluster Components.
+	mm.AllocateClusterScopeDirs(clusterName)
 	if !c.createNoDirs {
-		mm.AllocateClusterScopeDirs(clusterName)
 		if err = mm.CreateClusterScopeDirs(c.config); err != nil {
 			return nil, err
 		}
-
-		csd := mm.GetClusterScopeDirs()
-		c.cc = NewClusterComponents(c.config.Cluster, components.WorkingDirs{
-			DataDir: csd.DataDir,
-			LogsDir: csd.LogsDir,
-			PidsDir: csd.PidsDir,
-		}, &c.wg, c.logger)
 	}
+	csd := mm.GetClusterScopeDirs()
+	c.cc = NewClusterComponents(c.config.Cluster, components.WorkingDirs{
+		DataDir: csd.DataDir,
+		LogsDir: csd.LogsDir,
+		PidsDir: csd.PidsDir,
+	}, &c.wg, c.logger)
 
 	return c, nil
 }

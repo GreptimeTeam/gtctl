@@ -17,9 +17,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
 	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
@@ -28,32 +26,31 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
-type clusterGetCliOptions struct {
-	Namespace string
+type clusterDeleteOptions struct {
+	Namespace    string
+	TearDownEtcd bool
 
-	// The options for getting GreptimeDB cluster in bare-metal.
+	// The options for deleting GreptimeDB cluster in bare-metal.
 	BareMetal bool
 }
 
-func NewGetClusterCommand(l logger.Logger) *cobra.Command {
-	var options clusterGetCliOptions
-
-	table := tablewriter.NewWriter(os.Stdout)
+func NewDeleteClusterCommand(l logger.Logger) *cobra.Command {
+	var options clusterDeleteOptions
 
 	cmd := &cobra.Command{
-		Use:   "get",
-		Short: "Get GreptimeDB cluster",
-		Long:  `Get GreptimeDB cluster`,
+		Use:   "delete",
+		Short: "Delete a GreptimeDB cluster",
+		Long:  `Delete a GreptimeDB cluster`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return fmt.Errorf("cluster name should be set")
 			}
 
+			clusterName := args[0]
 			var (
-				ctx         = context.TODO()
-				err         error
-				cluster     opt.Operations
-				clusterName = args[0]
+				cluster opt.Operations
+				err     error
+				ctx     = context.TODO()
 			)
 
 			if options.BareMetal {
@@ -65,16 +62,16 @@ func NewGetClusterCommand(l logger.Logger) *cobra.Command {
 				return err
 			}
 
-			getOptions := &opt.GetOptions{
+			deleteOptions := &opt.DeleteOptions{
 				Namespace: options.Namespace,
 				Name:      clusterName,
-				Table:     table,
 			}
-			return cluster.Get(ctx, getOptions)
+			return cluster.Delete(ctx, deleteOptions)
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
+	cmd.Flags().BoolVar(&options.TearDownEtcd, "tear-down-etcd", false, "Tear down etcd cluster.")
 	cmd.Flags().BoolVar(&options.BareMetal, "bare-metal", false, "Get the greptimedb cluster on bare-metal environment.")
 
 	return cmd

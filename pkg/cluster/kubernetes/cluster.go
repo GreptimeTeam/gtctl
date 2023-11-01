@@ -36,15 +36,15 @@ type Option func(cluster *Cluster)
 
 // WithDryRun enables Cluster to dry run.
 func WithDryRun(dryRun bool) Option {
-	return func(d *Cluster) {
-		d.dryRun = dryRun
+	return func(c *Cluster) {
+		c.dryRun = dryRun
 	}
 }
 
 // WithTimeout enables Cluster to have a timeout.
 func WithTimeout(timeout time.Duration) Option {
-	return func(d *Cluster) {
-		d.timeout = timeout
+	return func(c *Cluster) {
+		c.timeout = timeout
 	}
 }
 
