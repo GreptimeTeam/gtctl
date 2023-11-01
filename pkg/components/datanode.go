@@ -26,7 +26,6 @@ import (
 
 	greptimev1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 
-	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/config"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
@@ -174,20 +173,6 @@ func (d *datanode) IsRunning(_ context.Context) bool {
 	}
 
 	return true
-}
-
-func (d *datanode) Delete(ctx context.Context, options *opt.DeleteOptions) error {
-	for _, dir := range d.dataHomeDirs {
-		if err := fileutils.DeleteDirIfExists(dir); err != nil {
-			return err
-		}
-	}
-
-	if err := d.delete(ctx, options); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func generateDatanodeAddr(addr string, nodeID int) string {
