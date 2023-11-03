@@ -28,3 +28,7 @@ func (c *Cluster) List(ctx context.Context, options *opt.ListOptions) error {
 func (c *Cluster) Scale(ctx context.Context, options *opt.ScaleOptions) error {
 	return fmt.Errorf("do not support")
 }
+
+func (c *Cluster) Connect(ctx context.Context, options *opt.ConnectOptions) error {
+	return fmt.Errorf("do not support")
+}

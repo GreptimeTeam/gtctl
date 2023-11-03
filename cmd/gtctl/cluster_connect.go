@@ -18,13 +18,10 @@ import (
 	"context"
 	"fmt"
 
-	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/GreptimeTeam/gtctl/pkg/connector"
-	"github.com/GreptimeTeam/gtctl/pkg/deployer/k8s"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
+	"github.com/GreptimeTeam/gtctl/pkg/cluster/kubernetes"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
@@ -34,11 +31,6 @@ type clusterConnectCliOptions struct {
 }
 
 func NewConnectCommand(l logger.Logger) *cobra.Command {
-	const (
-		connectionProtocolMySQL    = "mysql"
-		connectionProtocolPostgres = "pg"
-	)
-
 	var options clusterConnectCliOptions
 
 	cmd := &cobra.Command{
@@ -50,50 +42,37 @@ func NewConnectCommand(l logger.Logger) *cobra.Command {
 				return fmt.Errorf("cluster name should be set")
 			}
 
-			k8sDeployer, err := k8s.NewDeployer(l)
+			var (
+				ctx         = context.TODO()
+				clusterName = args[0]
+				protocol    opt.ConnectProtocol
+			)
+
+			cluster, err := kubernetes.NewCluster(l)
 			if err != nil {
 				return err
 			}
 
-			var (
-				ctx         = context.TODO()
-				clusterName = args[0]
-				namespace   = options.Namespace
-			)
-
-			name := types.NamespacedName{
+			switch options.Protocol {
+			case "mysql":
+				protocol = opt.MySQL
+			case "pg", "psql", "postgres":
+				protocol = opt.Postgres
+			default:
+				return fmt.Errorf("unsupported connection protocol: %s", options.Protocol)
+			}
+			connectOptions := &opt.ConnectOptions{
 				Namespace: options.Namespace,
 				Name:      clusterName,
-			}.String()
-			cluster, err := k8sDeployer.GetGreptimeDBCluster(ctx, name, nil)
-			if err != nil && errors.IsNotFound(err) {
-				l.Errorf("cluster %s in %s not found\n", clusterName, namespace)
-				return nil
+				Protocol:  protocol,
 			}
 
-			rawCluster, ok := cluster.Raw.(*greptimedbclusterv1alpha1.GreptimeDBCluster)
-			if !ok {
-				return fmt.Errorf("invalid cluster type")
-			}
-
-			switch options.Protocol {
-			case connectionProtocolMySQL:
-				if err = connector.MySQLConnectCommand(rawCluster, l); err != nil {
-					return fmt.Errorf("error connecting to mysql: %v", err)
-				}
-			case connectionProtocolPostgres:
-				if err = connector.PostgresSQLConnectCommand(rawCluster, l); err != nil {
-					return fmt.Errorf("error connecting to postgres: %v", err)
-				}
-			default:
-				return fmt.Errorf("database type not supported: %s", options.Protocol)
-			}
-			return nil
+			return cluster.Connect(ctx, connectOptions)
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
-	cmd.Flags().StringVarP(&options.Protocol, "protocol", "p", "mysql", "Specify a database, like mysql or pg.")
+	cmd.Flags().StringVarP(&options.Protocol, "protocol", "p", "mysql", "Specify a database protocol, like mysql or pg.")
 
 	return cmd
 }

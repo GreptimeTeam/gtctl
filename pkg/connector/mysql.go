@@ -21,11 +21,9 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
 	"sync"
 	"syscall"
 
-	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/go-sql-driver/mysql"
 
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -43,16 +41,11 @@ const (
 	portForward = "port-forward"
 )
 
-// MySQLConnectCommand connects to a GreptimeDB cluster
-func MySQLConnectCommand(rawCluster *greptimedbclusterv1alpha1.GreptimeDBCluster, l logger.Logger) error {
-	return mysqlConnect(strconv.Itoa(int(rawCluster.Spec.MySQLServicePort)), rawCluster.Name, l)
-}
-
-// mysqlConnect connects to a GreptimeDB cluster
-func mysqlConnect(port, clusterName string, l logger.Logger) error {
+// Mysql connects to a GreptimeDB cluster using mysql protocol.
+func Mysql(port, clusterName string, l logger.Logger) error {
 	waitGroup := sync.WaitGroup{}
 
-	// TODO(sh2): is there any elegant way to enable port-forward?
+	// TODO: is there any elegant way to enable port-forward?
 	cmd := exec.CommandContext(context.Background(), kubectl, portForward, "-n", "default", "svc/"+clusterName+"-frontend", fmt.Sprintf("%s:%s", port, port))
 	if err := cmd.Start(); err != nil {
 		l.Errorf("Error starting port-forwarding: %v", err)

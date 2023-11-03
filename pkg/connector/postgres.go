@@ -20,11 +20,9 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
 	"sync"
 	"syscall"
 
-	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
 	"github.com/go-pg/pg/v10"
 
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
@@ -41,14 +39,11 @@ const (
 	postgresSQLDatabaseArg = "-d"
 )
 
-func PostgresSQLConnectCommand(rawCluster *greptimedbclusterv1alpha1.GreptimeDBCluster, l logger.Logger) error {
-	return postgresSQLConnect(strconv.Itoa(int(rawCluster.Spec.PostgresServicePort)), rawCluster.Name, l)
-}
-
-func postgresSQLConnect(port, clusterName string, l logger.Logger) error {
+// PostgresSQL connects to a GreptimeDB cluster using postgres protocol.
+func PostgresSQL(port, clusterName string, l logger.Logger) error {
 	waitGroup := sync.WaitGroup{}
 
-	// TODO(sh2): is there any elegant way to enable port-forward?
+	// TODO: is there any elegant way to enable port-forward?
 	cmd := exec.CommandContext(context.Background(), kubectl, portForward, "-n", "default", "svc/"+clusterName+"-frontend", fmt.Sprintf("%s:%s", port, port))
 	if err := cmd.Start(); err != nil {
 		l.Errorf("Error starting port-forwarding: %v", err)

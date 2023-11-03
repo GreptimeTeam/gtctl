@@ -18,7 +18,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 )
 
-// SemVerCompare compares two semantic versions.
+// Compare compares two semantic versions.
 // It returns true if v1 is greater than v2, otherwise false.
 func Compare(v1, v2 string) (bool, error) {
 	semV1, err := semver.NewVersion(v1)

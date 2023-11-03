@@ -172,6 +172,7 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 			UseGreptimeCNArtifacts:      options.UseGreptimeCNArtifacts,
 			ValuesFile:                  options.GreptimeDBClusterValuesFile,
 		},
+		Spinner: spinner,
 	}
 
 	var cluster opt.Operations
@@ -211,7 +212,7 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 		}
 	}
 
-	if err = cluster.Create(ctx, createOptions, spinner); err != nil {
+	if err = cluster.Create(ctx, createOptions); err != nil {
 		return err
 	}
 
