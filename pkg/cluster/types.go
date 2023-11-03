@@ -35,10 +35,13 @@ type Operations interface {
 	Scale(ctx context.Context, options *ScaleOptions) error
 
 	// Create creates a new cluster.
-	Create(ctx context.Context, options *CreateOptions, spinner *status.Spinner) error
+	Create(ctx context.Context, options *CreateOptions) error
 
 	// Delete deletes a specific cluster.
 	Delete(ctx context.Context, options *DeleteOptions) error
+
+	// Connect connects to a specific cluster.
+	Connect(ctx context.Context, options *ConnectOptions) error
 }
 
 type GetOptions struct {
@@ -74,6 +77,8 @@ type CreateOptions struct {
 	Cluster  *CreateClusterOptions
 	Operator *CreateOperatorOptions
 	Etcd     *CreateEtcdOptions
+
+	Spinner *status.Spinner
 }
 
 // CreateClusterOptions is the options to create a GreptimeDB cluster.
@@ -113,4 +118,17 @@ type CreateEtcdOptions struct {
 	EtcdStorageClassName string `helm:"persistence.storageClass"`
 	EtcdStorageSize      string `helm:"persistence.size"`
 	ConfigValues         string `helm:"*"`
+}
+
+type ConnectProtocol int
+
+const (
+	MySQL ConnectProtocol = iota
+	Postgres
+)
+
+type ConnectOptions struct {
+	Namespace string
+	Name      string
+	Protocol  ConnectProtocol
 }

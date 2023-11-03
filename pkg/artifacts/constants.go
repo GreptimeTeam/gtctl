@@ -21,7 +21,7 @@ const (
 	// GreptimeChartReleaseDownloadURL is the URL of the Greptime charts that stored in the GitHub release.
 	GreptimeChartReleaseDownloadURL = "https://github.com/GreptimeTeam/helm-charts/releases/download"
 
-	// Greptime release bucket public endpoint in CN region.
+	// GreptimeReleaseBucketCN releases bucket public endpoint in CN region.
 	GreptimeReleaseBucketCN = "https://downloads.greptime.cn/releases"
 
 	// GreptimeCNCharts is the URL of the Greptime charts that stored in the S3 bucket of the CN region.

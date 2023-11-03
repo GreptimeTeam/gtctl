@@ -26,18 +26,27 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
-	"github.com/GreptimeTeam/gtctl/pkg/status"
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
-func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions, spinner *status.Spinner) error {
+func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error {
+	spinner := options.Spinner
+
 	withSpinner := func(target string, f func(context.Context, *opt.CreateOptions) error) error {
-		spinner.Start(fmt.Sprintf("Installing %s...", target))
+		if spinner != nil {
+			spinner.Start(fmt.Sprintf("Installing %s...", target))
+		}
+
 		if err := f(ctx, options); err != nil {
-			spinner.Stop(false, fmt.Sprintf("Installing %s failed", target))
+			if spinner != nil {
+				spinner.Stop(false, fmt.Sprintf("Installing %s failed", target))
+			}
 			return err
 		}
-		spinner.Stop(true, fmt.Sprintf("Installing %s successfully 🎉", target))
+
+		if spinner != nil {
+			spinner.Stop(true, fmt.Sprintf("Installing %s successfully 🎉", target))
+		}
 		return nil
 	}
 
