@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/kind/pkg/log"
 
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
-	"github.com/GreptimeTeam/gtctl/pkg/deployer"
+	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
@@ -43,7 +43,7 @@ func TestLoadAndRenderChart(t *testing.T) {
 		ChartName:    artifacts.GreptimeDBClusterChartName,
 		ChartVersion: "0.1.2",
 		FromCNRegion: false,
-		ValuesOptions: deployer.CreateGreptimeDBClusterOptions{
+		ValuesOptions: opt.CreateClusterOptions{
 			ImageRegistry:               "registry.cn-hangzhou.aliyuncs.com",
 			DatanodeStorageClassName:    "ebs-sc",
 			DatanodeStorageSize:         "11Gi",
