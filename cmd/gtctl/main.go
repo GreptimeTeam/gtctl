@@ -42,12 +42,11 @@ func NewRootCommand() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:           "gtctl",
-		Short:         "gtctl is a command-line tool for managing GreptimeDB cluster.",
-		Long:          fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", GtctlTextBanner),
-		Version:       version.Get().String(),
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		Use:          "gtctl",
+		Short:        "gtctl is a command-line tool for managing GreptimeDB cluster.",
+		Long:         fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", GtctlTextBanner),
+		Version:      version.Get().String(),
+		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			type verboser interface {
 				SetVerbosity(log.Level)

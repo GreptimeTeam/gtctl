@@ -213,7 +213,6 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 	}
 
 	if err = cluster.Create(ctx, createOptions); err != nil {
-		l.Error(err.Error())
 		return err
 	}
 
