@@ -48,7 +48,7 @@ type BareMetalClusterComponentsConfig struct {
 
 type Artifact struct {
 	// Local is the local path of binary(greptime or etcd).
-	Local string `yaml:"local" validate:"omitempty,file"`
+	Local string `yaml:"local" validate:"omitempty,filepath"`
 
 	// Version is the release version of binary(greptime or etcd).
 	// Usually, it points to the version of binary of GitHub release.
