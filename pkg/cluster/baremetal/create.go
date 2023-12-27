@@ -73,6 +73,11 @@ func (c *Cluster) createCluster(ctx context.Context, options *opt.CreateOptions)
 	if c.config.Cluster.Artifact != nil {
 		if c.config.Cluster.Artifact.Local != "" {
 			binPath = c.config.Cluster.Artifact.Local
+
+			// Ensure the binary path exists.
+			if exist, _ := fileutils.IsFileExists(binPath); !exist {
+				return fmt.Errorf("greptimedb cluster artifact '%s' is not exist", binPath)
+			}
 		} else {
 			src, err := c.am.NewSource(artifacts.GreptimeBinName, c.config.Cluster.Artifact.Version,
 				artifacts.ArtifactTypeBinary, clusterOpt.UseGreptimeCNArtifacts)
@@ -124,6 +129,11 @@ func (c *Cluster) createEtcdCluster(ctx context.Context, options *opt.CreateOpti
 	if c.config.Etcd.Artifact != nil {
 		if c.config.Etcd.Artifact.Local != "" {
 			binPath = c.config.Etcd.Artifact.Local
+
+			// Ensure the binary path exists.
+			if exist, _ := fileutils.IsFileExists(binPath); !exist {
+				return fmt.Errorf("etcd artifact '%s' is not exist", binPath)
+			}
 		} else {
 			src, err := c.am.NewSource(artifacts.EtcdBinName, c.config.Etcd.Artifact.Version,
 				artifacts.ArtifactTypeBinary, etcdOpt.UseGreptimeCNArtifacts)

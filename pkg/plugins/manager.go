@@ -20,6 +20,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 const (
@@ -66,9 +68,9 @@ func NewManager() (*Manager, error) {
 }
 
 // ShouldRun returns true whether you should run the plugin.
-func (m *Manager) ShouldRun(err error) bool {
-	// The error is returned by cobra itself.
-	return strings.Contains(err.Error(), "unknown command")
+func (m *Manager) ShouldRun(name string) bool {
+	_, err := m.searchPlugins(name)
+	return err == nil
 }
 
 // Run searches for the plugin and runs it.
@@ -102,7 +104,7 @@ func (m *Manager) searchPlugins(name string) (string, error) {
 	pluginName := m.prefix + name
 	for _, path := range m.searchPaths {
 		pluginPath := filepath.Join(path, pluginName)
-		if _, err := os.Stat(pluginPath); os.IsNotExist(err) {
+		if exist, _ := fileutils.IsFileExists(pluginPath); !exist {
 			continue
 		}
 

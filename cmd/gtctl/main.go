@@ -42,12 +42,11 @@ func NewRootCommand() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:           "gtctl",
-		Short:         "gtctl is a command-line tool for managing GreptimeDB cluster.",
-		Long:          fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", GtctlTextBanner),
-		Version:       version.Get().String(),
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		Use:          "gtctl",
+		Short:        "gtctl is a command-line tool for managing GreptimeDB cluster.",
+		Long:         fmt.Sprintf("%s\ngtctl is a command-line tool for managing GreptimeDB cluster.", GtctlTextBanner),
+		Version:      version.Get().String(),
+		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			type verboser interface {
 				SetVerbosity(log.Level)
@@ -77,15 +76,16 @@ func main() {
 		panic(err)
 	}
 
-	if err := NewRootCommand().Execute(); err != nil {
-		if pm.ShouldRun(err) {
-			if err := pm.Run(os.Args[1:]); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-			os.Exit(0)
+	if pm.ShouldRun(os.Args[1]) {
+		if err = pm.Run(os.Args[1:]); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
 		}
+		os.Exit(0)
+	}
 
+	if err = NewRootCommand().Execute(); err != nil {
 		fmt.Println(err)
+		os.Exit(1)
 	}
 }
