@@ -17,7 +17,10 @@ package components
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"path"
+	"strconv"
 	"sync"
 
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
@@ -74,7 +77,7 @@ func (f *frontend) Start(ctx context.Context, stop context.CancelFunc, binary st
 			Name:   dirName,
 			logDir: frontendLogDir,
 			pidDir: frontendPidDir,
-			args:   f.BuildArgs(),
+			args:   f.BuildArgs(i),
 		}
 		if err := runBinary(ctx, stop, option, f.wg, f.logger); err != nil {
 			return err
@@ -84,16 +87,23 @@ func (f *frontend) Start(ctx context.Context, stop context.CancelFunc, binary st
 	return nil
 }
 
-func (f *frontend) BuildArgs(_ ...interface{}) []string {
+func (f *frontend) BuildArgs(params ...interface{}) []string {
 	logLevel := f.config.LogLevel
 	if logLevel == "" {
 		logLevel = DefaultLogLevel
 	}
 
+	nodeId := params[0].(int)
+
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
 		f.Name(), "start",
 		fmt.Sprintf("--metasrv-addr=%s", f.metaSrvAddr),
+		fmt.Sprintf("--http-addr=%s", generateAddrArg(f.config.HTTPAddr, nodeId)),
+		fmt.Sprintf("--rpc-addr=%s", generateAddrArg(f.config.GRPCAddr, nodeId)),
+		fmt.Sprintf("--mysql-addr=%s", generateAddrArg(f.config.MysqlAddr, nodeId)),
+		fmt.Sprintf("--postgres-addr=%s", generateAddrArg(f.config.PostgresAddr, nodeId)),
+		fmt.Sprintf("--opentsdb-addr=%s", generateAddrArg(f.config.OpentsdbAddr, nodeId)),
 	}
 
 	if len(f.config.Config) > 0 {
@@ -104,6 +114,32 @@ func (f *frontend) BuildArgs(_ ...interface{}) []string {
 }
 
 func (f *frontend) IsRunning(_ context.Context) bool {
-	// Have not implemented the healthy checker now.
-	return false
+	for i := 0; i < f.config.Replicas; i++ {
+		addr := generateAddrArg(f.config.HTTPAddr, i)
+		healthy := fmt.Sprintf("http://%s/health", addr)
+
+		resp, err := http.Get(healthy)
+		if err != nil {
+			f.logger.V(5).Infof("Failed to get %s healthy: %s", f.Name(), err)
+			return false
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			f.logger.V(5).Infof("%s is not healthy: %s", f.Name(), resp)
+			return false
+		}
+
+		if err = resp.Body.Close(); err != nil {
+			f.logger.V(5).Infof("%s is not healthy: %s, err: %s", f.Name(), resp, err)
+			return false
+		}
+	}
+	return true
+}
+
+func generateAddrArg(addr string, nodeId int) string {
+	// The "addr" is validated when set.
+	host, port, _ := net.SplitHostPort(addr)
+	portInt, _ := strconv.Atoi(port)
+	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeId))
 }

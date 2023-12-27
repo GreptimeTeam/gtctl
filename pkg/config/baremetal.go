@@ -73,6 +73,8 @@ type Frontend struct {
 	HTTPAddr     string `yaml:"httpAddr" validate:"omitempty,hostname_port"`
 	PostgresAddr string `yaml:"postgresAddr" validate:"omitempty,hostname_port"`
 	MetaAddr     string `yaml:"metaAddr" validate:"omitempty,hostname_port"`
+	MysqlAddr    string `yaml:"mysqlAddr" validate:"omitempty,hostname_port"`
+	OpentsdbAddr string `yaml:"opentsdbAddr" validate:"omitempty,hostname_port"`
 
 	Replicas int    `yaml:"replicas" validate:"gt=0"`
 	Config   string `yaml:"config" validate:"omitempty,filepath"`
