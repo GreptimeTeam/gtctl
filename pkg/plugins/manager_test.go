@@ -15,7 +15,6 @@
 package plugins
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -27,8 +26,7 @@ func TestPluginManager(t *testing.T) {
 	}
 
 	pluginName := "foo-plugin"
-	receiveErr := fmt.Errorf("unknown command: %s", pluginName)
-	if pm.ShouldRun(receiveErr) {
+	if pm.ShouldRun(pluginName) {
 		if err := pm.Run([]string{pluginName, "1", "2", "3"}); err != nil {
 			t.Fatal(err)
 		}
