@@ -12,23 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package baremetal
+package e2e
 
 import (
-	"context"
-	"fmt"
+	"os"
+	"os/exec"
 
-	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func (c *Cluster) List(ctx context.Context, options *opt.ListOptions) error {
-	return fmt.Errorf("do not support")
-}
+var _ = Describe("Basic test of greptimedb playground", func() {
+	It("Run Playground", func() {
+		var err error
+		err = playground()
+		Expect(err).NotTo(HaveOccurred(), "failed to create playground")
+	})
+})
 
-func (c *Cluster) Scale(ctx context.Context, options *opt.ScaleOptions) error {
-	return fmt.Errorf("do not support")
-}
-
-func (c *Cluster) Connect(ctx context.Context, options *opt.ConnectOptions) error {
-	return fmt.Errorf("do not support")
+func playground() error {
+	cmd := exec.Command("../../bin/gtctl", "playground")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
 }

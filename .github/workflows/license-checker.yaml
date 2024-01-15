@@ -7,9 +7,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 jobs:
-  license-header-check:
+  check-license-header:
     runs-on: ubuntu-latest
-    name: license-header-check
+    name: check-license-header
     steps:
       - uses: actions/checkout@v2
       - name: Check License Header
