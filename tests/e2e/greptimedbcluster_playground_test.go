@@ -43,7 +43,7 @@ var _ = Describe("Basic test of greptimedb cluster playground", func() {
 		Eventually(func() error {
 			cfg := mysql.Config{
 				Net:                  "tcp",
-				Addr:                 "127.0.0.1:4200",
+				Addr:                 "127.0.0.1:4002",
 				User:                 "",
 				Passwd:               "",
 				DBName:               "",
@@ -96,7 +96,7 @@ var _ = Describe("Basic test of greptimedb cluster playground", func() {
 })
 
 func playground() error {
-	cmd := exec.Command("../../bin/gtctl", "playground", "--config", "testdata/cluster.yaml")
+	cmd := exec.Command("../../bin/gtctl", "playground")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
