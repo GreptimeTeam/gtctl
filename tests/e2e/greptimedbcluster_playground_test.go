@@ -26,55 +26,14 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/go-sql-driver/mysql"
-	"k8s.io/klog/v2"
 )
 
-const (
-	createTableSQL = `CREATE TABLE dist_table (
-                        ts TIMESTAMP DEFAULT current_timestamp(),
-                        n INT,
-    					row_id INT,
-                        TIME INDEX (ts),
-                        PRIMARY KEY(n)
-                     )
-                     PARTITION BY RANGE COLUMNS (n) (
-    				 	PARTITION r0 VALUES LESS THAN (5),
-    					PARTITION r1 VALUES LESS THAN (9),
-    					PARTITION r2 VALUES LESS THAN (MAXVALUE),
-					)`
-
-	insertDataSQLStr = "INSERT INTO dist_table(n, row_id) VALUES (%d, %d)"
-
-	selectDataSQL = `SELECT * FROM dist_table`
-
-	testRowIDNum = 10
-)
-
-var (
-	defaultQueryTimeout = 5 * time.Second
-)
-
-// TestData is the schema of test data in SQL table.
-type TestData struct {
-	timestamp string
-	n         int32
-	rowID     int32
-}
-
-var _ = Describe("Basic test of greptimedb cluster", func() {
+var _ = Describe("Basic test of greptimedb cluster playground", func() {
 	It("Bootstrap cluster", func() {
 		var err error
-		err = createCluster()
-		Expect(err).NotTo(HaveOccurred(), "failed to create cluster")
-
-		err = getCluster()
-		Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
-
-		err = listCluster()
-		Expect(err).NotTo(HaveOccurred(), "failed to list cluster")
-
 		go func() {
-			forwardRequest()
+			err = playground()
+			Expect(err).NotTo(HaveOccurred(), "failed to create cluster playground")
 		}()
 
 		By("Connecting GreptimeDB")
@@ -84,7 +43,7 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 		Eventually(func() error {
 			cfg := mysql.Config{
 				Net:                  "tcp",
-				Addr:                 "127.0.0.1:4002",
+				Addr:                 "127.0.0.1:4200",
 				User:                 "",
 				Passwd:               "",
 				DBName:               "",
@@ -133,58 +92,15 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 			data = append(data, d)
 		}
 		Expect(len(data) == testRowIDNum).Should(BeTrue(), "get the wrong data from db")
-
-		err = deleteCluster()
-		Expect(err).NotTo(HaveOccurred(), "failed to delete cluster")
 	})
 })
 
-func createCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "create", "mydb", "--timeout", "300")
+func playground() error {
+	cmd := exec.Command("../../bin/gtctl", "playground", "--config", "testdata/cluster.yaml")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return err
 	}
 	return nil
-}
-
-func getCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "get", "mydb")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func listCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "list")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func deleteCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "delete", "mydb", "--tear-down-etcd")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func forwardRequest() {
-	for {
-		cmd := exec.Command("kubectl", "port-forward", "svc/mydb-frontend", "4002:4002")
-		if err := cmd.Run(); err != nil {
-			klog.Errorf("Failed to port forward: %v", err)
-			return
-		}
-	}
 }

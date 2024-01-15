@@ -53,7 +53,7 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 	if err := withSpinner("Etcd Cluster", c.createEtcdCluster); err != nil {
 		return err
 	}
-	if err := withSpinner("Greptime Cluster", c.createCluster); err != nil {
+	if err := withSpinner("GreptimeDB Cluster", c.createCluster); err != nil {
 		if err := c.Wait(ctx, true); err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 
 func (c *Cluster) createCluster(ctx context.Context, options *opt.CreateOptions) error {
 	if options.Cluster == nil {
-		return fmt.Errorf("missing create greptime cluster options")
+		return fmt.Errorf("missing create greptimedb cluster options")
 	}
 	clusterOpt := options.Cluster
 

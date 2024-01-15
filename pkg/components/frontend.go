@@ -141,5 +141,6 @@ func generateAddrArg(addr string, nodeId int) string {
 	// The "addr" is validated when set.
 	host, port, _ := net.SplitHostPort(addr)
 	portInt, _ := strconv.Atoi(port)
+
 	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeId))
 }
