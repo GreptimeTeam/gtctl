@@ -141,10 +141,7 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 
 var _ = Describe("Basic test of greptimedb playground", func() {
 	It("Run Playground", func() {
-		var err error
-		go func() {
-			err = playground()
-		}()
+		err := playground()
 		Expect(err).NotTo(HaveOccurred(), "failed to create playground")
 	})
 })
