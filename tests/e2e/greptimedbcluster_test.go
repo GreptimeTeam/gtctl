@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sigs.k8s.io/kind/pkg/errors"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -142,22 +143,36 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 var _ = Describe("Basic test of greptimedb playground", func() {
 	It("Run Playground", func() {
 		var err error
-		go func() {
-			err = playground()
-		}()
+		err = playground()
 		Expect(err).NotTo(HaveOccurred(), "failed to create playground")
 	})
 })
 
 func playground() error {
-	for {
-		cmd := exec.Command("../../bin/gtctl", "playground")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+	timeout := 60 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.Command("../../bin/gtctl", "playground")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	errCh := make(chan error, 1)
+	go func() {
 		if err := cmd.Run(); err != nil {
-			return err
+			errCh <- err
+		} else {
+			errCh <- cmd.Wait()
 		}
-		return nil
+		close(errCh)
+	}()
+
+	select {
+	case <-ctx.Done():
+		cancel()
+		return errors.New("create playground timeout")
+	case err := <-errCh:
+		return err
 	}
 }
 
