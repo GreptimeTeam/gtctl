@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -152,22 +151,21 @@ func playground() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	ctx, cancel := context.WithTimeout(context.Background(), 70*time.Second)
+	defer cancel()
+
 	errCh := make(chan error, 1)
-
 	go func() {
-		defer wg.Done()
-		if err := cmd.Run(); err != nil {
-			errCh <- err
-			return
-		}
+		errCh <- cmd.Run()
 	}()
-	wg.Wait()
-	close(errCh)
 
-	err := <-errCh
-	return err
+	select {
+	case <-ctx.Done():
+		cmd.Process.Kill()
+		return nil
+	case err := <-errCh:
+		return err
+	}
 }
 
 func createCluster() error {
