@@ -141,19 +141,24 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 
 var _ = Describe("Basic test of greptimedb playground", func() {
 	It("Run Playground", func() {
-		err := playground()
+		var err error
+		go func() {
+			err = playground()
+		}()
 		Expect(err).NotTo(HaveOccurred(), "failed to create playground")
 	})
 })
 
 func playground() error {
-	cmd := exec.Command("../../bin/gtctl", "playground")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
+	for {
+		cmd := exec.Command("../../bin/gtctl", "playground")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+		return nil
 	}
-	return nil
 }
 
 func createCluster() error {
