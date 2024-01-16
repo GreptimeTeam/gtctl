@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sigs.k8s.io/kind/pkg/errors"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -148,31 +148,26 @@ var _ = Describe("Basic test of greptimedb playground", func() {
 })
 
 func playground() error {
-	timeout := 60 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
 	cmd := exec.Command("../../bin/gtctl", "playground")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	errCh := make(chan error, 1)
+
 	go func() {
+		defer wg.Done()
 		if err := cmd.Run(); err != nil {
 			errCh <- err
-		} else {
-			errCh <- cmd.Wait()
+			return
 		}
-		close(errCh)
 	}()
+	wg.Wait()
+	close(errCh)
 
-	select {
-	case <-ctx.Done():
-		cancel()
-		return errors.New("create playground timeout")
-	case err := <-errCh:
-		return err
-	}
+	err := <-errCh
+	return err
 }
 
 func createCluster() error {
