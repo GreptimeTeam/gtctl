@@ -161,7 +161,7 @@ func playground() error {
 
 	select {
 	case <-ctx.Done():
-		cmd.Process.Kill()
+		_ = cmd.Process.Kill()
 		return nil
 	case err := <-errCh:
 		return err
