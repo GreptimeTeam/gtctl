@@ -25,7 +25,9 @@ import (
 var _ = Describe("Basic test of greptimedb playground", func() {
 	It("Run Playground", func() {
 		var err error
-		err = playground()
+		go func() {
+			err = playground()
+		}()
 		Expect(err).NotTo(HaveOccurred(), "failed to create playground")
 	})
 })

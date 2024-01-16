@@ -142,5 +142,6 @@ func generateAddrArg(addr string, nodeId int) string {
 	host, port, _ := net.SplitHostPort(addr)
 	portInt, _ := strconv.Atoi(port)
 
+	fmt.Println("======mklmkl", host, port, nodeId, portInt+nodeId, net.JoinHostPort(host, strconv.Itoa(portInt+nodeId)))
 	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeId))
 }
