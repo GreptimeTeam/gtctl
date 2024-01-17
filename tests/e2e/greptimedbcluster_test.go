@@ -168,7 +168,7 @@ func playground() error {
 		case err := <-errCh:
 			return err
 		default:
-			_, err := net.Dial("tcp", "localhost:4002")
+			_, err := net.Dial("tcp", "localhost:4003")
 			if err == nil {
 				_ = cmd.Process.Signal(os.Interrupt)
 				return nil
