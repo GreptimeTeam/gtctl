@@ -170,7 +170,7 @@ func playground() error {
 		default:
 			_, err := net.Dial("tcp", "localhost:4002")
 			if err == nil {
-				cmd.Process.Signal(os.Interrupt)
+				_ = cmd.Process.Signal(os.Interrupt)
 				return nil
 			}
 		}
