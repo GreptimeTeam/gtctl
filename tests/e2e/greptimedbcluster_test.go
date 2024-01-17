@@ -17,7 +17,9 @@ package e2e
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"time"
@@ -154,17 +156,25 @@ func playground() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 70*time.Second)
 	defer cancel()
 
-	errCh := make(chan error, 1)
+	errCh := make(chan error)
 	go func() {
 		errCh <- cmd.Run()
 	}()
 
-	select {
-	case <-ctx.Done():
-		_ = cmd.Process.Kill()
-		return nil
-	case err := <-errCh:
-		return err
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("create playground timeout")
+		case err := <-errCh:
+			return err
+		default:
+			_, err := net.Dial("tcp", "localhost:4002")
+			if err == nil {
+				cmd.Process.Signal(os.Interrupt)
+				return nil
+			}
+		}
+		time.Sleep(2 * time.Second)
 	}
 }
 
