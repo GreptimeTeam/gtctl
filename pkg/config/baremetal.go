@@ -105,12 +105,7 @@ func DefaultBareMetalConfig() *BareMetalClusterConfig {
 				Version: artifacts.LatestVersionTag,
 			},
 			Frontend: &Frontend{
-				Replicas:     1,
-				HTTPAddr:     "0.0.0.0:4000",
-				GRPCAddr:     "0.0.0.0:4001",
-				MysqlAddr:    "0.0.0.0:4002",
-				PostgresAddr: "0.0.0.0:4003",
-				OpentsdbAddr: "0.0.0.0:4242",
+				Replicas: 1,
 			},
 			MetaSrv: &MetaSrv{
 				Replicas:   1,
