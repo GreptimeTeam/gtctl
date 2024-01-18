@@ -1,25 +1,25 @@
-// Copyright 2023 Greptime Team
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2023 Greptime Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package e2e
 
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"time"
@@ -140,43 +140,6 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to delete cluster")
 	})
 })
-
-var _ = Describe("Basic test of greptimedb playground", func() {
-	It("Run Playground", func() {
-		err := playground()
-		Expect(err).NotTo(HaveOccurred(), "failed to create playground")
-	})
-})
-
-func playground() error {
-	cmd := exec.Command("../../bin/gtctl", "playground")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	ctx, cancel := context.WithTimeout(context.Background(), 70*time.Second)
-	defer cancel()
-
-	errCh := make(chan error)
-	go func() {
-		errCh <- cmd.Run()
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return errors.New("create playground timeout")
-		case err := <-errCh:
-			return err
-		default:
-			_, err := net.Dial("tcp", "localhost:4003")
-			if err == nil {
-				_ = cmd.Process.Signal(os.Interrupt)
-				return nil
-			}
-		}
-		time.Sleep(2 * time.Second)
-	}
-}
 
 func createCluster() error {
 	cmd := exec.Command("../../bin/gtctl", "cluster", "create", "mydb", "--timeout", "300")

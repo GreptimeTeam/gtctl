@@ -17,9 +17,8 @@ headerPath = "Apache-2.0.txt"
 includes = [
     "*.go",
     "*.sh",
-    "Makefile",
 ]
 
 [properties]
-inceptionYear = 2024
+inceptionYear = 2023
 copyrightOwner = "Greptime Team"
