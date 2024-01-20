@@ -1,16 +1,18 @@
-// Copyright 2023 Greptime Team
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2023 Greptime Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package kubernetes
 
@@ -52,13 +54,13 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 		return nil
 	}
 
-	if err := withSpinner("Greptime Operator", c.createOperator); err != nil {
+	if err := withSpinner("GreptimeDB Operator", c.createOperator); err != nil {
 		return err
 	}
 	if err := withSpinner("Etcd cluster", c.createEtcdCluster); err != nil {
 		return err
 	}
-	if err := withSpinner("Greptime cluster", c.createCluster); err != nil {
+	if err := withSpinner("GreptimeDB cluster", c.createCluster); err != nil {
 		return err
 	}
 
@@ -68,7 +70,7 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 // createOperator creates GreptimeDB Operator.
 func (c *Cluster) createOperator(ctx context.Context, options *opt.CreateOptions) error {
 	if options.Operator == nil {
-		return fmt.Errorf("missing create greptime operator options")
+		return fmt.Errorf("missing create greptimedb operator options")
 	}
 	operatorOpt := options.Operator
 	resourceName, resourceNamespace := OperatorName(), options.Namespace
@@ -107,7 +109,7 @@ func (c *Cluster) createOperator(ctx context.Context, options *opt.CreateOptions
 // createCluster creates GreptimeDB cluster.
 func (c *Cluster) createCluster(ctx context.Context, options *opt.CreateOptions) error {
 	if options.Cluster == nil {
-		return fmt.Errorf("missing create greptime cluster options")
+		return fmt.Errorf("missing create greptimedb cluster options")
 	}
 	clusterOpt := options.Cluster
 	resourceName, resourceNamespace := options.Name, options.Namespace
