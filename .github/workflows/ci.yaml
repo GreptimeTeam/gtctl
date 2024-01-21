@@ -18,6 +18,7 @@ jobs:
     steps:
       - name: Checkout Actions Repository
         uses: actions/checkout@v3
+
       - name: Check spelling with custom config file
         uses: crate-ci/typos@v1.14.8
 
@@ -41,7 +42,7 @@ jobs:
           args: -v
 
   unit-test:
-    name: coverage-test
+    name: coverage
     runs-on: ubuntu-latest
     needs: [ lint ]
     steps:
