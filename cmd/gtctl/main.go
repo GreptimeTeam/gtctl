@@ -78,7 +78,7 @@ func main() {
 		panic(err)
 	}
 
-	if pm.ShouldRun(os.Args[1]) {
+	if len(os.Args) > 1 && pm.ShouldRun(os.Args[1]) {
 		if err = pm.Run(os.Args[1:]); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
