@@ -12,17 +12,25 @@
 <img alt="screenshot" src="./docs/images/screenshot.png" width="800px">
 </p>
 
-## Quickstart
+## Installation
 
-Install the `gtctl` binary using the following **one-line installatio**n command:
+Install the `gtctl` executable with:
 
-```console
+```shell
+go install github.com/GreptimeTeam/gtctl/cmd/gtctl@develop
+```
+
+In case of `go` is _not_ available, try the following one-liner installation command:
+
+```shell
 curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
 ```
 
+## Quickstart
+
 The **fastest** way to experience the GreptimeDB cluster is to use the playground:
 
-```console
+```shell
 gtctl playground
 ```
 
@@ -34,4 +42,4 @@ The `playground` will deploy the minimal GreptimeDB cluster on your environment 
 
 ## License
 
-`gtctl` uses the [Apache 2.0 license](./LICENSE) to strike a balance between open contributions and allowing you to use the software however you want.
+`gtctl` uses the [Apache 2.0 license](LICENSE) to strike a balance between open contributions and allowing you to use the software however you want.
