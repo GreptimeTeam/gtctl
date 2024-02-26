@@ -14,16 +14,16 @@
 
 ## Installation
 
-Install the `gtctl` executable with:
-
-```shell
-go install github.com/GreptimeTeam/gtctl/cmd/gtctl@develop
-```
-
-In case of `go` is _not_ available, try the following one-liner installation command:
+Install `gtctl` using the following **oneliner installation** command:
 
 ```shell
 curl -fsSL https://raw.githubusercontent.com/greptimeteam/gtctl/develop/hack/install.sh | sh
+```
+
+In case of `go` is available, you can alternatively install `gtctl` with:
+
+```shell
+go install github.com/GreptimeTeam/gtctl/cmd/gtctl@develop
 ```
 
 ## Quickstart
