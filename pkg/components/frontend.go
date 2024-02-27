@@ -111,7 +111,9 @@ func (f *frontend) BuildArgs(params ...interface{}) []string {
 	if len(f.config.Config) > 0 {
 		args = append(args, fmt.Sprintf("-c=%s", f.config.Config))
 	}
-
+	if len(f.config.UserProvider) > 0 {
+		args = append(args, fmt.Sprintf("--user-provider=%s", f.config.UserProvider))
+	}
 	return args
 }
 
