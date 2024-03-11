@@ -101,12 +101,13 @@ func (f *frontend) BuildArgs(params ...interface{}) []string {
 		fmt.Sprintf("--log-level=%s", logLevel),
 		f.Name(), "start",
 		fmt.Sprintf("--metasrv-addr=%s", f.metaSrvAddr),
-		fmt.Sprintf("--http-addr=%s", generateAddrArg(f.config.HTTPAddr, nodeId)),
-		fmt.Sprintf("--rpc-addr=%s", generateAddrArg(f.config.GRPCAddr, nodeId)),
-		fmt.Sprintf("--mysql-addr=%s", generateAddrArg(f.config.MysqlAddr, nodeId)),
-		fmt.Sprintf("--postgres-addr=%s", generateAddrArg(f.config.PostgresAddr, nodeId)),
-		fmt.Sprintf("--opentsdb-addr=%s", generateAddrArg(f.config.OpentsdbAddr, nodeId)),
 	}
+
+	args = generateAddrArg("--http-addr", f.config.HTTPAddr, nodeId, args)
+	args = generateAddrArg("--rpc-addr", f.config.GRPCAddr, nodeId, args)
+	args = generateAddrArg("--mysql-addr", f.config.MysqlAddr, nodeId, args)
+	args = generateAddrArg("--postgres-addr", f.config.PostgresAddr, nodeId, args)
+	args = generateAddrArg("--opentsdb-addr", f.config.OpentsdbAddr, nodeId, args)
 
 	if len(f.config.Config) > 0 {
 		args = append(args, fmt.Sprintf("-c=%s", f.config.Config))
@@ -119,7 +120,7 @@ func (f *frontend) BuildArgs(params ...interface{}) []string {
 
 func (f *frontend) IsRunning(_ context.Context) bool {
 	for i := 0; i < f.config.Replicas; i++ {
-		addr := generateAddrArg(f.config.HTTPAddr, i)
+		addr := formatAddrArg(f.config.HTTPAddr, i)
 		healthy := fmt.Sprintf("http://%s/health", addr)
 
 		resp, err := http.Get(healthy)
@@ -141,10 +142,29 @@ func (f *frontend) IsRunning(_ context.Context) bool {
 	return true
 }
 
-func generateAddrArg(addr string, nodeId int) string {
+// formatAddrArg formats the given addr and nodeId to a valid socket string.
+// This function will return an empty string when the given addr is empty.
+func formatAddrArg(addr string, nodeId int) string {
+	// return empty result if the address is not specified
+	if len(addr) == 0 {
+		return addr
+	}
+
 	// The "addr" is validated when set.
 	host, port, _ := net.SplitHostPort(addr)
 	portInt, _ := strconv.Atoi(port)
 
 	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeId))
+}
+
+// generateAddrArg pushes arg into args array, return the new args array.
+func generateAddrArg(config string, addr string, nodeId int, args []string) []string {
+	socketAddr := formatAddrArg(addr, nodeId)
+
+	// don't generate param if the socket address is empty
+	if len(socketAddr) == 0 {
+		return args
+	}
+
+	return append(args, fmt.Sprintf("%s=%s", config, socketAddr))
 }
