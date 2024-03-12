@@ -22,7 +22,6 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"strconv"
 	"sync"
 	"time"
 
@@ -138,10 +137,10 @@ func (d *datanode) BuildArgs(params ...interface{}) []string {
 		d.Name(), "start",
 		fmt.Sprintf("--node-id=%d", nodeID),
 		fmt.Sprintf("--metasrv-addr=%s", d.metaSrvAddr),
-		fmt.Sprintf("--rpc-addr=%s", generateDatanodeAddr(d.config.RPCAddr, nodeID)),
-		fmt.Sprintf("--http-addr=%s", generateDatanodeAddr(d.config.HTTPAddr, nodeID)),
 		fmt.Sprintf("--data-home=%s", homeDir),
 	}
+	args = GenerateAddrArg("--http-addr", d.config.HTTPAddr, nodeID, args)
+	args = GenerateAddrArg("--rpc-addr", d.config.RPCAddr, nodeID, args)
 
 	if len(d.config.Config) > 0 {
 		args = append(args, fmt.Sprintf("-c=%s", d.config.Config))
@@ -152,7 +151,7 @@ func (d *datanode) BuildArgs(params ...interface{}) []string {
 
 func (d *datanode) IsRunning(_ context.Context) bool {
 	for i := 0; i < d.config.Replicas; i++ {
-		addr := generateDatanodeAddr(d.config.HTTPAddr, i)
+		addr := FormatAddrArg(d.config.HTTPAddr, i)
 		_, httpPort, err := net.SplitHostPort(addr)
 		if err != nil {
 			d.logger.V(5).Infof("failed to split host port in %s: %s", d.Name(), err)
@@ -175,11 +174,4 @@ func (d *datanode) IsRunning(_ context.Context) bool {
 	}
 
 	return true
-}
-
-func generateDatanodeAddr(addr string, nodeID int) string {
-	// Already checked in validation.
-	host, port, _ := net.SplitHostPort(addr)
-	portInt, _ := strconv.Atoi(port)
-	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeID))
 }

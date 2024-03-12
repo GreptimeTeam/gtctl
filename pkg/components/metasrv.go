@@ -22,7 +22,6 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"strconv"
 	"sync"
 	"time"
 
@@ -123,9 +122,9 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 		m.Name(), "start",
 		fmt.Sprintf("--store-addr=%s", m.config.StoreAddr),
 		fmt.Sprintf("--server-addr=%s", m.config.ServerAddr),
-		fmt.Sprintf("--http-addr=%s", generateMetaSrvAddr(m.config.HTTPAddr, nodeID)),
-		fmt.Sprintf("--bind-addr=%s", generateMetaSrvAddr(bindAddr, nodeID)),
 	}
+	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
+	args = GenerateAddrArg("--bind-addr", bindAddr, nodeID, args)
 
 	if len(m.config.Config) > 0 {
 		args = append(args, fmt.Sprintf("-c=%s", m.config.Config))
@@ -136,7 +135,7 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 
 func (m *metaSrv) IsRunning(_ context.Context) bool {
 	for i := 0; i < m.config.Replicas; i++ {
-		addr := generateMetaSrvAddr(m.config.HTTPAddr, i)
+		addr := FormatAddrArg(m.config.HTTPAddr, i)
 		_, httpPort, err := net.SplitHostPort(addr)
 		if err != nil {
 			m.logger.V(5).Infof("failed to split host port in %s: %s", m.Name(), err)
@@ -159,10 +158,4 @@ func (m *metaSrv) IsRunning(_ context.Context) bool {
 	}
 
 	return true
-}
-
-func generateMetaSrvAddr(addr string, nodeID int) string {
-	host, port, _ := net.SplitHostPort(addr)
-	portInt, _ := strconv.Atoi(port)
-	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeID))
 }
