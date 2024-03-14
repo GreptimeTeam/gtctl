@@ -39,10 +39,10 @@ const (
                         TIME INDEX (ts),
                         PRIMARY KEY(n)
                      )
-                     PARTITION BY RANGE COLUMNS (n) (
-    				 	PARTITION r0 VALUES LESS THAN (5),
-    					PARTITION r1 VALUES LESS THAN (9),
-    					PARTITION r2 VALUES LESS THAN (MAXVALUE),
+                     PARTITION ON COLUMNS (n) (
+                        n < 5,
+                        n < 9,
+                        n >= 9
 					)`
 
 	insertDataSQLStr = "INSERT INTO dist_table(n, row_id) VALUES (%d, %d)"
