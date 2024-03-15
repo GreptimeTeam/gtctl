@@ -19,10 +19,8 @@ package components
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"path"
-	"strconv"
 	"sync"
 
 	greptimedbclusterv1alpha1 "github.com/GreptimeTeam/greptimedb-operator/apis/v1alpha1"
@@ -101,23 +99,26 @@ func (f *frontend) BuildArgs(params ...interface{}) []string {
 		fmt.Sprintf("--log-level=%s", logLevel),
 		f.Name(), "start",
 		fmt.Sprintf("--metasrv-addr=%s", f.metaSrvAddr),
-		fmt.Sprintf("--http-addr=%s", generateAddrArg(f.config.HTTPAddr, nodeId)),
-		fmt.Sprintf("--rpc-addr=%s", generateAddrArg(f.config.GRPCAddr, nodeId)),
-		fmt.Sprintf("--mysql-addr=%s", generateAddrArg(f.config.MysqlAddr, nodeId)),
-		fmt.Sprintf("--postgres-addr=%s", generateAddrArg(f.config.PostgresAddr, nodeId)),
-		fmt.Sprintf("--opentsdb-addr=%s", generateAddrArg(f.config.OpentsdbAddr, nodeId)),
 	}
+
+	args = GenerateAddrArg("--http-addr", f.config.HTTPAddr, nodeId, args)
+	args = GenerateAddrArg("--rpc-addr", f.config.GRPCAddr, nodeId, args)
+	args = GenerateAddrArg("--mysql-addr", f.config.MysqlAddr, nodeId, args)
+	args = GenerateAddrArg("--postgres-addr", f.config.PostgresAddr, nodeId, args)
+	args = GenerateAddrArg("--opentsdb-addr", f.config.OpentsdbAddr, nodeId, args)
 
 	if len(f.config.Config) > 0 {
 		args = append(args, fmt.Sprintf("-c=%s", f.config.Config))
 	}
-
+	if len(f.config.UserProvider) > 0 {
+		args = append(args, fmt.Sprintf("--user-provider=%s", f.config.UserProvider))
+	}
 	return args
 }
 
 func (f *frontend) IsRunning(_ context.Context) bool {
 	for i := 0; i < f.config.Replicas; i++ {
-		addr := generateAddrArg(f.config.HTTPAddr, i)
+		addr := FormatAddrArg(f.config.HTTPAddr, i)
 		healthy := fmt.Sprintf("http://%s/health", addr)
 
 		resp, err := http.Get(healthy)
@@ -137,12 +138,4 @@ func (f *frontend) IsRunning(_ context.Context) bool {
 		}
 	}
 	return true
-}
-
-func generateAddrArg(addr string, nodeId int) string {
-	// The "addr" is validated when set.
-	host, port, _ := net.SplitHostPort(addr)
-	portInt, _ := strconv.Atoi(port)
-
-	return net.JoinHostPort(host, strconv.Itoa(portInt+nodeId))
 }

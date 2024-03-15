@@ -78,9 +78,10 @@ type Frontend struct {
 	MysqlAddr    string `yaml:"mysqlAddr" validate:"omitempty,hostname_port"`
 	OpentsdbAddr string `yaml:"opentsdbAddr" validate:"omitempty,hostname_port"`
 
-	Replicas int    `yaml:"replicas" validate:"gt=0"`
-	Config   string `yaml:"config" validate:"omitempty,filepath"`
-	LogLevel string `yaml:"logLevel"`
+	Replicas     int    `yaml:"replicas" validate:"gt=0"`
+	Config       string `yaml:"config" validate:"omitempty,filepath"`
+	LogLevel     string `yaml:"logLevel"`
+	UserProvider string `yaml:"userProvider"`
 }
 
 type MetaSrv struct {
