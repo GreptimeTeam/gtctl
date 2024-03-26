@@ -1,9 +1,6 @@
 name: CI
 
-on: [
-  push,
-  pull_request
-]
+on: [ push, pull_request ]
 
 env:
   GO_VERSION: "1.21"
@@ -13,27 +10,20 @@ permissions:
 
 jobs:
   typos-check:
-    name: spell-typos-check
+    name: Check typos
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Actions Repository
-        uses: actions/checkout@v3
-
-      - name: Check spelling with custom config file
-        uses: crate-ci/typos@v1.14.8
+      - uses: actions/checkout@v4
+      - uses: crate-ci/typos@master
 
   lint:
-    name: lint
+    name: Check linters
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
@@ -42,24 +32,18 @@ jobs:
           args: -v
 
   unit-test:
-    name: coverage
+    name: Unit test coverage
     runs-on: ubuntu-latest
     needs: [ lint ]
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
       - name: Unit test
-        run: |
-          make coverage
-
+        run: make coverage
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
@@ -67,18 +51,13 @@ jobs:
           name: codecov-gtctl
           verbose: true
   e2e:
-    name: e2e
+    name: End to End tests
     runs-on: ubuntu-latest
     needs: [ lint ]
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Run e2e
-        run: |
-          make e2e
+      - name: Run End to End tests
+        run: make e2e

@@ -43,17 +43,12 @@ jobs:
             goarch: amd64
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
       - name: Build project
-        run: |
-          make
+        run: make
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -67,19 +62,17 @@ jobs:
           echo $(shasum -a 256 ${{ matrix.file }}.tgz | cut -f1 -d' ') > ${{ matrix.file }}.sha256sum
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.file }}
           path: bin/${{ matrix.file }}.tgz
-
       - name: Upload checksum of artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.file }}.sha256sum
           path: bin/${{ matrix.file }}.sha256sum
-
       - name: Upload artifacts to S3
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@v3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_CN_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_CN_SECRET_ACCESS_KEY}}
@@ -107,10 +100,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Publish release
         uses: ncipollo/release-action@v1
@@ -129,11 +122,9 @@ jobs:
     if: ${{ inputs.release-install-script }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v4
       - name: Upload install.sh to S3
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@v4
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_CN_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_CN_SECRET_ACCESS_KEY}}
