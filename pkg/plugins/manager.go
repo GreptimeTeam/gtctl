@@ -26,8 +26,6 @@ import (
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
-//默认的manage
-
 const (
 	// DefaultPluginPrefix is the default prefix for the plugin binary name.
 	DefaultPluginPrefix = "gtctl-"
@@ -40,8 +38,8 @@ const (
 
 // Manager manages and executes the plugins.
 type Manager struct {
-	prefix      string   //前缀
-	searchPaths []string //搜索路径
+	prefix      string
+	searchPaths []string
 }
 
 func NewManager() (*Manager, error) {
@@ -50,9 +48,9 @@ func NewManager() (*Manager, error) {
 		searchPaths: []string{},
 	}
 
-	pluginSearchPaths := os.Getenv(PluginSearchPathsEnvKey) //这行代码从环境变量中获取插件搜索路径
+	pluginSearchPaths := os.Getenv(PluginSearchPathsEnvKey)
 	if len(pluginSearchPaths) > 0 {
-		m.searchPaths = append(m.searchPaths, strings.Split(pluginSearchPaths, ":")...) //将pluginSearchPaths以：进行分离，然后添加到path中去
+		m.searchPaths = append(m.searchPaths, strings.Split(pluginSearchPaths, ":")...)
 	} else {
 		// Search the current working directory.
 		pwd, err := os.Getwd()
@@ -64,7 +62,7 @@ func NewManager() (*Manager, error) {
 		// Search the $PATH.
 		pathEnv := os.Getenv("PATH")
 		if len(pathEnv) > 0 {
-			m.searchPaths = append(m.searchPaths, strings.Split(pathEnv, ":")...) //再添加一个patheenv
+			m.searchPaths = append(m.searchPaths, strings.Split(pathEnv, ":")...)
 		}
 	}
 
@@ -78,22 +76,21 @@ func (m *Manager) ShouldRun(name string) bool {
 }
 
 // Run searches for the plugin and runs it.
-// 输入一系列字符串，第一个字符串为地址，后面的字符串为指令
 func (m *Manager) Run(args []string) error {
 	if len(args) < 1 {
 		return nil // No arguments provided, normal help message will be shown.
 	}
 
-	pluginPath, err := m.searchPlugins(args[0]) //设定路径
+	pluginPath, err := m.searchPlugins(args[0])
 	if err != nil {
 		return err
 	}
 
-	pluginCmd := exec.Command(pluginPath, args[1:]...) //创建了一个外部命令，所以关键在这个输入的字符串和地址
-	pluginCmd.Stdin = os.Stdin                         //pluginCmd就是一个命令
+	pluginCmd := exec.Command(pluginPath, args[1:]...)
+	pluginCmd.Stdin = os.Stdin
 	pluginCmd.Stdout = os.Stdout
 	pluginCmd.Stderr = os.Stderr
-	if err := pluginCmd.Run(); err != nil { //跑这个命令
+	if err := pluginCmd.Run(); err != nil {
 		return fmt.Errorf("failed to run plugin '%s': %v", pluginPath, err)
 	}
 

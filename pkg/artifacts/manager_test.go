@@ -268,7 +268,6 @@ func TestArtifactsCache(t *testing.T) {
 	}
 }
 
-// 用于生成目标文件夹的目录
 func destDir(workingDir string, src *Source) string {
 	var artifactsDir string
 

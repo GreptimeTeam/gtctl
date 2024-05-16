@@ -52,7 +52,7 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 		return nil
 	}
 	if c.enableEtcd {
-		if err := withSpinner("Etcd Cluster", c.createEtcdCluster); err != nil { //这里调用了c.createEtcdCluster，创建Etcd的集群，所以如果选项成立的话，这里就不执行
+		if err := withSpinner("Etcd Cluster", c.createEtcdCluster); err != nil {
 			return err
 		}
 	}

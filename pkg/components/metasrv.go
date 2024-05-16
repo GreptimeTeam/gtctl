@@ -40,7 +40,6 @@ type metaSrv struct {
 	allocatedDirs
 }
 
-// 创建一个ClusterComponent接口
 func NewMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
 	wg *sync.WaitGroup, logger logger.Logger) ClusterComponent {
 	return &metaSrv{
@@ -55,9 +54,8 @@ func (m *metaSrv) Name() string {
 	return "metasrv"
 }
 
-// 配置初始值
 func (m *metaSrv) Start(ctx context.Context, stop context.CancelFunc, binary string) error {
-	// Default bind address for meta srv.服务器接受客户端请求的网络地址，如果yaml文件没有设置的话，就使用127.0.0.1:3002,反之使用yaml文件
+	// Default bind address for meta srv.
 	bindAddr := net.JoinHostPort("127.0.0.1", "3002")
 	if len(m.config.BindAddr) > 0 {
 		bindAddr = m.config.BindAddr
@@ -109,16 +107,15 @@ CHECKER:
 	return nil
 }
 
-// 启动Meta服务的命令行参数，返回args
 func (m *metaSrv) BuildArgs(params ...interface{}) []string {
-	//配置日志级别
-	logLevel := m.config.LogLevel //yaml文件中定义的日志级别
+
+	logLevel := m.config.LogLevel
 	if logLevel == "" {
-		logLevel = DefaultLogLevel //info级别，一般的信息性消息，用于记录程序的正常运行状态
+		logLevel = DefaultLogLevel
 	}
 
-	nodeID_, bindAddr_ := params[0], params[1] //赋予了两个参数空接口
-	nodeID := nodeID_.(int)                    //类型断言，这时候nodeID存储的是int类型
+	nodeID_, bindAddr_ := params[0], params[1]
+	nodeID := nodeID_.(int)
 	bindAddr := bindAddr_.(string)
 
 	args := []string{
@@ -127,18 +124,17 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 		fmt.Sprintf("--store-addr=%s", m.config.StoreAddr),
 		fmt.Sprintf("--server-addr=%s", m.config.ServerAddr),
 	}
-	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args) //这里调用了上一个args
+	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
 
 	args = GenerateAddrArg("--bind-addr", bindAddr, nodeID, args)
 
 	if len(m.config.Config) > 0 {
-		args = append(args, fmt.Sprintf("-c=%s", m.config.Config)) //这里最终形成了一个args，这是一个字符串数组
+		args = append(args, fmt.Sprintf("-c=%s", m.config.Config))
 	}
 
-	return args //将args给返回
+	return args
 }
 
-// 检查这个服务是否还在运行
 func (m *metaSrv) IsRunning(_ context.Context) bool {
 	for i := 0; i < m.config.Replicas; i++ {
 		addr := FormatAddrArg(m.config.HTTPAddr, i)

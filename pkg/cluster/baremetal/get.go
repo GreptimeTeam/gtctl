@@ -45,10 +45,8 @@ func (c *Cluster) Get(ctx context.Context, options *opt.GetOptions) error {
 	return nil
 }
 
-//利用cluster将yaml的数据存储下来
-
 func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*cfg.BareMetalClusterMetadata, error) {
-	csd := c.mm.GetClusterScopeDirs() //返回当前集群的目录
+	csd := c.mm.GetClusterScopeDirs()
 	_, err := os.Stat(csd.BaseDir)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("cluster %s is not exist", options.Name)
@@ -66,11 +64,11 @@ func (c *Cluster) get(_ context.Context, options *opt.GetOptions) (*cfg.BareMeta
 	}
 
 	var cluster cfg.BareMetalClusterMetadata
-	in, err := os.ReadFile(csd.ConfigPath) //读取csd的配置路径路径上的配置文件
+	in, err := os.ReadFile(csd.ConfigPath)
 	if err != nil {
 		return nil, err
 	}
-	if err = yaml.Unmarshal(in, &cluster); err != nil { //将in中的yaml数据转化为go数据传入cluster中
+	if err = yaml.Unmarshal(in, &cluster); err != nil {
 		return nil, err
 	}
 

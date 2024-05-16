@@ -79,14 +79,14 @@ func main() {
 	}
 
 	if len(os.Args) > 1 && pm.ShouldRun(os.Args[1]) {
-		if err = pm.Run(os.Args[1:]); err != nil { //err = run了一个命令行参数
+		if err = pm.Run(os.Args[1:]); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 		os.Exit(0)
 	}
 
-	if err = NewRootCommand().Execute(); err != nil { //执行了NewRootCommand
+	if err = NewRootCommand().Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
