@@ -90,7 +90,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.StorageClassName, "storage-class-name", "null", "Datanode storage class name.")
 	cmd.Flags().StringVar(&options.StorageSize, "storage-size", "10Gi", "Datanode persistent volume size.")
 	cmd.Flags().StringVar(&options.StorageRetainPolicy, "retain-policy", "Retain", "Datanode pvc retain policy.")
-	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
+	cmd.Flags().StringVarP(&options.Namespace, "namcrespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", 600, "Timeout in seconds for the command to complete, -1 means no timeout, default is 10 min.")
 	cmd.Flags().StringArrayVar(&options.Set.RawConfig, "set", []string{}, "set values on the command line for greptimedb cluster, etcd and operator (can specify multiple or separate values with commas: eg. cluster.key1=val1,etcd.key2=val2).")
@@ -110,7 +110,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.GreptimeDBClusterValuesFile, "greptimedb-cluster-values-file", "", "The values file for greptimedb cluster.")
 	cmd.Flags().StringVar(&options.EtcdClusterValuesFile, "etcd-cluster-values-file", "", "The values file for etcd cluster.")
 	cmd.Flags().StringVar(&options.GreptimeDBOperatorValuesFile, "greptimedb-operator-values-file", "", "The values file for greptimedb operator.")
-	cmd.Flags().BoolVar(&options.EnableEtcd, "memory-meta-storage", true, "Bootstrap the whole cluster without installing etcd for testing purposes through using the memory storage of metasrv in bare-metal mode.")
+	cmd.Flags().BoolVarP(&options.EnableEtcd, "memory-meta-storage", "m", true, "Bootstrap the whole cluster without installing etcd for testing purposes through using the memory storage of metasrv in bare-metal mode.")
 
 	return cmd
 }
@@ -180,7 +180,9 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 	}
 
 	var cluster opt.Operations
+
 	if options.BareMetal {
+
 		l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal", logger.Bold(clusterName))
 
 		var opts []baremetal.Option
