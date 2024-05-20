@@ -90,7 +90,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.StorageClassName, "storage-class-name", "null", "Datanode storage class name.")
 	cmd.Flags().StringVar(&options.StorageSize, "storage-size", "10Gi", "Datanode persistent volume size.")
 	cmd.Flags().StringVar(&options.StorageRetainPolicy, "retain-policy", "Retain", "Datanode pvc retain policy.")
-	cmd.Flags().StringVarP(&options.Namespace, "namcrespace", "n", "default", "Namespace of GreptimeDB cluster.")
+	cmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "default", "Namespace of GreptimeDB cluster.")
 	cmd.Flags().BoolVar(&options.DryRun, "dry-run", false, "Output the manifests without applying them.")
 	cmd.Flags().IntVar(&options.Timeout, "timeout", 600, "Timeout in seconds for the command to complete, -1 means no timeout, default is 10 min.")
 	cmd.Flags().StringArrayVar(&options.Set.RawConfig, "set", []string{}, "set values on the command line for greptimedb cluster, etcd and operator (can specify multiple or separate values with commas: eg. cluster.key1=val1,etcd.key2=val2).")

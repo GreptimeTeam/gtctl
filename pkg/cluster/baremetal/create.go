@@ -51,9 +51,7 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 		}
 		return nil
 	}
-	fmt.Printf("%v", c.enableEtcd)
 	if c.enableEtcd {
-		fmt.Printf("%v", c.enableEtcd)
 		if err := withSpinner("Etcd Cluster", c.createEtcdCluster); err != nil {
 			return err
 		}

@@ -48,7 +48,6 @@ func NewManager() (*Manager, error) {
 		searchPaths: []string{},
 	}
 
-	//提取路径
 	pluginSearchPaths := os.Getenv(PluginSearchPathsEnvKey)
 	if len(pluginSearchPaths) > 0 {
 		m.searchPaths = append(m.searchPaths, strings.Split(pluginSearchPaths, ":")...)
@@ -61,7 +60,7 @@ func NewManager() (*Manager, error) {
 		m.searchPaths = append(m.searchPaths, pwd)
 
 		// Search the $PATH.
-		pathEnv := os.Getenv("PATH") //你系统的路径环境变量
+		pathEnv := os.Getenv("PATH")
 		if len(pathEnv) > 0 {
 			m.searchPaths = append(m.searchPaths, strings.Split(pathEnv, ":")...)
 		}
@@ -82,7 +81,6 @@ func (m *Manager) Run(args []string) error {
 		return nil // No arguments provided, normal help message will be shown.
 	}
 
-	//构建了路径
 	pluginPath, err := m.searchPlugins(args[0])
 	if err != nil {
 		return err
