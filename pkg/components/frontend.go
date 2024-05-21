@@ -105,7 +105,6 @@ func (f *frontend) BuildArgs(params ...interface{}) []string {
 	args = GenerateAddrArg("--rpc-addr", f.config.GRPCAddr, nodeId, args)
 	args = GenerateAddrArg("--mysql-addr", f.config.MysqlAddr, nodeId, args)
 	args = GenerateAddrArg("--postgres-addr", f.config.PostgresAddr, nodeId, args)
-	args = GenerateAddrArg("--opentsdb-addr", f.config.OpentsdbAddr, nodeId, args)
 
 	if len(f.config.Config) > 0 {
 		args = append(args, fmt.Sprintf("-c=%s", f.config.Config))

@@ -76,7 +76,6 @@ type Frontend struct {
 	PostgresAddr string `yaml:"postgresAddr" validate:"omitempty,hostname_port"`
 	MetaAddr     string `yaml:"metaAddr" validate:"omitempty,hostname_port"`
 	MysqlAddr    string `yaml:"mysqlAddr" validate:"omitempty,hostname_port"`
-	OpentsdbAddr string `yaml:"opentsdbAddr" validate:"omitempty,hostname_port"`
 
 	Replicas     int    `yaml:"replicas" validate:"gt=0"`
 	Config       string `yaml:"config" validate:"omitempty,filepath"`
@@ -111,7 +110,6 @@ func DefaultBareMetalConfig() *BareMetalClusterConfig {
 				GRPCAddr:     "0.0.0.0:4001",
 				MysqlAddr:    "0.0.0.0:4002",
 				PostgresAddr: "0.0.0.0:4003",
-				OpentsdbAddr: "0.0.0.0:4242",
 			},
 			MetaSrv: &MetaSrv{
 				Replicas:   1,
