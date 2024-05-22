@@ -33,7 +33,6 @@ spec:
   grpcServicePort: 4001
   mysqlServicePort: 4002
   postgresServicePort: 4003
-  openTSDBServicePort: 4242
   initializer:
     image: 'registry.cn-hangzhou.aliyuncs.com/greptime/greptimedb-initializer:0.1.0-alpha.17'
   storage:
