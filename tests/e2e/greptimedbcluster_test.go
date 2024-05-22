@@ -41,7 +41,7 @@ const (
                      )
                      PARTITION ON COLUMNS (n) (
                         n < 5,
-                        n < 9,
+                        n >= 5 AND n < 9,
                         n >= 9
 					)`
 
@@ -155,6 +155,7 @@ func getCluster() error {
 	cmd := exec.Command("../../bin/gtctl", "cluster", "get", "mydb")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	if err := cmd.Run(); err != nil {
 		return err
 	}
