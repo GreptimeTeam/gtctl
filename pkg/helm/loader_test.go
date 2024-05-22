@@ -43,7 +43,7 @@ func TestLoadAndRenderChart(t *testing.T) {
 		ReleaseName:  "gtctl-ut",
 		Namespace:    "default",
 		ChartName:    artifacts.GreptimeDBClusterChartName,
-		ChartVersion: "0.1.2",
+		ChartVersion: "0.1.29",
 		FromCNRegion: false,
 		ValuesOptions: opt.CreateClusterOptions{
 			ImageRegistry:               "registry.cn-hangzhou.aliyuncs.com",

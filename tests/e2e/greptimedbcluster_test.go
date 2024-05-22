@@ -41,7 +41,7 @@ const (
                      )
                      PARTITION ON COLUMNS (n) (
                         n < 5,
-                        n < 9,
+                        n >= 5 AND n < 9,
                         n >= 9
 					)`
 
