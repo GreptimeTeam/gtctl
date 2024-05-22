@@ -13,7 +13,7 @@ spec:
         limits: {}
         requests: {}
   frontend:
-    replicas: 1
+    replicas: 3
     template:
       main:
         resources:
