@@ -180,15 +180,11 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 	}
 
 	var cluster opt.Operations
-
 	if options.BareMetal {
-
 		l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal", logger.Bold(clusterName))
 
 		var opts []baremetal.Option
-		opts = append(opts, baremetal.WithEnableCache(options.EnableCache))
-		opts = append(opts, baremetal.WithEnableEtcd(options.EnableEtcd))
-
+		opts = append(opts, baremetal.WithEnableCache(options.EnableCache), baremetal.WithEnableEtcd(options.EnableEtcd))
 		if len(options.GreptimeBinVersion) > 0 {
 			opts = append(opts, baremetal.WithGreptimeVersion(options.GreptimeBinVersion))
 		}

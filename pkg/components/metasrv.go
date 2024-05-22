@@ -108,7 +108,6 @@ CHECKER:
 }
 
 func (m *metaSrv) BuildArgs(params ...interface{}) []string {
-
 	logLevel := m.config.LogLevel
 	if logLevel == "" {
 		logLevel = DefaultLogLevel
@@ -125,7 +124,6 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 		fmt.Sprintf("--server-addr=%s", m.config.ServerAddr),
 	}
 	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
-
 	args = GenerateAddrArg("--bind-addr", bindAddr, nodeID, args)
 
 	if len(m.config.Config) > 0 {

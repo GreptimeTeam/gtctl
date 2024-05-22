@@ -155,7 +155,6 @@ func getCluster() error {
 	cmd := exec.Command("../../bin/gtctl", "cluster", "get", "mydb")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
 	if err := cmd.Run(); err != nil {
 		return err
 	}
