@@ -34,7 +34,7 @@ type Cluster struct {
 	config       *config.BareMetalClusterConfig
 	createNoDirs bool
 	enableCache  bool
-	metastore    bool
+	Metastore    bool
 
 	am artifacts.Manager
 	mm metadata.Manager
@@ -55,9 +55,9 @@ type ClusterComponents struct {
 }
 
 func NewClusterComponents(config *config.BareMetalClusterComponentsConfig, workingDirs components.WorkingDirs,
-	wg *sync.WaitGroup, logger logger.Logger, metastore bool) *ClusterComponents {
+	wg *sync.WaitGroup, logger logger.Logger, Metastore bool) *ClusterComponents {
 	return &ClusterComponents{
-		MetaSrv:  components.NewMetaSrv(config.MetaSrv, workingDirs, wg, logger, metastore),
+		MetaSrv:  components.NewMetaSrv(config.MetaSrv, workingDirs, wg, logger, Metastore),
 		Datanode: components.NewDataNode(config.Datanode, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
 		Frontend: components.NewFrontend(config.Frontend, config.MetaSrv.ServerAddr, workingDirs, wg, logger),
 		Etcd:     components.NewEtcd(workingDirs, wg, logger),
@@ -85,9 +85,9 @@ func WithEnableCache(enableCache bool) Option {
 	}
 }
 
-func Withmetastore(metastore bool) Option {
+func WithMetastore(Metastore bool) Option {
 	return func(c *Cluster) {
-		c.metastore = metastore
+		c.Metastore = Metastore
 	}
 }
 
@@ -143,7 +143,7 @@ func NewCluster(l logger.Logger, clusterName string, opts ...Option) (cluster.Op
 		DataDir: csd.DataDir,
 		LogsDir: csd.LogsDir,
 		PidsDir: csd.PidsDir,
-	}, &c.wg, c.logger, c.metastore)
+	}, &c.wg, c.logger, c.Metastore)
 
 	return c, nil
 }

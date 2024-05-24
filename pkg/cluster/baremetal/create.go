@@ -52,7 +52,7 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 		return nil
 	}
 
-	if c.metastore {
+	if c.Metastore {
 		if err := withSpinner("Etcd Cluster", c.createEtcdCluster); err != nil {
 			return err
 		}
