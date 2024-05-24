@@ -201,7 +201,7 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 			opts = append(opts, baremetal.WithReplaceConfig(&cfg))
 		}
 
-		cluster, err = baremetal.NewCluster(l, clusterName, opts...) //ops.metastore
+		cluster, err = baremetal.NewCluster(l, clusterName, opts...)
 		if err != nil {
 			return err
 		}

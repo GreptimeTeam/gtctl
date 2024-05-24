@@ -83,7 +83,7 @@ func (m *metaSrv) Start(ctx context.Context, stop context.CancelFunc, binary str
 			Name:   dirName,
 			logDir: metaSrvLogDir,
 			pidDir: metaSrvPidDir,
-			args:   m.BuildArgs(i, bindAddr), //如果我传进来就在这里
+			args:   m.BuildArgs(i, bindAddr),
 		}
 		if err := runBinary(ctx, stop, option, m.wg, m.logger); err != nil {
 			return err
@@ -128,7 +128,7 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
 	args = GenerateAddrArg("--bind-addr", bindAddr, nodeID, args)
 
-	if m.metastore == true {
+	if m.metastore {
 		metastore := strconv.FormatBool(m.metastore)
 		args = GenerateAddrArg("--use-memory-store", metastore, nodeID, args)
 	}
