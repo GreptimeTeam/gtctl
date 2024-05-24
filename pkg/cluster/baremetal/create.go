@@ -51,12 +51,8 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 		}
 		return nil
 	}
-<<<<<<< HEAD
 
 	if c.metastore {
-=======
-	if c.enableEtcd {
->>>>>>> 98e56c47ca7ee1089a8b4e1c45b0eb7332f2638f
 		if err := withSpinner("Etcd Cluster", c.createEtcdCluster); err != nil {
 			return err
 		}

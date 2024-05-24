@@ -34,11 +34,7 @@ type Cluster struct {
 	config       *config.BareMetalClusterConfig
 	createNoDirs bool
 	enableCache  bool
-<<<<<<< HEAD
 	metastore    bool
-=======
-	enableEtcd   bool
->>>>>>> 98e56c47ca7ee1089a8b4e1c45b0eb7332f2638f
 
 	am artifacts.Manager
 	mm metadata.Manager
@@ -89,15 +85,9 @@ func WithEnableCache(enableCache bool) Option {
 	}
 }
 
-<<<<<<< HEAD
 func Withmetastore(metastore bool) Option {
 	return func(c *Cluster) {
 		c.metastore = metastore
-=======
-func WithEnableEtcd(enableEtcd bool) Option {
-	return func(c *Cluster) {
-		c.enableEtcd = enableEtcd
->>>>>>> 98e56c47ca7ee1089a8b4e1c45b0eb7332f2638f
 	}
 }
 

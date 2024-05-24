@@ -62,11 +62,7 @@ type clusterCreateCliOptions struct {
 	Config             string
 	GreptimeBinVersion string
 	EnableCache        bool
-<<<<<<< HEAD
 	metastore          bool
-=======
-	EnableEtcd         bool
->>>>>>> 98e56c47ca7ee1089a8b4e1c45b0eb7332f2638f
 
 	// Common options.
 	Timeout int
@@ -114,11 +110,7 @@ func NewCreateClusterCommand(l logger.Logger) *cobra.Command {
 	cmd.Flags().StringVar(&options.GreptimeDBClusterValuesFile, "greptimedb-cluster-values-file", "", "The values file for greptimedb cluster.")
 	cmd.Flags().StringVar(&options.EtcdClusterValuesFile, "etcd-cluster-values-file", "", "The values file for etcd cluster.")
 	cmd.Flags().StringVar(&options.GreptimeDBOperatorValuesFile, "greptimedb-operator-values-file", "", "The values file for greptimedb operator.")
-<<<<<<< HEAD
 	cmd.Flags().BoolVarP(&options.metastore, "memory-meta-storage", "m", false, "Bootstrap the whole cluster without installing etcd for testing purposes through using the memory storage of metasrv in bare-metal mode.")
-=======
-	cmd.Flags().BoolVarP(&options.EnableEtcd, "memory-meta-storage", "m", true, "Bootstrap the whole cluster without installing etcd for testing purposes through using the memory storage of metasrv in bare-metal mode.")
->>>>>>> 98e56c47ca7ee1089a8b4e1c45b0eb7332f2638f
 
 	return cmd
 }
@@ -192,11 +184,7 @@ func NewCluster(args []string, options *clusterCreateCliOptions, l logger.Logger
 		l.V(0).Infof("Creating GreptimeDB cluster '%s' on bare-metal", logger.Bold(clusterName))
 
 		var opts []baremetal.Option
-<<<<<<< HEAD
 		opts = append(opts, baremetal.WithEnableCache(options.EnableCache), baremetal.Withmetastore(options.metastore))
-=======
-		opts = append(opts, baremetal.WithEnableCache(options.EnableCache), baremetal.WithEnableEtcd(options.EnableEtcd))
->>>>>>> 98e56c47ca7ee1089a8b4e1c45b0eb7332f2638f
 		if len(options.GreptimeBinVersion) > 0 {
 			opts = append(opts, baremetal.WithGreptimeVersion(options.GreptimeBinVersion))
 		}
