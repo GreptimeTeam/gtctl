@@ -85,7 +85,7 @@ func WithEnableCache(enableCache bool) Option {
 	}
 }
 
-func Withmetastore(metastore bool) Option {
+func WithMetastore(metastore bool) Option {
 	return func(c *Cluster) {
 		c.metastore = metastore
 	}
