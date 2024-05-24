@@ -52,10 +52,12 @@ func (c *Cluster) Create(ctx context.Context, options *opt.CreateOptions) error 
 		return nil
 	}
 
-	if err := withSpinner("Etcd Cluster", c.createEtcdCluster); err != nil {
-		return err
+	if c.metastore {
+		if err := withSpinner("Etcd Cluster", c.createEtcdCluster); err != nil {
+			return err
+		}
 	}
-	if err := withSpinner("GreptimeDB Cluster", c.createCluster); err != nil {
+	if err := withSpinner("GreptimeDB Cluster", c.createCluster); err != nil { //options
 		if err := c.Wait(ctx, true); err != nil {
 			return err
 		}

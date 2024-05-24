@@ -22,6 +22,7 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -36,17 +37,19 @@ type metaSrv struct {
 	workingDirs WorkingDirs
 	wg          *sync.WaitGroup
 	logger      logger.Logger
+	metastore   bool
 
 	allocatedDirs
 }
 
 func NewMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
-	wg *sync.WaitGroup, logger logger.Logger) ClusterComponent {
+	wg *sync.WaitGroup, logger logger.Logger, metastore bool) ClusterComponent {
 	return &metaSrv{
 		config:      config,
 		workingDirs: workingDirs,
 		wg:          wg,
 		logger:      logger,
+		metastore:   metastore,
 	}
 }
 
@@ -75,13 +78,12 @@ func (m *metaSrv) Start(ctx context.Context, stop context.CancelFunc, binary str
 			return err
 		}
 		m.pidsDirs = append(m.pidsDirs, metaSrvPidDir)
-
 		option := &RunOptions{
 			Binary: binary,
 			Name:   dirName,
 			logDir: metaSrvLogDir,
 			pidDir: metaSrvPidDir,
-			args:   m.BuildArgs(i, bindAddr),
+			args:   m.BuildArgs(i, bindAddr), //如果我传进来就在这里
 		}
 		if err := runBinary(ctx, stop, option, m.wg, m.logger); err != nil {
 			return err
@@ -125,6 +127,11 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 	}
 	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
 	args = GenerateAddrArg("--bind-addr", bindAddr, nodeID, args)
+
+	if m.metastore == true {
+		metastore := strconv.FormatBool(m.metastore)
+		args = GenerateAddrArg("--use-memory-store", metastore, nodeID, args)
+	}
 
 	if len(m.config.Config) > 0 {
 		args = append(args, fmt.Sprintf("-c=%s", m.config.Config))
