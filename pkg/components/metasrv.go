@@ -34,22 +34,22 @@ import (
 type metaSrv struct {
 	config *config.MetaSrv
 
-	workingDirs WorkingDirs
-	wg          *sync.WaitGroup
-	logger      logger.Logger
-	metastore   bool
+	workingDirs   WorkingDirs
+	wg            *sync.WaitGroup
+	logger        logger.Logger
+	useMemoryMeta bool
 
 	allocatedDirs
 }
 
 func NewMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
-	wg *sync.WaitGroup, logger logger.Logger, metastore bool) ClusterComponent {
+	wg *sync.WaitGroup, logger logger.Logger, useMemoryMeta bool) ClusterComponent {
 	return &metaSrv{
-		config:      config,
-		workingDirs: workingDirs,
-		wg:          wg,
-		logger:      logger,
-		metastore:   metastore,
+		config:        config,
+		workingDirs:   workingDirs,
+		wg:            wg,
+		logger:        logger,
+		useMemoryMeta: useMemoryMeta,
 	}
 }
 
@@ -128,9 +128,9 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
 	args = GenerateAddrArg("--bind-addr", bindAddr, nodeID, args)
 
-	if m.metastore {
-		metastore := strconv.FormatBool(m.metastore)
-		args = GenerateAddrArg("--use-memory-store", metastore, nodeID, args)
+	if m.useMemoryMeta {
+		useMemoryMeta := strconv.FormatBool(m.useMemoryMeta)
+		args = GenerateAddrArg("--use-memory-store", useMemoryMeta, nodeID, args)
 	}
 
 	if len(m.config.Config) > 0 {
