@@ -136,7 +136,7 @@ func (d *datanode) BuildArgs(params ...interface{}) []string {
 		fmt.Sprintf("--log-level=%s", logLevel),
 		d.Name(), "start",
 		fmt.Sprintf("--node-id=%d", nodeID),
-		fmt.Sprintf("--metasrv-addr=%s", d.metaSrvAddr),
+		fmt.Sprintf("--metasrv-addrs=%s", d.metaSrvAddr),
 		fmt.Sprintf("--data-home=%s", homeDir),
 	}
 	args = GenerateAddrArg("--http-addr", d.config.HTTPAddr, nodeID, args)

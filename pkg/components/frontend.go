@@ -98,7 +98,7 @@ func (f *frontend) BuildArgs(params ...interface{}) []string {
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
 		f.Name(), "start",
-		fmt.Sprintf("--metasrv-addr=%s", f.metaSrvAddr),
+		fmt.Sprintf("--metasrv-addrs=%s", f.metaSrvAddr),
 	}
 
 	args = GenerateAddrArg("--http-addr", f.config.HTTPAddr, nodeId, args)
