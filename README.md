@@ -38,7 +38,7 @@ The `playground` will deploy the minimal GreptimeDB cluster on your environment 
 
 ## Documentation
 
-* [More](https://docs.greptime.com/user-guide/operations/gtctl) features and usage about `gtctl`
+* [More](https://docs.greptime.com/reference/gtctl) features and usage about `gtctl`
 
 ## License
 
