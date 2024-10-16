@@ -1,4 +1,4 @@
-# More options for storage: https://docs.greptime.com/user-guide/operations/configuration#storage-options
+# More options for storage: https://docs.greptime.com/user-guide/deployments/configuration#storage-options
 
 [storage]
 type = "S3"
