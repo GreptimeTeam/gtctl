@@ -426,8 +426,8 @@ func (m *manager) installBinaries(downloadFile, installDir string) error {
 	if err := fileutils.EnsureDir(installDir); err != nil {
 		return err
 	}
-
-	tempDir, err := os.MkdirTemp("/tmp", "gtctl-")
+	// https://github.com/messagebird/gcppromd/commit/427b25621b9d9f6dd1c31086d07b527432b2aedb
+	tempDir, err := os.MkdirTemp(installDir, "gtctl-")
 	if err != nil {
 		return err
 	}
