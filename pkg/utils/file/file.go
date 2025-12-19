@@ -73,13 +73,13 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer MustClose(r)
 
 	w, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer w.Close()
+	defer MustClose(w)
 
 	_, err = io.Copy(w, r)
 	if err != nil {
@@ -115,7 +115,7 @@ func unzip(file, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer archive.Close()
+	defer MustClose(archive)
 
 	for _, f := range archive.File {
 		filePath := filepath.Join(dst, f.Name)
@@ -209,4 +209,16 @@ func untar(file, dst string) error {
 	}
 
 	return nil
+}
+
+func MustClose(c io.Closer) {
+	if err := c.Close(); err != nil {
+		_ = fmt.Errorf("failed to close: %v", err)
+	}
+}
+
+func RemoveAll(path string) {
+	if err := os.RemoveAll(path); err != nil {
+		_ = fmt.Errorf("failed to remove path %s: %v", path, err)
+	}
 }

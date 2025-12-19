@@ -1,6 +1,6 @@
 module github.com/GreptimeTeam/gtctl
 
-go 1.18
+go 1.25
 
 require (
 	github.com/GreptimeTeam/greptimedb-operator v0.1.0-alpha.9

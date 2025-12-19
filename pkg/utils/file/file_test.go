@@ -39,9 +39,7 @@ func TestUncompress(t *testing.T) {
 	}
 
 	// Clean up output dir.
-	defer func() {
-		os.RemoveAll(outputDir)
-	}()
+	defer RemoveAll(outputDir)
 
 	for _, test := range tests {
 		if err := Uncompress(test.path, test.dst); err != nil {

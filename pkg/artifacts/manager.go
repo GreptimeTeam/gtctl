@@ -246,7 +246,7 @@ func (m *manager) downloadFromHTTP(ctx context.Context, httpURL string, dest str
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed, status code: %d", resp.StatusCode)
 	}
-	defer resp.Body.Close()
+	defer fileutils.MustClose(resp.Body)
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -306,7 +306,7 @@ func (m *manager) chartIndexFile(ctx context.Context, indexURL string) (*repo.In
 	if err != nil {
 		return nil, err
 	}
-	defer rsp.Body.Close()
+	defer fileutils.MustClose(rsp.Body)
 
 	data, err := io.ReadAll(rsp.Body)
 	if err != nil {
@@ -431,7 +431,7 @@ func (m *manager) installBinaries(downloadFile, installDir string) error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tempDir)
+	defer fileutils.RemoveAll(tempDir)
 
 	if err := fileutils.Uncompress(downloadFile, tempDir); err != nil {
 		return err
@@ -525,7 +525,7 @@ func (m *manager) getVersionInfoFromS3(typ ArtifactType, name string, nightly bo
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("get latest info from '%s' failed, status code: %d", latestVersionInfoURL, resp.StatusCode)
 	}
-	defer resp.Body.Close()
+	defer fileutils.MustClose(resp.Body)
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {

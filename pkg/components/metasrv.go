@@ -22,7 +22,6 @@ import (
 	"net"
 	"net/http"
 	"path"
-	"strconv"
 	"sync"
 	"time"
 
@@ -37,19 +36,17 @@ type metaSrv struct {
 	workingDirs   WorkingDirs
 	wg            *sync.WaitGroup
 	logger        logger.Logger
-	useMemoryMeta bool
 
 	allocatedDirs
 }
 
 func NewMetaSrv(config *config.MetaSrv, workingDirs WorkingDirs,
-	wg *sync.WaitGroup, logger logger.Logger, useMemoryMeta bool) ClusterComponent {
+	wg *sync.WaitGroup, logger logger.Logger) ClusterComponent {
 	return &metaSrv{
 		config:        config,
 		workingDirs:   workingDirs,
 		wg:            wg,
 		logger:        logger,
-		useMemoryMeta: useMemoryMeta,
 	}
 }
 
@@ -127,11 +124,6 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 	}
 	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
 	args = GenerateAddrArg("--bind-addr", bindAddr, nodeID, args)
-
-	if m.useMemoryMeta {
-		useMemoryMeta := strconv.FormatBool(m.useMemoryMeta)
-		args = GenerateAddrArg("--use-memory-store", useMemoryMeta, nodeID, args)
-	}
 
 	if len(m.config.Config) > 0 {
 		args = append(args, fmt.Sprintf("-c=%s", m.config.Config))
