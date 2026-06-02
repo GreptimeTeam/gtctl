@@ -26,6 +26,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
 
 // EnsureDir ensures the directory exists.
@@ -213,12 +215,12 @@ func untar(file, dst string) error {
 
 func MustClose(c io.Closer) {
 	if err := c.Close(); err != nil {
-		_ = fmt.Errorf("failed to close: %v", err)
+		logger.Default().Errorf("failed to close: %v", err)
 	}
 }
 
 func RemoveAll(path string) {
 	if err := os.RemoveAll(path); err != nil {
-		_ = fmt.Errorf("failed to remove path %s: %v", path, err)
+		logger.Default().Errorf("failed to remove path %s: %v", path, err)
 	}
 }

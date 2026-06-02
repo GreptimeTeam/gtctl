@@ -17,10 +17,23 @@
 package file
 
 import (
+	"bytes"
+	"errors"
 	"os"
 	"path"
+	"strings"
 	"testing"
+
+	"sigs.k8s.io/kind/pkg/log"
+
+	"github.com/GreptimeTeam/gtctl/pkg/logger"
 )
+
+type errorCloser struct{}
+
+func (errorCloser) Close() error {
+	return errors.New("close failed")
+}
 
 func TestUncompress(t *testing.T) {
 	const (
@@ -55,5 +68,18 @@ func TestUncompress(t *testing.T) {
 		if string(data) != testContent {
 			t.Errorf("file content is not '%s': %s", testContent, string(data))
 		}
+	}
+}
+
+func TestMustCloseLogsError(t *testing.T) {
+	var buf bytes.Buffer
+	previous := logger.Default()
+	logger.SetDefault(logger.New(&buf, log.Level(0)))
+	defer logger.SetDefault(previous)
+
+	MustClose(errorCloser{})
+
+	if got := buf.String(); !strings.Contains(got, "failed to close: close failed") {
+		t.Fatalf("expected close error to be logged, got %q", got)
 	}
 }

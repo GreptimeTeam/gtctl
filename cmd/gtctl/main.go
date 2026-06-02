@@ -40,7 +40,7 @@ func NewRootCommand() *cobra.Command {
 	var (
 		verbosity int32
 
-		l = logger.New(os.Stdout, log.Level(verbosity), logger.WithColored())
+		l = logger.Default()
 	)
 
 	cmd := &cobra.Command{
