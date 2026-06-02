@@ -89,9 +89,10 @@ type MetaSrv struct {
 	BindAddr   string `yaml:"bindAddr" validate:"omitempty,hostname_port"`
 	HTTPAddr   string `yaml:"httpAddr" validate:"required,hostname_port"`
 
-	Replicas int    `yaml:"replicas" validate:"gt=0"`
-	Config   string `yaml:"config" validate:"omitempty,filepath"`
-	LogLevel string `yaml:"logLevel"`
+	Replicas          int      `yaml:"replicas" validate:"gt=0"`
+	Config            string   `yaml:"config" validate:"omitempty,filepath"`
+	ExtraGreptimeArgs []string `yaml:"extraGreptimeArgs"`
+	LogLevel          string   `yaml:"logLevel"`
 }
 
 type Etcd struct {

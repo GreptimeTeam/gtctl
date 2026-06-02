@@ -118,10 +118,13 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 
 	args := []string{
 		fmt.Sprintf("--log-level=%s", logLevel),
+	}
+	args = append(args, m.config.ExtraGreptimeArgs...)
+	args = append(args,
 		m.Name(), "start",
 		fmt.Sprintf("--store-addr=%s", m.config.StoreAddr),
 		fmt.Sprintf("--server-addr=%s", m.config.ServerAddr),
-	}
+	)
 	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
 	args = GenerateAddrArg("--bind-addr", bindAddr, nodeID, args)
 
