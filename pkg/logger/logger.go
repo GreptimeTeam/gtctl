@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -48,6 +49,11 @@ var _ Logger = &logger{}
 
 type Option func(*logger)
 
+var (
+	defaultLoggerMu sync.RWMutex
+	defaultLogger   Logger = New(os.Stdout, log.Level(0), WithColored())
+)
+
 func Bold(s string) string {
 	return color.New(color.FgHiWhite, color.Bold).SprintfFunc()(s)
 }
@@ -65,6 +71,26 @@ func New(writer io.Writer, verbosity log.Level, opts ...Option) Logger {
 	}
 
 	return l
+}
+
+// Default returns the process-wide default logger.
+func Default() Logger {
+	defaultLoggerMu.RLock()
+	defer defaultLoggerMu.RUnlock()
+
+	return defaultLogger
+}
+
+// SetDefault sets the process-wide default logger.
+func SetDefault(l Logger) {
+	if l == nil {
+		return
+	}
+
+	defaultLoggerMu.Lock()
+	defer defaultLoggerMu.Unlock()
+
+	defaultLogger = l
 }
 
 func WithColored() Option {

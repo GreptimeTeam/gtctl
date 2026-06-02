@@ -38,7 +38,7 @@ type BareMetalClusterMetadata struct {
 // Each field of BareMetalClusterConfig can also have its own exported method `Validate`.
 type BareMetalClusterConfig struct {
 	Cluster *BareMetalClusterComponentsConfig `yaml:"cluster" validate:"required"`
-	Etcd    *Etcd                             `yaml:"etcd" validate:"required"`
+	Etcd    *Etcd                             `yaml:"etcd"`
 }
 
 type BareMetalClusterComponentsConfig struct {

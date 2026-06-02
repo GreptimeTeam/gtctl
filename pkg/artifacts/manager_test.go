@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/kind/pkg/log"
 
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
+	"github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 func TestDownloadCharts(t *testing.T) {
@@ -33,7 +34,7 @@ func TestDownloadCharts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer file.RemoveAll(tempDir)
 
 	m, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()))
 	if err != nil {
@@ -79,7 +80,7 @@ func TestDownloadChartsFromCNRegion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer file.RemoveAll(tempDir)
 
 	m, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()))
 	if err != nil {
@@ -125,7 +126,7 @@ func TestDownloadBinariesFromCNRegion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer file.RemoveAll(tempDir)
 
 	m, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()))
 	if err != nil {
@@ -171,7 +172,7 @@ func TestDownloadBinaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer file.RemoveAll(tempDir)
 
 	m, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()))
 	if err != nil {
@@ -218,7 +219,7 @@ func TestArtifactsCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer file.RemoveAll(tempDir)
 
 	m, err := NewManager(logger.New(os.Stdout, log.Level(4), logger.WithColored()))
 	if err != nil {

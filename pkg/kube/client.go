@@ -109,7 +109,7 @@ func NewClient(kubeconfig string) (*Client, error) {
 
 	kubeVersion, err := kubeClient.ServerVersion()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get kubernetes server version: %v\n", err)
+		return nil, fmt.Errorf("failed to get kubernetes server version: %v", err)
 	}
 	helm.KubeVersion = kubeVersion.String()
 

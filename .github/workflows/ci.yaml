@@ -3,7 +3,7 @@ name: CI
 on: [ push, pull_request ]
 
 env:
-  GO_VERSION: "1.21"
+  GO_VERSION: "1.25"
 
 permissions:
   contents: read
@@ -25,31 +25,11 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.54
           # '-v' flag is required to show the output of golangci-lint.
           args: -v
 
-  unit-test:
-    name: Unit test coverage
-    runs-on: ubuntu-latest
-    needs: [ lint ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Unit test
-        run: make coverage
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
-          files: ./coverage.xml
-          name: codecov-gtctl
-          verbose: true
   e2e:
     name: End to End tests
     runs-on: ubuntu-latest

@@ -26,6 +26,7 @@ import (
 
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 	"github.com/GreptimeTeam/gtctl/pkg/config"
+	"github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 func TestMetadataManager(t *testing.T) {
@@ -33,7 +34,7 @@ func TestMetadataManager(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer file.RemoveAll(tempDir)
 
 	m, err := New(tempDir)
 	if err != nil {

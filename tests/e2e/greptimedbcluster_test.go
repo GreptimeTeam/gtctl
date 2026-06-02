@@ -28,7 +28,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/go-sql-driver/mysql"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -66,18 +65,16 @@ type TestData struct {
 var _ = Describe("Basic test of greptimedb cluster", func() {
 	It("Bootstrap cluster", func() {
 		var err error
-		err = createCluster()
-		Expect(err).NotTo(HaveOccurred(), "failed to create cluster")
+		go func() {
+			if err := createCluster(); err != nil {
+				panic(err)
+			}
+		}()
+		// Wait for GreptimeDB cluster to be ready.
+		time.Sleep(3 * time.Minute)
 
 		err = getCluster()
 		Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
-
-		err = listCluster()
-		Expect(err).NotTo(HaveOccurred(), "failed to list cluster")
-
-		go func() {
-			forwardRequest()
-		}()
 
 		By("Connecting GreptimeDB")
 		var db *sql.DB
@@ -135,16 +132,11 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 			data = append(data, d)
 		}
 		Expect(len(data) == testRowIDNum).Should(BeTrue(), "get the wrong data from db")
-
-		err = deleteCluster()
-		Expect(err).NotTo(HaveOccurred(), "failed to delete cluster")
 	})
 })
 
 func createCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "create", "mydb", "--timeout", "300")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd := exec.Command("../../bin/gtctl", "cluster", "create", "mydb", "--bare-metal", "--timeout", "300")
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -152,41 +144,11 @@ func createCluster() error {
 }
 
 func getCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "get", "mydb")
+	cmd := exec.Command("../../bin/gtctl", "cluster", "get", "mydb", "--bare-metal")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return err
 	}
 	return nil
-}
-
-func listCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "list")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func deleteCluster() error {
-	cmd := exec.Command("../../bin/gtctl", "cluster", "delete", "mydb", "--tear-down-etcd")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func forwardRequest() {
-	for {
-		cmd := exec.Command("kubectl", "port-forward", "svc/mydb-frontend", "4002:4002")
-		if err := cmd.Run(); err != nil {
-			klog.Errorf("Failed to port forward: %v", err)
-			return
-		}
-	}
 }

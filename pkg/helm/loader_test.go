@@ -26,6 +26,7 @@ import (
 	"github.com/GreptimeTeam/gtctl/pkg/artifacts"
 	opt "github.com/GreptimeTeam/gtctl/pkg/cluster"
 	"github.com/GreptimeTeam/gtctl/pkg/logger"
+	"github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
 const (
@@ -37,7 +38,7 @@ func TestLoadAndRenderChart(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create render: %v", err)
 	}
-	defer cleanMetadataDir()
+	defer file.RemoveAll(testMetadataDir)
 
 	opts := &LoadOptions{
 		ReleaseName:  "gtctl-ut",
@@ -72,8 +73,4 @@ func TestLoadAndRenderChart(t *testing.T) {
 	if string(wantedManifests) != string(manifests) {
 		t.Errorf("expected %s, got %s", string(wantedManifests), string(manifests))
 	}
-}
-
-func cleanMetadataDir() {
-	os.RemoveAll(testMetadataDir)
 }
