@@ -84,7 +84,7 @@ type Frontend struct {
 }
 
 type MetaSrv struct {
-	StoreAddr  string `yaml:"storeAddr" validate:"hostname_port"`
+	StoreAddr  string `yaml:"storeAddr"`
 	ServerAddr string `yaml:"serverAddr" validate:"hostname_port"`
 	BindAddr   string `yaml:"bindAddr" validate:"omitempty,hostname_port"`
 	HTTPAddr   string `yaml:"httpAddr" validate:"required,hostname_port"`
