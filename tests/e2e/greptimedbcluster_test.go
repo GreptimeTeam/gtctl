@@ -65,13 +65,16 @@ type TestData struct {
 var _ = Describe("Basic test of greptimedb cluster", func() {
 	It("Bootstrap cluster", func() {
 		var err error
+		errCh := make(chan error, 1)
 		go func() {
-			if err := createCluster(); err != nil {
-				panic(err)
-			}
+			errCh <- createCluster()
 		}()
 		// Wait for GreptimeDB cluster to be ready.
-		time.Sleep(3 * time.Minute)
+		select {
+		case err = <-errCh:
+			Expect(err).NotTo(HaveOccurred(), "failed to create cluster")
+		case <-time.After(3 * time.Minute):
+		}
 
 		err = getCluster()
 		Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
@@ -137,6 +140,8 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 
 func createCluster() error {
 	cmd := exec.Command("../../bin/gtctl", "cluster", "create", "mydb", "--bare-metal", "--timeout", "300")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return err
 	}
