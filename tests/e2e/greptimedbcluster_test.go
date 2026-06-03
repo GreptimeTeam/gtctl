@@ -17,6 +17,7 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
@@ -140,10 +141,11 @@ var _ = Describe("Basic test of greptimedb cluster", func() {
 
 func createCluster() error {
 	cmd := exec.Command("../../bin/gtctl", "cluster", "create", "mydb", "--bare-metal", "--timeout", "300")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = &output
 	if err := cmd.Run(); err != nil {
-		return err
+		return fmt.Errorf("%w: %s", err, output.String())
 	}
 	return nil
 }
