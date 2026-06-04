@@ -124,7 +124,7 @@ func (m *metaSrv) BuildArgs(params ...interface{}) []string {
 		m.Name(), "start",
 		fmt.Sprintf("--server-addr=%s", m.config.ServerAddr),
 	)
-	if m.config.StoreAddr != "" {
+	if len(m.config.StoreAddr) != 0 {
 		args = append(args, fmt.Sprintf("--store-addr=%s", m.config.StoreAddr))
 	}
 	args = GenerateAddrArg("--http-addr", m.config.HTTPAddr, nodeID, args)
