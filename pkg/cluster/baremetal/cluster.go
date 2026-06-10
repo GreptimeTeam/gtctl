@@ -49,7 +49,7 @@ type Cluster struct {
 type ClusterComponents struct {
 	MetaSrv  components.ClusterComponent
 	Datanode components.ClusterComponent
-	Frontend components.ClusterComponent
+	Frontend components.Frontend
 	Etcd     components.ClusterComponent
 }
 

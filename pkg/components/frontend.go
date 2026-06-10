@@ -19,6 +19,7 @@ package components
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"path"
 	"sync"
@@ -30,7 +31,7 @@ import (
 	fileutils "github.com/GreptimeTeam/gtctl/pkg/utils/file"
 )
 
-type frontend struct {
+type Frontend struct {
 	config      *config.Frontend
 	metaSrvAddr string
 
@@ -42,8 +43,8 @@ type frontend struct {
 }
 
 func NewFrontend(config *config.Frontend, metaSrvAddr string, workingDirs WorkingDirs,
-	wg *sync.WaitGroup, logger logger.Logger) ClusterComponent {
-	return &frontend{
+	wg *sync.WaitGroup, logger logger.Logger) Frontend {
+	return Frontend{
 		config:      config,
 		metaSrvAddr: metaSrvAddr,
 		workingDirs: workingDirs,
@@ -52,11 +53,11 @@ func NewFrontend(config *config.Frontend, metaSrvAddr string, workingDirs Workin
 	}
 }
 
-func (f *frontend) Name() string {
+func (f *Frontend) Name() string {
 	return string(greptimedbclusterv1alpha1.FrontendComponentKind)
 }
 
-func (f *frontend) Start(ctx context.Context, stop context.CancelFunc, binary string) error {
+func (f *Frontend) Start(ctx context.Context, stop context.CancelFunc, binary string) error {
 	for i := 0; i < f.config.Replicas; i++ {
 		dirName := fmt.Sprintf("%s.%d", f.Name(), i)
 
@@ -87,7 +88,7 @@ func (f *frontend) Start(ctx context.Context, stop context.CancelFunc, binary st
 	return nil
 }
 
-func (f *frontend) BuildArgs(params ...interface{}) []string {
+func (f *Frontend) BuildArgs(params ...interface{}) []string {
 	logLevel := f.config.LogLevel
 	if logLevel == "" {
 		logLevel = DefaultLogLevel
@@ -115,7 +116,7 @@ func (f *frontend) BuildArgs(params ...interface{}) []string {
 	return args
 }
 
-func (f *frontend) IsRunning(_ context.Context) bool {
+func (f *Frontend) IsRunning(_ context.Context) bool {
 	for i := 0; i < f.config.Replicas; i++ {
 		addr := FormatAddrArg(f.config.HTTPAddr, i)
 		healthy := fmt.Sprintf("http://%s/health", addr)
@@ -137,4 +138,35 @@ func (f *frontend) IsRunning(_ context.Context) bool {
 		}
 	}
 	return true
+}
+
+func (f *Frontend) PrintDashboardLog() {
+	format := "http://%s:%s/dashboard/"
+
+	// Split addr to host:ip
+	http_addr := f.config.HTTPAddr
+	host, port, err := net.SplitHostPort(http_addr)
+	if len(http_addr) > 0 && err != nil {
+		f.logger.Warnf("%s use incorrect http_addr: %s err: %s", f.Name(), http_addr, err)
+		return
+	}
+
+	var log string
+	if len(http_addr) == 0 || host == "0.0.0.0" {
+		ip, err := HostnameIP()
+
+		if err != nil {
+			f.logger.Warnf("%s hostname local resolution failed: %s", f.Name(), err)
+			return
+		}
+		if len(port) == 0 {
+			port = "4000"
+		}
+
+		log = fmt.Sprintf(format, ip, port)
+	} else {
+		log = fmt.Sprintf(format, host, port)
+	}
+
+	f.logger.V(0).Infof("If enabled dashboard, view it by accessing: %s", logger.Bold(log))
 }

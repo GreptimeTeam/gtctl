@@ -19,6 +19,7 @@ package components
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 )
 
@@ -47,4 +48,21 @@ func GenerateAddrArg(config string, addr string, nodeId int, args []string) []st
 	}
 
 	return append(args, fmt.Sprintf("%s=%s", config, socketAddr))
+}
+
+func HostnameIP() (ip string, err error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "", err
+	}
+
+	ips, err := net.LookupHost(hostname)
+	if err != nil {
+		return "", err
+	}
+
+	if len(ips) == 0 {
+		return "", nil
+	}
+	return ips[0], nil
 }
